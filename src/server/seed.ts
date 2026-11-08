@@ -132,10 +132,11 @@ export async function ensureSeeded(): Promise<void> {
     for (const d of demoDrivers) {
       const driverId = newId();
       await db.insert(drivers).values({
-    id: driverId, name: d.name, rating: d.rating, isSimulated: true, photoUrl: null });
+      id: newId(),
+      id: driverId, name: d.name, rating: d.rating, isSimulated: true, photoUrl: null });
       await db.insert(vehicles).values({
-    id: newId(),
-        driverId,
+      id: newId(),
+      driverId,
         brand: d.brand,
         model: d.model,
         color: d.color,

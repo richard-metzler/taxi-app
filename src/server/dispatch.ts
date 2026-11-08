@@ -34,8 +34,8 @@ async function addEvent(order: Order, type: string): Promise<void> {
   const text = EVENT_TEXTS[type];
   if (!text) return;
   await db.insert(orderEvents).values({
-    id: newId(),
-    orderId: order.id,
+      id: newId(),
+      orderId: order.id,
     passengerId: order.passengerId,
     type,
     title: text.title,

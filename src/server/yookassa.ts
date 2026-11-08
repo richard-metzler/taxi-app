@@ -92,7 +92,7 @@ export async function createPayment(user: User, orderId: string, returnUrl: stri
   const idempotenceKey = randomUUID();
   const [draft] = await db
     .insert(payments)
-    .values({ id: newId(), orderId: order.id, userId: user.id, idempotenceKey, amount, currency: order.currency, status: "pending" })
+    .values({ orderId: order.id, userId: user.id, idempotenceKey, amount, currency: order.currency, status: "pending" })
     .returning();
 
   const created = await yooRequest<YooPayment>("/payments", {
@@ -143,8 +143,8 @@ async function applyProviderState(payment: Payment, remote: YooPayment): Promise
       .returning();
     if (order) {
       await db.insert(orderEvents).values({
-    id: newId(),
-        orderId: order.id,
+      id: newId(),
+      orderId: order.id,
         passengerId: order.passengerId,
         type: "paid",
         title: "Оплата прошла успешно",
@@ -159,8 +159,8 @@ async function applyProviderState(payment: Payment, remote: YooPayment): Promise
       .returning();
     if (order) {
       await db.insert(orderEvents).values({
-    id: newId(),
-        orderId: order.id,
+      id: newId(),
+      orderId: order.id,
         passengerId: order.passengerId,
         type: "payment_failed",
         title: "Оплата не прошла",

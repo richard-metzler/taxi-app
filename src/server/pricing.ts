@@ -123,7 +123,6 @@ export async function createEstimate(userId: string, input: EstimateInput): Prom
   const [estimate] = await db
     .insert(fareEstimates)
     .values({
-      id: newId(),
       userId,
       pickupAddress: input.pickup.address,
       pickupLat: input.pickup.latitude,

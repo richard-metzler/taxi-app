@@ -55,7 +55,8 @@ async function issueSession(user: User): Promise<SignInResult> {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
   await db.insert(sessions).values({
-    id: newId(), userId: user.id, tokenHash: sha256(token), expiresAt });
+      id: newId(),
+      userId: user.id, tokenHash: sha256(token), expiresAt });
   return { user, token, expiresAt };
 }
 
@@ -105,7 +106,8 @@ export async function registerWithPassword(input: {
   } else {
     const id = newId();
     await db.insert(users).values({
-    id, phone, name, passwordHash, role });
+      id: newId(),
+      id, phone, name, passwordHash, role });
     const duplicates = await db.select().from(users).where(eq(users.phone, phone));
     const winner = [...duplicates].sort((a: User, b: User) => a.createdAt.getTime() - b.createdAt.getTime())[0];
     if (winner && winner.id !== id) {
@@ -116,8 +118,9 @@ export async function registerWithPassword(input: {
     if (role === "driver" && vehicle) {
       const driverId = newId();
       await db.insert(drivers).values({
-    id: driverId, userId: user.id, name, isSimulated: false });
-      await db.insert(vehicles).values({ id: newId(), driverId, ...vehicle });
+      id: newId(),
+      id: driverId, userId: user.id, name, isSimulated: false });
+      await db.insert(vehicles).values({ driverId, ...vehicle });
     }
   }
 
@@ -208,14 +211,16 @@ export async function signInWithMax(maxUserId: string, role: 'passenger' | 'driv
   }
   const userName = name?.trim() || 'Пользователь MAX';
   const [created] = await db.insert(users).values({
-    phone,
+      id: newId(),
+      phone,
     name: userName,
     passwordHash: null,
     role,
   }).returning();
   if (role === 'driver') {
     await db.insert(drivers).values({
-    userId: created.id, name: userName, isSimulated: false });
+      id: newId(),
+      userId: created.id, name: userName, isSimulated: false });
   }
   return issueSession(created);
 }
