@@ -1,3 +1,4 @@
+import "server-only";
 import * as postgresSchema from "./schema.pg";
 import * as ydbSchema from "./schema.ydb";
 
