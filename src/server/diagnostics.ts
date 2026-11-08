@@ -15,7 +15,6 @@ export async function recordAuthDiagnostic(event: string, userId: string | null)
   try {
     const t = await describeTransport();
     await db.insert(authDiagnostics).values({
-    id: crypto.randomUUID(),
     id: newId(), event, userId, ...t });
     if (Math.random() < 0.05) {
       await db.delete(authDiagnostics).where(lt(authDiagnostics.createdAt, new Date(Date.now() - RETENTION_MS)));
