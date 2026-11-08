@@ -105,7 +105,7 @@ export async function registerWithPassword(input: {
   } else {
     const id = newId();
     await db.insert(users).values({
-    id: crypto.randomUUID(), id, phone, name, passwordHash, role });
+    id, phone, name, passwordHash, role });
     const duplicates = await db.select().from(users).where(eq(users.phone, phone));
     const winner = [...duplicates].sort((a: User, b: User) => a.createdAt.getTime() - b.createdAt.getTime())[0];
     if (winner && winner.id !== id) {
@@ -208,7 +208,6 @@ export async function signInWithMax(maxUserId: string, role: 'passenger' | 'driv
   }
   const userName = name?.trim() || 'Пользователь MAX';
   const [created] = await db.insert(users).values({
-    id: crypto.randomUUID(),
     phone,
     name: userName,
     passwordHash: null,
@@ -216,7 +215,7 @@ export async function signInWithMax(maxUserId: string, role: 'passenger' | 'driv
   }).returning();
   if (role === 'driver') {
     await db.insert(drivers).values({
-    id: crypto.randomUUID(), userId: created.id, name: userName, isSimulated: false });
+    userId: created.id, name: userName, isSimulated: false });
   }
   return issueSession(created);
 }
