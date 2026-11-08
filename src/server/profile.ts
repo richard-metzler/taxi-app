@@ -7,12 +7,10 @@ import type { UserProfile } from "@/shared/types";
 
 const NAVIGATORS = ["yandex", "dgis", "google"] as const;
 
-/** Публичное представление профиля (без служебных полей). */
 export function toProfile(user: User): UserProfile {
   return { id: user.id, phone: user.phone, name: user.name, role: user.role, navigator: user.navigator };
 }
 
-/** Обновление имени и навигатора. Поле role намеренно недоступно. */
 export async function updateProfile(user: User, patch: { name?: string; navigator?: string }): Promise<User> {
   const values: Partial<User> = {};
   if (patch.name !== undefined) {
@@ -26,14 +24,17 @@ export async function updateProfile(user: User, patch: { name?: string; navigato
     }
     values.navigator = patch.navigator as User["navigator"];
   }
-  const [updated] = await db
-    .update(users)
-    .set({ ...values, updatedAt: new Date() })
-    .where(eq(users.id, user.id))
-    .returning();
-  // Имя водителя в карточке для пассажира должно совпадать с профилем.
+  
+  values.updatedAt = new Date().toISOString() as any;
+
+  await db.update(users).set(values).where(eq(users.id, user.id));
+  
+  const [updated] = await db.select().from(users).where(eq(users.id, user.id));
+  if (!updated) throw Errors.notFound("Пользователь");
+
   if (values.name !== undefined && user.role === "driver") {
     await db.update(drivers).set({ name: values.name }).where(eq(drivers.userId, user.id));
   }
+  
   return updated;
 }

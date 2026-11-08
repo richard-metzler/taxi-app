@@ -31,7 +31,7 @@ const SUBURBAN_SPEED_KMH = 60;
  * Дальше — понятная ошибка с ближайшим городом.
  */
 export async function availableTariffsAt(point: LatLng): Promise<AvailableTariffs> {
-  const zones = await db.select().from(serviceZones).where(eq(serviceZones.isActive, true));
+  const zones = await db.select().from(serviceZones).where(eq(serviceZones.isActive, "true"));
   const match = matchZone(point, zones);
   if (match.kind === "outside") {
     throw new AppError("out_of_service_area", outOfZoneMessage(match), 422);
@@ -40,7 +40,7 @@ export async function availableTariffsAt(point: LatLng): Promise<AvailableTariff
     .select({ tariff: tariffs })
     .from(tariffZones)
     .innerJoin(tariffs, eq(tariffs.id, tariffZones.tariffId))
-    .where(and(eq(tariffZones.zoneId, match.zone.id), eq(tariffs.isActive, true)))
+    .where(and(eq(tariffZones.zoneId, match.zone.id), eq(tariffs.isActive, "true")))
     .orderBy(asc(tariffs.sortOrder));
   const suburban = match.kind === "suburban";
   const list = rows.map((r: { tariff: Tariff }) => r.tariff).filter((t: Tariff) => !suburban || !CITY_ONLY_TARIFFS.includes(t.id));
