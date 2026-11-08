@@ -120,6 +120,8 @@ export async function createEstimate(userId: string, input: EstimateInput): Prom
   }));
 
   const expiresAt = new Date(Date.now() + ESTIMATE_TTL_MS);
+  const estimateId = newId();
+  const estimateId = newId();
   const [estimate] = await db
     .insert(fareEstimates)
     .values({
