@@ -201,7 +201,7 @@ export async function signInWithMax(maxUserId: string, role: 'passenger' | 'driv
   const phone = `max_${maxUserId}`;
   const [existing] = await db.select().from(users).where(eq(users.phone, phone));
   if (existing) {
-    return issueSession(db, existing);
+    return issueSession(existing);
   }
   const userName = name?.trim() || 'Пользователь MAX';
   const [created] = await db.insert(users).values({
@@ -213,5 +213,5 @@ export async function signInWithMax(maxUserId: string, role: 'passenger' | 'driv
   if (role === 'driver') {
     await db.insert(drivers).values({ userId: created.id, name: userName, isSimulated: false });
   }
-  return issueSession(db, created);
+  return issueSession(created);
 }
