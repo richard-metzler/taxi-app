@@ -106,7 +106,6 @@ export async function registerWithPassword(input: {
   } else {
     const id = newId();
     await db.insert(users).values({
-      id: newId(),
       id, phone, name, passwordHash, role });
     const duplicates = await db.select().from(users).where(eq(users.phone, phone));
     const winner = [...duplicates].sort((a: User, b: User) => a.createdAt.getTime() - b.createdAt.getTime())[0];
@@ -118,8 +117,7 @@ export async function registerWithPassword(input: {
     if (role === "driver" && vehicle) {
       const driverId = newId();
       await db.insert(drivers).values({
-      id: newId(),
-      id: driverId, userId: user.id, name, isSimulated: false });
+      id, driverId, userId: user.id, name, isSimulated: false });
       await db.insert(vehicles).values({ driverId, ...vehicle });
     }
   }
