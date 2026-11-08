@@ -139,7 +139,7 @@ export async function createEstimate(userId: string, input: EstimateInput): Prom
     .returning();
 
   return {
-    estimateId: estimate.id,
+    estimateId: estimateId,
     distanceMeters: route.distanceMeters,
     durationSeconds: route.durationSeconds,
     routeGeometry: route.geometry,

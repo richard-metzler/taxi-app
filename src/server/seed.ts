@@ -74,7 +74,7 @@ export async function ensureSeeded(): Promise<void> {
     const links = ZONES.flatMap((z) =>
       (z.premium ? ["econom", "comfort", "business"] : ["econom", "comfort"]).map((tariffId) => ({ tariffId, zoneId: z.id })),
     );
-    await db.insert(tariffZones).values(links);
+    try { await db.insert(tariffZones).values(links); } catch (e) { console.warn("tariffZones already seeded"); }
   }
 
   const [{ value: driverCount }] = await db.select({ value: count() }).from(drivers);
