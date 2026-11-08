@@ -143,8 +143,7 @@ async function applyProviderState(payment: Payment, remote: YooPayment): Promise
       .returning();
     if (order) {
       await db.insert(orderEvents).values({
-    id: crypto.randomUUID(),
-        id: newId(),
+    id: newId(),
         orderId: order.id,
         passengerId: order.passengerId,
         type: "paid",
@@ -160,8 +159,7 @@ async function applyProviderState(payment: Payment, remote: YooPayment): Promise
       .returning();
     if (order) {
       await db.insert(orderEvents).values({
-    id: crypto.randomUUID(),
-        id: newId(),
+    id: newId(),
         orderId: order.id,
         passengerId: order.passengerId,
         type: "payment_failed",

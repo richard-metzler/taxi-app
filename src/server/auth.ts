@@ -55,7 +55,7 @@ async function issueSession(user: User): Promise<SignInResult> {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
   await db.insert(sessions).values({
-    id: crypto.randomUUID(), id: newId(), userId: user.id, tokenHash: sha256(token), expiresAt });
+    id: newId(), userId: user.id, tokenHash: sha256(token), expiresAt });
   return { user, token, expiresAt };
 }
 
@@ -116,7 +116,7 @@ export async function registerWithPassword(input: {
     if (role === "driver" && vehicle) {
       const driverId = newId();
       await db.insert(drivers).values({
-    id: crypto.randomUUID(), id: driverId, userId: user.id, name, isSimulated: false });
+    id: driverId, userId: user.id, name, isSimulated: false });
       await db.insert(vehicles).values({ id: newId(), driverId, ...vehicle });
     }
   }
