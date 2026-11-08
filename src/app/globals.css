@@ -1,0 +1,146 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  --color-bg: #e9edf2;
+  --color-ink: #263445;
+  --color-accent: #426d91;
+  --color-success: #419b78;
+  --color-danger: #cf6262;
+  --color-card: #e9edf2;
+  --color-muted: #6b7a8f;
+  --shadow-neo: 8px 8px 18px #c6ccd4, -8px -8px 18px #ffffff;
+  --shadow-neo-sm: 4px 4px 10px #c9cfd7, -4px -4px 10px #ffffff;
+  --shadow-neo-inset: inset 5px 5px 10px #c9cfd7, inset -5px -5px 10px #ffffff;
+  --shadow-neo-inset-sm: inset 3px 3px 6px #c9cfd7, inset -3px -3px 6px #ffffff;
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Неоморфные элементы */
+.neo {
+  background: var(--color-card);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-neo);
+}
+.neo-sm {
+  background: var(--color-card);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-neo-sm);
+}
+.neo-inset {
+  background: var(--color-card);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-neo-inset);
+}
+.neo-btn {
+  background: var(--color-card);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-neo-sm);
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+  user-select: none;
+}
+.neo-btn:active:not(:disabled) {
+  box-shadow: var(--shadow-neo-inset-sm);
+  transform: translateY(1px);
+}
+.neo-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.neo-btn-primary {
+  background: linear-gradient(145deg, #4a7aa2, #3a6283);
+  color: #fff;
+  border-radius: 1rem;
+  box-shadow:
+    6px 6px 14px #c6ccd4,
+    -6px -6px 14px #ffffff;
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+.neo-btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow:
+    2px 2px 6px #c6ccd4,
+    -2px -2px 6px #ffffff;
+}
+.neo-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.neo-input {
+  background: var(--color-card);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-neo-inset-sm);
+  outline: none;
+  color: var(--color-ink);
+}
+.neo-input::placeholder {
+  color: #8d99aa;
+}
+.neo-input:focus {
+  box-shadow:
+    var(--shadow-neo-inset-sm),
+    0 0 0 2px rgba(66, 109, 145, 0.35);
+}
+
+/* Карта */
+.leaflet-container {
+  background: #dfe5ec;
+  font-family: inherit;
+}
+.leaflet-control-attribution {
+  font-size: 10px;
+  background: rgba(233, 237, 242, 0.8) !important;
+}
+
+.pulse-dot {
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.6;
+  }
+}
+
+.safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+}
+
+@keyframes toast-in {
+  from {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.toast-in {
+  animation: toast-in 0.25s ease-out;
+}
