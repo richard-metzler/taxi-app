@@ -53,8 +53,8 @@ export const users = ydbTable(
     passwordHash: str("password_hash"),
     role: str("role").$type<UserRole>().notNull().default("passenger"),
     navigator: str("navigator").$type<NavigatorApp>().notNull().default("yandex"),
-    createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
-    updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
+    createdAt: str("created_at").notNull().(() => new Date().toISOString()),
+    updatedAt: str("updated_at").notNull().(() => new Date().toISOString()),
   },
   (t) => [uniqueIndex("users_phone_uidx").on(t.phone)],
 );
@@ -62,7 +62,7 @@ export const users = ydbTable(
 export const authAttempts = ydbTable("auth_attempts", {
   key: str("key").primaryKey(),
   attempts: num("attempts").notNull().default(0),
-  windowStartedAt: timestamp("window_started_at").notNull().$defaultFn(() => new Date()),
+  windowStartedAt: str("window_started_at").notNull().(() => new Date().toISOString()),
 });
 
 export const sessions = ydbTable(
@@ -71,8 +71,8 @@ export const sessions = ydbTable(
     id: str("id").primaryKey(),
     userId: str("user_id").notNull(),
     tokenHash: str("token_hash").notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
-    createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
+    expiresAt: str("expires_at").notNull(),
+    createdAt: str("created_at").notNull().(() => new Date().toISOString()),
   },
   (t) => [uniqueIndex("sessions_token_uidx").on(t.tokenHash), index("sessions_user_idx").on(t.userId)],
 );
@@ -84,12 +84,12 @@ export const tariffs = ydbTable("tariffs", {
   description: str("description").notNull(),
   icon: str("icon").notNull(),
   sortOrder: num("sort_order").notNull().default(0),
-  isActive: boolean("is_active").notNull().default(true),
+  isActive: str("is_active").notNull().default('true'),
   baseFare: num("base_fare").notNull(),
   perKm: num("per_km").notNull(),
   perMinute: num("per_minute").notNull(),
   minimumFare: num("minimum_fare").notNull(),
-  updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
+  updatedAt: str("updated_at").notNull().(() => new Date().toISOString()),
 });
 
 export const serviceZones = ydbTable("service_zones", {
@@ -98,7 +98,7 @@ export const serviceZones = ydbTable("service_zones", {
   latitude: dbl("latitude").notNull(),
   longitude: dbl("longitude").notNull(),
   radiusKm: dbl("radius_km").notNull(),
-  isActive: boolean("is_active").notNull().default(true),
+  isActive: str("is_active").notNull().default('true'),
   sortOrder: num("sort_order").notNull().default(0),
 });
 
@@ -126,8 +126,8 @@ export const fareEstimates = ydbTable(
     durationSeconds: num("duration_seconds").notNull(),
     routeGeometry: json("route_geometry").$type<[number, number][]>().notNull(),
     quotes: json("quotes").$type<FareQuote[]>().notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
-    createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
+    expiresAt: str("expires_at").notNull(),
+    createdAt: str("created_at").notNull().(() => new Date().toISOString()),
   },
   (t) => [index("fare_estimates_user_idx").on(t.userId)],
 );
@@ -146,11 +146,11 @@ export const drivers = ydbTable(
     name: str("name").notNull(),
     photoUrl: str("photo_url"),
     userId: str("user_id"),
-    isOnline: boolean("is_online").notNull().default(false),
+    isOnline: str("is_online").notNull().default('false'),
     rating: dbl("rating").notNull().default(5),
-    isSimulated: boolean("is_simulated").notNull().default(false),
-    isBusy: boolean("is_busy").notNull().default(false),
-    createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
+    isSimulated: str("is_simulated").notNull().default('false'),
+    isBusy: str("is_busy").notNull().default('false'),
+    createdAt: str("created_at").notNull().(() => new Date().toISOString()),
   },
   (t) => [index("drivers_user_idx").on(t.userId)],
 );
@@ -174,7 +174,7 @@ export const driverLocations = ydbTable("driver_locations", {
   latitude: dbl("latitude").notNull(),
   longitude: dbl("longitude").notNull(),
   heading: dbl("heading").notNull().default(0),
-  updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
+  updatedAt: str("updated_at").notNull().(() => new Date().toISOString()),
 });
 
 export const orders = ydbTable(
@@ -202,14 +202,14 @@ export const orders = ydbTable(
     routeGeometry: json("route_geometry").$type<[number, number][]>().notNull(),
     simulation: json("simulation").$type<OrderSimulation | null>(),
     cancelReason: str("cancel_reason"),
-    createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
-    assignedAt: timestamp("assigned_at"),
-    arrivedAt: timestamp("arrived_at"),
-    startedAt: timestamp("started_at"),
-    completedAt: timestamp("completed_at"),
-    paidAt: timestamp("paid_at"),
-    cancelledAt: timestamp("cancelled_at"),
-    updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
+    createdAt: str("created_at").notNull().(() => new Date().toISOString()),
+    assignedAt: str("assigned_at"),
+    arrivedAt: str("arrived_at"),
+    startedAt: str("started_at"),
+    completedAt: str("completed_at"),
+    paidAt: str("paid_at"),
+    cancelledAt: str("cancelled_at"),
+    updatedAt: str("updated_at").notNull().(() => new Date().toISOString()),
   },
   (t) => [
     index("orders_passenger_idx").on(t.passengerId, t.createdAt),
@@ -240,8 +240,8 @@ export const payments = ydbTable(
     paymentMethod: str("payment_method"),
     confirmationUrl: str("confirmation_url"),
     failureReason: str("failure_reason"),
-    createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
-    updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
+    createdAt: str("created_at").notNull().(() => new Date().toISOString()),
+    updatedAt: str("updated_at").notNull().(() => new Date().toISOString()),
   },
   (t) => [
     uniqueIndex("payments_idempotence_uidx").on(t.idempotenceKey),
@@ -259,7 +259,7 @@ export const orderEvents = ydbTable(
     type: str("type").notNull(),
     title: str("title").notNull(),
     body: str("body").notNull(),
-    createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
+    createdAt: str("created_at").notNull().(() => new Date().toISOString()),
   },
   (t) => [index("order_events_passenger_idx").on(t.passengerId, t.createdAt), index("order_events_order_idx").on(t.orderId)],
 );
@@ -271,18 +271,18 @@ export const authDiagnostics = ydbTable(
     event: str("event").notNull(),
     userId: str("user_id"),
     authorization: str("authorization_header").notNull(),
-    sessionHeader: boolean("session_header").notNull(),
-    cookie: boolean("cookie").notNull(),
-    clientHeader: boolean("client_header").notNull(),
-    bodySession: boolean("body_session").notNull().default(false),
-    viaRpc: boolean("via_rpc").notNull().default(false),
+    sessionHeader: str("session_header").notNull(),
+    cookie: str("cookie").notNull(),
+    clientHeader: str("client_header").notNull(),
+    bodySession: str("body_session").notNull().default('false'),
+    viaRpc: str("via_rpc").notNull().default('false'),
     headerNames: str("header_names"),
     forwardedHost: str("forwarded_host"),
     forwardedProto: str("forwarded_proto"),
     secFetchSite: str("sec_fetch_site"),
     origin: str("origin"),
     userAgent: str("user_agent"),
-    createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
+    createdAt: str("created_at").notNull().(() => new Date().toISOString()),
   },
   (t) => [index("auth_diagnostics_created_idx").on(t.createdAt)],
 );
