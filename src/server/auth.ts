@@ -10,12 +10,12 @@ import { readTokenCandidates, type TokenSource } from "./session-transport";
 import { recordAuthDiagnostic } from "./diagnostics";
 import { hashPassword, verifyPassword } from "./password";
 import { consumeLoginAttempt, consumeRegistrationAttempt, resetAuthAttempts } from "./auth-throttle";
-import { deleteUserData } from "./cleanup";
 import { newId } from "./ids";
 
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 
 export type AccountRole = "passenger" | "driver";
+
 const ROLE_TEXT: Record<AccountRole, string> = { passenger: "пассажир", driver: "водитель" };
 
 function sha256(value: string): string {
@@ -55,20 +55,20 @@ async function issueSession(user: User): Promise<SignInResult> {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
   await db.insert(sessions).values({
-      id: newId(),
-      userId: user.id, tokenHash: sha256(token), expiresAt });
+    id: newId(),
+    userId: user.id,
+    tokenHash: sha256(token),
+    expiresAt: expiresAt.toISOString(),
+    createdAt: new Date().toISOString(),
+  });
   return { user, token, expiresAt };
 }
 
-async function findByPhone(phone: string): Promise<User | undefined> {
-  const rows = await db.select().from(users).where(eq(users.phone, phone)).limit(1);
-  return rows[0];
+async function findByPhone(phone: string): Promise<User | null> {
+  const rows = await db.select().from(users).where(eq(users.phone, phone));
+  return rows[0] ?? null;
 }
 
-/**
- * Регистрация без транзакций YDB: проверка, вставка с новым UUID и повторная проверка гонки.
- * Для водителя отдельно создаются профиль и автомобиль.
- */
 export async function registerWithPassword(input: {
   phone: unknown;
   name: unknown;
@@ -81,6 +81,7 @@ export async function registerWithPassword(input: {
   const name = validatedName(input.name);
   if (typeof input.password !== "string") throw Errors.validation("Введите пароль");
   const password = input.password;
+
   let vehicle: VehicleInput | null = null;
   if (role === "driver") {
     const checked = validateVehicle(input.vehicle);
@@ -92,33 +93,55 @@ export async function registerWithPassword(input: {
   const existing = await findByPhone(phone);
   if (existing && (existing.passwordHash || role !== "passenger")) throw phoneTakenError(existing.role, role);
   if (existing && existing.role !== "passenger") throw Errors.forbidden();
-  const passwordHash = await hashPassword(password);
 
+  const passwordHash = await hashPassword(password);
   let user: User;
+
   if (existing) {
-    const [updated] = await db
-      .update(users)
-      .set({ name, passwordHash, updatedAt: new Date() })
-      .where(and(eq(users.id, existing.id), isNull(users.passwordHash)))
-      .returning();
-    if (!updated) throw phoneTakenError(existing.role, role);
-    user = updated;
+    const now = new Date().toISOString();
+    await db.update(users).set({ name, passwordHash, updatedAt: now }).where(and(eq(users.id, existing.id), isNull(users.passwordHash)));
+    const refreshed = await db.select().from(users).where(eq(users.id, existing.id));
+    if (!refreshed[0]) throw phoneTakenError(existing.role, role);
+    user = refreshed[0];
   } else {
-    const id = newId();
+    const userId = newId();
+    const now = new Date().toISOString();
     await db.insert(users).values({
-      id, phone, name, passwordHash, role });
-    const duplicates = await db.select().from(users).where(eq(users.phone, phone));
-    const winner = [...duplicates].sort((a: User, b: User) => a.createdAt.getTime() - b.createdAt.getTime())[0];
-    if (winner && winner.id !== id) {
-      await deleteUserData(id);
-      throw phoneTakenError(winner.role, role);
-    }
-    user = winner ?? { id, phone, name, passwordHash, role, navigator: "yandex", createdAt: new Date(), updatedAt: new Date() };
+      id: userId,
+      phone,
+      name,
+      passwordHash,
+      role,
+      navigator: "yandex",
+      createdAt: now,
+      updatedAt: now,
+    });
+    const created = await db.select().from(users).where(eq(users.id, userId));
+    if (!created[0]) throw phoneTakenError(null, role);
+    user = created[0];
+
     if (role === "driver" && vehicle) {
       const driverId = newId();
       await db.insert(drivers).values({
-      id, driverId, userId: user.id, name, isSimulated: false });
-      await db.insert(vehicles).values({ driverId, ...vehicle });
+        id: driverId,
+        userId: user.id,
+        name,
+        photoUrl: null,
+        isOnline: "false",
+        isBusy: "false",
+        isSimulated: "false",
+        rating: 5,
+        createdAt: now,
+      });
+      await db.insert(vehicles).values({
+        id: newId(),
+        driverId,
+        brand: vehicle.brand,
+        model: vehicle.model,
+        color: vehicle.color,
+        plate: vehicle.plate,
+        tariffId: vehicle.tariffId,
+      });
     }
   }
 
@@ -136,14 +159,14 @@ export async function signInWithPassword(input: { phone: unknown; password: unkn
   const user = await findByPhone(phone);
   const valid = await verifyPassword(input.password, user?.passwordHash ?? null);
   if (!user || !valid) {
-    // await recordAuthDiagnostic("login_failed", null);
+    await recordAuthDiagnostic("login_failed", null);
     throw new AppError("invalid_credentials", "Неверный номер телефона или пароль", 401);
   }
   if (user.role !== "passenger" && user.role !== "driver") throw Errors.forbidden();
   if (input.role !== undefined && requestedRole(input.role) !== user.role) {
     throw new AppError(
       "role_mismatch",
-      `Этот номер зарегистрирован как ${ROLE_TEXT[user.role]}. Смените роль и войдите снова.`,
+      `Этот номер зарегистрирован как ${ROLE_TEXT[user.role as AccountRole]}. Смените роль и войдите снова.`,
       403,
     );
   }
@@ -151,19 +174,61 @@ export async function signInWithPassword(input: { phone: unknown; password: unkn
   return issueSession(user);
 }
 
+export async function signInWithMax(maxUserId: string, role: AccountRole, name?: string): Promise<SignInResult> {
+  const phone = `max_${maxUserId}`;
+  const existing = await findByPhone(phone);
+  if (existing) {
+    return issueSession(existing);
+  }
+  const userName = name?.trim() || "Пользователь MAX";
+  const now = new Date().toISOString();
+  const userId = newId();
+  await db.insert(users).values({
+    id: userId,
+    phone,
+    name: userName,
+    passwordHash: null,
+    role,
+    navigator: "yandex",
+    createdAt: now,
+    updatedAt: now,
+  });
+  const created = await db.select().from(users).where(eq(users.id, userId));
+  if (!created[0]) throw new AppError("user_create_failed", "Не удалось создать пользователя", 500);
+  const user = created[0];
+
+  if (role === "driver") {
+    await db.insert(drivers).values({
+      id: newId(),
+      userId: user.id,
+      name: userName,
+      photoUrl: null,
+      isOnline: "false",
+      isBusy: "false",
+      isSimulated: "false",
+      rating: 5,
+      createdAt: now,
+    });
+  }
+  return issueSession(user);
+}
+
 export async function resolveSession(): Promise<{ user: User; source: TokenSource } | null> {
   const candidates = await readTokenCandidates();
   if (candidates.length === 0) return null;
   const hashes = candidates.map((candidate) => sha256(candidate.token));
-  const rows = await db
-    .select({ user: users, tokenHash: sessions.tokenHash })
-    .from(sessions)
-    .innerJoin(users, eq(sessions.userId, users.id))
-    .where(and(inArray(sessions.tokenHash, hashes), gt(sessions.expiresAt, new Date())));
+  const sessionRows = await db.select().from(sessions).where(inArray(sessions.tokenHash, hashes));
+  const now = new Date().toISOString();
+  const validSessions = sessionRows.filter((s) => s.expiresAt > now);
+  if (validSessions.length === 0) return null;
+  const userIds = validSessions.map((s) => s.userId);
+  const userRows = await db.select().from(users).where(inArray(users.id, userIds));
   for (const candidate of candidates) {
     const hash = sha256(candidate.token);
-    const row = rows.find((item: { tokenHash: string; user: User }) => item.tokenHash === hash);
-    if (row) return { user: row.user, source: candidate.source };
+    const session = validSessions.find((s) => s.tokenHash === hash);
+    if (!session) continue;
+    const user = userRows.find((u) => u.id === session.userId);
+    if (user) return { user, source: candidate.source };
   }
   return null;
 }
@@ -175,7 +240,7 @@ export async function getCurrentUser(): Promise<User | null> {
 export async function requirePassenger(): Promise<User> {
   const session = await resolveSession();
   if (!session) {
-    // await recordAuthDiagnostic("unauthorized", null);
+    await recordAuthDiagnostic("unauthorized", null);
     throw Errors.unauthorized();
   }
   if (session.user.role !== "passenger") {
@@ -187,7 +252,7 @@ export async function requirePassenger(): Promise<User> {
 export async function requireAccount(): Promise<User> {
   const session = await resolveSession();
   if (!session) {
-    // await recordAuthDiagnostic("unauthorized", null);
+    await recordAuthDiagnostic("unauthorized", null);
     throw Errors.unauthorized();
   }
   if (session.user.role !== "passenger" && session.user.role !== "driver") throw Errors.forbidden();
@@ -199,26 +264,4 @@ export async function signOut(): Promise<void> {
   if (candidates.length > 0) {
     await db.delete(sessions).where(inArray(sessions.tokenHash, candidates.map((candidate) => sha256(candidate.token))));
   }
-}
-
-export async function signInWithMax(maxUserId: string, role: 'passenger' | 'driver', name?: string): Promise<SignInResult> {
-  const phone = `max_${maxUserId}`;
-  const [existing] = await db.select().from(users).where(eq(users.phone, phone));
-  if (existing) {
-    return issueSession(existing);
-  }
-  const userName = name?.trim() || 'Пользователь MAX';
-  const [created] = await db.insert(users).values({
-      id: newId(),
-      phone,
-    name: userName,
-    passwordHash: null,
-    role,
-  }).returning();
-  if (role === 'driver') {
-    await db.insert(drivers).values({
-      id: newId(),
-      userId: created.id, name: userName, isSimulated: false });
-  }
-  return issueSession(created);
 }
