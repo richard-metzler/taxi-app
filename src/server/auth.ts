@@ -196,3 +196,22 @@ export async function signOut(): Promise<void> {
     await db.delete(sessions).where(inArray(sessions.tokenHash, candidates.map((candidate) => sha256(candidate.token))));
   }
 }
+
+export async function signInWithMax(maxUserId: string, role: 'passenger' | 'driver', name?: string): Promise<SignInResult> {
+  const phone = `max_${maxUserId}`;
+  const [existing] = await db.select().from(users).where(eq(users.phone, phone));
+  if (existing) {
+    return issueSession(db, existing);
+  }
+  const userName = name?.trim() || 'Пользователь MAX';
+  const [created] = await db.insert(users).values({
+    phone,
+    name: userName,
+    passwordHash: null,
+    role,
+  }).returning();
+  if (role === 'driver') {
+    await db.insert(drivers).values({ userId: created.id, name: userName, isSimulated: false });
+  }
+  return issueSession(db, created);
+}

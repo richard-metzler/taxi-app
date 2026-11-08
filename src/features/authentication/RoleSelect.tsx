@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { AppLogo } from "@/core/widgets/AppLogo";
 import type { AppRole } from "@/shared/role";
 
@@ -8,8 +9,44 @@ const OPTIONS: { role: AppRole; icon: string; title: string; text: string }[] = 
   { role: "driver", icon: "🚖", title: "Я водитель", text: "Принимать заказы и возить пассажиров" },
 ];
 
-/** Первый экран приложения: выбор роли. Выбор запоминается на устройстве. */
 export function RoleSelect({ onChoose }: { onChoose: (role: AppRole) => void }) {
+  const [loading, setLoading] = useState<AppRole | null>(null);
+
+  const handleSelect = async (role: AppRole) => {
+    setLoading(role);
+    try {
+      if (typeof window !== 'undefined' && !(window as any).WebApp) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://st.max.ru/js/max-web-app.js';
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Не удалось загрузить MAX SDK'));
+          document.body.appendChild(script);
+        });
+      }
+      const maxUserId = (window as any).WebApp?.initDataUnsafe?.user?.id;
+      if (!maxUserId) {
+        alert('Не удалось получить ID пользователя MAX. Откройте приложение через MAX.');
+        setLoading(null);
+        return;
+      }
+      const res = await fetch('/api/auth/max', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maxUserId: String(maxUserId), role }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error?.message || 'Ошибка входа');
+      }
+      onChoose(role);
+    } catch (err: any) {
+      alert(err.message || 'Ошибка');
+    } finally {
+      setLoading(null);
+    }
+  };
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-10">
       <div className="mb-8 flex flex-col items-center justify-center">
@@ -26,8 +63,9 @@ export function RoleSelect({ onChoose }: { onChoose: (role: AppRole) => void }) 
             key={option.role}
             id={`role-${option.role}`}
             type="button"
-            onClick={() => onChoose(option.role)}
-            className="neo-btn flex min-h-24 items-center gap-4 px-5 py-4 text-left"
+            onClick={() => handleSelect(option.role)}
+            disabled={loading !== null}
+            className="neo-btn flex min-h-24 items-center gap-4 px-5 py-4 text-left disabled:opacity-50"
           >
             <span className="neo-inset flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl" aria-hidden="true">
               {option.icon}
