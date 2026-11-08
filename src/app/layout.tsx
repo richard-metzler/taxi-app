@@ -29,7 +29,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="bg-bg text-ink antialiased">
         <SessionProvider>
           <OfflineBanner />
-          {children}
+          <Script src="https://st.max.ru/js/max-web-app.js" strategy="beforeInteractive" />
+        {children}
         </SessionProvider>
       </body>
     </html>
