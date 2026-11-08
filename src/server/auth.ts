@@ -135,7 +135,7 @@ export async function signInWithPassword(input: { phone: unknown; password: unkn
   const user = await findByPhone(phone);
   const valid = await verifyPassword(input.password, user?.passwordHash ?? null);
   if (!user || !valid) {
-    await recordAuthDiagnostic("login_failed", null);
+    // await recordAuthDiagnostic("login_failed", null);
     throw new AppError("invalid_credentials", "Неверный номер телефона или пароль", 401);
   }
   if (user.role !== "passenger" && user.role !== "driver") throw Errors.forbidden();
@@ -174,7 +174,7 @@ export async function getCurrentUser(): Promise<User | null> {
 export async function requirePassenger(): Promise<User> {
   const session = await resolveSession();
   if (!session) {
-    await recordAuthDiagnostic("unauthorized", null);
+    // await recordAuthDiagnostic("unauthorized", null);
     throw Errors.unauthorized();
   }
   if (session.user.role !== "passenger") {
@@ -186,7 +186,7 @@ export async function requirePassenger(): Promise<User> {
 export async function requireAccount(): Promise<User> {
   const session = await resolveSession();
   if (!session) {
-    await recordAuthDiagnostic("unauthorized", null);
+    // await recordAuthDiagnostic("unauthorized", null);
     throw Errors.unauthorized();
   }
   if (session.user.role !== "passenger" && session.user.role !== "driver") throw Errors.forbidden();
