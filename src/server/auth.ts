@@ -54,7 +54,8 @@ export type SignInResult = { user: User; token: string; expiresAt: Date };
 async function issueSession(user: User): Promise<SignInResult> {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
-  await db.insert(sessions).values({ id: newId(), userId: user.id, tokenHash: sha256(token), expiresAt });
+  await db.insert(sessions).values({
+    id: crypto.randomUUID(), id: newId(), userId: user.id, tokenHash: sha256(token), expiresAt });
   return { user, token, expiresAt };
 }
 
@@ -103,7 +104,8 @@ export async function registerWithPassword(input: {
     user = updated;
   } else {
     const id = newId();
-    await db.insert(users).values({ id, phone, name, passwordHash, role });
+    await db.insert(users).values({
+    id: crypto.randomUUID(), id, phone, name, passwordHash, role });
     const duplicates = await db.select().from(users).where(eq(users.phone, phone));
     const winner = [...duplicates].sort((a: User, b: User) => a.createdAt.getTime() - b.createdAt.getTime())[0];
     if (winner && winner.id !== id) {
@@ -113,7 +115,8 @@ export async function registerWithPassword(input: {
     user = winner ?? { id, phone, name, passwordHash, role, navigator: "yandex", createdAt: new Date(), updatedAt: new Date() };
     if (role === "driver" && vehicle) {
       const driverId = newId();
-      await db.insert(drivers).values({ id: driverId, userId: user.id, name, isSimulated: false });
+      await db.insert(drivers).values({
+    id: crypto.randomUUID(), id: driverId, userId: user.id, name, isSimulated: false });
       await db.insert(vehicles).values({ id: newId(), driverId, ...vehicle });
     }
   }
@@ -205,13 +208,15 @@ export async function signInWithMax(maxUserId: string, role: 'passenger' | 'driv
   }
   const userName = name?.trim() || 'Пользователь MAX';
   const [created] = await db.insert(users).values({
+    id: crypto.randomUUID(),
     phone,
     name: userName,
     passwordHash: null,
     role,
   }).returning();
   if (role === 'driver') {
-    await db.insert(drivers).values({ userId: created.id, name: userName, isSimulated: false });
+    await db.insert(drivers).values({
+    id: crypto.randomUUID(), userId: created.id, name: userName, isSimulated: false });
   }
   return issueSession(created);
 }
