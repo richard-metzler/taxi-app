@@ -56,7 +56,7 @@ export const users = ydbTable(
     createdAt: str("created_at").notNull().(() => new Date().toISOString()),
     updatedAt: str("updated_at").notNull().(() => new Date().toISOString()),
   },
-  (t) => [uniqueIndex("users_phone_uidx").on(t.phone)],
+  (t) => ,
 );
 
 export const authAttempts = ydbTable("auth_attempts", {
@@ -74,7 +74,7 @@ export const sessions = ydbTable(
     expiresAt: str("expires_at").notNull(),
     createdAt: str("created_at").notNull().(() => new Date().toISOString()),
   },
-  (t) => [uniqueIndex("sessions_token_uidx").on(t.tokenHash), index("sessions_user_idx").on(t.userId)],
+  (t) => ,
 );
 
 export const tariffs = ydbTable("tariffs", {
@@ -129,7 +129,7 @@ export const fareEstimates = ydbTable(
     expiresAt: str("expires_at").notNull(),
     createdAt: str("created_at").notNull().(() => new Date().toISOString()),
   },
-  (t) => [index("fare_estimates_user_idx").on(t.userId)],
+  (t) => ,
 );
 
 export type FareQuote = {
@@ -152,7 +152,7 @@ export const drivers = ydbTable(
     isBusy: str("is_busy").notNull().default('false'),
     createdAt: str("created_at").notNull().(() => new Date().toISOString()),
   },
-  (t) => [index("drivers_user_idx").on(t.userId)],
+  (t) => ,
 );
 
 export const vehicles = ydbTable(
@@ -166,7 +166,7 @@ export const vehicles = ydbTable(
     plate: str("plate").notNull(),
     tariffId: str("tariff_id").notNull(),
   },
-  (t) => [index("vehicles_driver_idx").on(t.driverId)],
+  (t) => ,
 );
 
 export const driverLocations = ydbTable("driver_locations", {
@@ -244,7 +244,7 @@ export const payments = ydbTable(
     updatedAt: str("updated_at").notNull().(() => new Date().toISOString()),
   },
   (t) => [
-    uniqueIndex("payments_idempotence_uidx").on(t.idempotenceKey),
+    ,
     index("payments_order_idx").on(t.orderId),
     index("payments_provider_idx").on(t.providerPaymentId),
   ],
@@ -261,7 +261,7 @@ export const orderEvents = ydbTable(
     body: str("body").notNull(),
     createdAt: str("created_at").notNull().(() => new Date().toISOString()),
   },
-  (t) => [index("order_events_passenger_idx").on(t.passengerId, t.createdAt), index("order_events_order_idx").on(t.orderId)],
+  (t) => ,
 );
 
 export const authDiagnostics = ydbTable(
@@ -284,7 +284,7 @@ export const authDiagnostics = ydbTable(
     userAgent: str("user_agent"),
     createdAt: str("created_at").notNull().(() => new Date().toISOString()),
   },
-  (t) => [index("auth_diagnostics_created_idx").on(t.createdAt)],
+  (t) => ,
 );
 
 export type User = typeof users.$inferSelect;
