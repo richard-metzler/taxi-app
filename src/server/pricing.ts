@@ -109,32 +109,23 @@ export async function createEstimate(userId: string, input: EstimateInput): Prom
   const expiresAt = new Date(Date.now() + ESTIMATE_TTL_MS);
   const estimateId = newId();
 
-  await db.execute(sql`
-    INSERT INTO fare_estimates (
-      id, user_id, pickup_address, pickup_lat, pickup_lng,
-      destination_address, destination_lat, destination_lng,
-      distance_meters, duration_seconds, route_geometry, quotes,
-      expires_at, created_at
-    ) VALUES (
-      CAST(${estimateId} AS Utf8), 
-      CAST(${userId} AS Utf8), 
-      CAST(${input.pickup.address} AS Utf8), 
-      CAST(${Number(input.pickup.latitude)} AS Double), 
-      CAST(${Number(input.pickup.longitude)} AS Double),
-      CAST(${input.destination.address} AS Utf8), 
-      CAST(${Number(input.destination.latitude)} AS Double), 
-      CAST(${Number(input.destination.longitude)} AS Double),
-      CAST(${route.distanceMeters} AS Int32), 
-      CAST(${route.durationSeconds} AS Int32), 
-      CAST(${JSON.stringify(route.geometry)} AS Utf8), 
-      CAST(${JSON.stringify(quotes)} AS Utf8),
-      CAST(${expiresAt.toISOString()} AS Utf8), 
-      CAST(${new Date().toISOString()} AS Utf8)
-    )
-  `);
+  const [estimate] = await db.insert(fareEstimates).values({
+    userId,
+    pickupAddress: input.pickup.address,
+    pickupLat: Number(input.pickup.latitude),
+    pickupLng: Number(input.pickup.longitude),
+    destinationAddress: input.destination.address,
+    destinationLat: Number(input.destination.latitude),
+    destinationLng: Number(input.destination.longitude),
+    distanceMeters: route.distanceMeters,
+    durationSeconds: route.durationSeconds,
+    routeGeometry: route.geometry,
+    quotes: quotes,
+    expiresAt: expiresAt,
+  }).returning();
 
   return {
-    estimateId: estimateId,
+    estimateId: estimate.id,
     distanceMeters: route.distanceMeters,
     durationSeconds: route.durationSeconds,
     routeGeometry: route.geometry,

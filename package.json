@@ -10,9 +10,6 @@
   },
   "dependencies": {
     "@types/leaflet": "^1.9.22",
-    "@ydbjs/auth-yandex-cloud": "^0.2.0",
-    "@ydbjs/core": "^6.3.1",
-    "@ydbjs/drizzle-adapter": "^0.1.1",
     "dotenv": "17.3.1",
     "drizzle-orm": "0.45.2",
     "leaflet": "^1.9.4",
