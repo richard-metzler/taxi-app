@@ -213,16 +213,16 @@ function OrderScreen() {
         {order.canCancel ? (
           <Button variant="danger" onClick={() => { console.log("Нажато!"); cancel(); }} loading={cancelling}>
             Отменить заказ
-          </Button></div>
+          </Button>
         ) : null}
         {isFinal ? (
           <div className="flex gap-2">
             <Button className="flex-1" onClick={() => router.push("/history")}>
               История
-            </Button></div>
+            </Button>
             <Button className="flex-1" variant="primary" onClick={() => router.push("/home")}>
               Новый заказ
-            </Button></div>
+            </Button>
           </div>
         ) : null}
       </CollapsibleSheet>
