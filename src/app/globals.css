@@ -144,3 +144,8 @@ body {
 .toast-in {
   animation: toast-in 0.25s ease-out;
 }
+
+/* Скрываем политический флаг, добавленный разработчиками Leaflet */
+.leaflet-attribution-flag {
+  display: none !important;
+}
