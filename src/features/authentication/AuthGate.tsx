@@ -28,10 +28,14 @@ export function AuthGate({ children, role }: { children: ReactNode; role: AppRol
     setMaxLoginTried(true);
     console.log("Авто-логин через MAX ID:", maxUserId);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 секунд на ответ
+
     fetch('/api/auth/max', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ maxUserId: String(maxUserId), role }),
+      signal: controller.signal,
     })
       .then(res => {
         if (res.ok) {
@@ -40,7 +44,8 @@ export function AuthGate({ children, role }: { children: ReactNode; role: AppRol
           console.error("Ошибка авто-логина MAX");
         }
       })
-      .catch(console.error);
+      .catch((err) => { console.error(err); setMaxLoginTried(true); })
+      .finally(() => clearTimeout(timeoutId));
   }, [loading, user, maxLoginTried, role]);
 
   const otherRole = user && isAppRole(user.role) && user.role !== role ? user.role : null;
