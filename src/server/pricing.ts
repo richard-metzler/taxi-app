@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { fareEstimates, serviceZones, tariffZones, tariffs, type FareQuote, type Tariff } from "@/db/schema";
 import { Errors, AppError } from "@/core/errors";
@@ -109,22 +109,19 @@ export async function createEstimate(userId: string, input: EstimateInput): Prom
   const expiresAt = new Date(Date.now() + ESTIMATE_TTL_MS);
   const estimateId = newId();
 
-  await db.insert(fareEstimates).values({
-    id: estimateId,
-    userId,
-    pickupAddress: input.pickup.address,
-    pickupLat: Number(input.pickup.latitude),
-    pickupLng: Number(input.pickup.longitude),
-    destinationAddress: input.destination.address,
-    destinationLat: Number(input.destination.latitude),
-    destinationLng: Number(input.destination.longitude),
-    distanceMeters: route.distanceMeters,
-    durationSeconds: route.durationSeconds,
-    routeGeometry: JSON.stringify(route.geometry) as any,
-    quotes: JSON.stringify(quotes) as any,
-    expiresAt: expiresAt.toISOString(),
-    createdAt: new Date().toISOString(),
-  } as any);
+  await db.execute(sql`
+    INSERT INTO fare_estimates (
+      id, user_id, pickup_address, pickup_lat, pickup_lng,
+      destination_address, destination_lat, destination_lng,
+      distance_meters, duration_seconds, route_geometry, quotes,
+      expires_at, created_at
+    ) VALUES (
+      ${estimateId}, ${userId}, ${input.pickup.address}, ${Number(input.pickup.latitude)}, ${Number(input.pickup.longitude)},
+      ${input.destination.address}, ${Number(input.destination.latitude)}, ${Number(input.destination.longitude)},
+      ${route.distanceMeters}, ${route.durationSeconds}, ${JSON.stringify(route.geometry)}, ${JSON.stringify(quotes)},
+      ${expiresAt.toISOString()}, ${new Date().toISOString()}
+    )
+  `);
 
   return {
     estimateId: estimateId,
