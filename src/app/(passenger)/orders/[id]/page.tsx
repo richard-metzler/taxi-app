@@ -82,7 +82,7 @@ function OrderScreen() {
             <h3 className="text-lg font-bold mb-2 text-ink">Отменить заказ?</h3>
             <p className="text-sm text-muted mb-6">Вы уверены, что хотите отменить поездку?</p>
             <div className="flex gap-3">
-              <Button variant="secondary" className="flex-1" onClick={() => setShowCancelModal(false)}>
+              <Button variant="default" className="flex-1" onClick={() => setShowCancelModal(false)}>
                 Нет
               </Button>
               <Button variant="danger" className="flex-1" onClick={() => setShowCancelModal(true)}>
@@ -112,7 +112,7 @@ function OrderScreen() {
             <h3 className="text-lg font-bold mb-2 text-ink">Отменить заказ?</h3>
             <p className="text-sm text-muted mb-6">Вы уверены, что хотите отменить поездку?</p>
             <div className="flex gap-3">
-              <Button variant="secondary" className="flex-1" onClick={() => setShowCancelModal(false)}>
+              <Button variant="default" className="flex-1" onClick={() => setShowCancelModal(false)}>
                 Нет
               </Button>
               <Button variant="danger" className="flex-1" onClick={() => setShowCancelModal(true)}>
@@ -138,7 +138,7 @@ function OrderScreen() {
             <h3 className="text-lg font-bold mb-2 text-ink">Отменить заказ?</h3>
             <p className="text-sm text-muted mb-6">Вы уверены, что хотите отменить поездку?</p>
             <div className="flex gap-3">
-              <Button variant="secondary" className="flex-1" onClick={() => setShowCancelModal(false)}>
+              <Button variant="default" className="flex-1" onClick={() => setShowCancelModal(false)}>
                 Нет
               </Button>
               <Button variant="danger" className="flex-1" onClick={() => setShowCancelModal(true)}>
@@ -288,7 +288,7 @@ function OrderScreen() {
             <h3 className="text-lg font-bold mb-2 text-ink">Отменить заказ?</h3>
             <p className="text-sm text-muted mb-6">Вы уверены, что хотите отменить поездку?</p>
             <div className="flex gap-3">
-              <Button variant="secondary" className="flex-1" onClick={() => setShowCancelModal(false)}>
+              <Button variant="default" className="flex-1" onClick={() => setShowCancelModal(false)}>
                 Нет
               </Button>
               <Button variant="danger" className="flex-1" onClick={() => setShowCancelModal(true)}>
@@ -316,7 +316,7 @@ export default function OrderPage() {
             <h3 className="text-lg font-bold mb-2 text-ink">Отменить заказ?</h3>
             <p className="text-sm text-muted mb-6">Вы уверены, что хотите отменить поездку?</p>
             <div className="flex gap-3">
-              <Button variant="secondary" className="flex-1" onClick={() => setShowCancelModal(false)}>
+              <Button variant="default" className="flex-1" onClick={() => setShowCancelModal(false)}>
                 Нет
               </Button>
               <Button variant="danger" className="flex-1" onClick={() => setShowCancelModal(true)}>
