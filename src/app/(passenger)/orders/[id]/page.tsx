@@ -35,8 +35,7 @@ function OrderScreen() {
   const { user, loading } = useRequireAuth();
   const { order, error, forbidden, reload } = useOrder(params.id);
   const [cancelling, setCancelling] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+    const [actionError, setActionError] = useState<string | null>(null);
   const [sheetCollapsed, setSheetCollapsed] = useState(false);
   const [driverCollapsed, setDriverCollapsed] = useState(false);
   const [routeCollapsed, setRouteCollapsed] = useState(false);
@@ -72,6 +71,8 @@ function OrderScreen() {
   };
 
   if (loading || !user) {
+  const [showCancelModal, setShowCancelModal] = useState(false);
+
     return (
       <main className="flex min-h-dvh items-center justify-center">
         <Spinner className="h-8 w-8 text-accent" />
