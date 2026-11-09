@@ -89,7 +89,7 @@ async function setDriverLocation(driverId: string, point: LatLng, heading: numbe
 
 async function tryAssignDriver(order: Order, now: Date): Promise<Order> {
   // Срок поиска считается от последнего возврата в поиск (после отказа водителя он обновляется).
-  const searchingMs = now.getTime() - order.updatedAt.getTime();
+  const searchingMs = now.getTime() - new Date(order.updatedAt).getTime();
   if (await hasLiveDrivers(order.tariffId)) {
     return searchingMs > SEARCH_TIMEOUT_MS ? cancelNoDrivers(order, now) : order;
   }
@@ -152,14 +152,14 @@ export async function advanceSimulation(order: Order): Promise<Order> {
   let current = order;
 
   if (current.status === "searching") {
-    if (now.getTime() - current.createdAt.getTime() < SEARCH_DELAY_MS) return current;
+    if (now.getTime() - new Date(current.createdAt).getTime() < SEARCH_DELAY_MS) return current;
     current = await tryAssignDriver(current, now);
   }
 
   const sim = current.simulation;
   if (!sim || !current.driverId || !current.assignedAt) return current;
   const driverId: string = current.driverId;
-  const assignedAtMs = current.assignedAt.getTime();
+  const assignedAtMs = new Date(current.assignedAt).getTime();
 
   const pickup = { latitude: current.pickupLat, longitude: current.pickupLng };
   const start = { latitude: sim.driverStartLat, longitude: sim.driverStartLng };
@@ -182,13 +182,13 @@ export async function advanceSimulation(order: Order): Promise<Order> {
   }
 
   if (current.status === "driver_waiting" && current.arrivedAt) {
-    if (now.getTime() - current.arrivedAt.getTime() >= WAITING_MS) {
+    if (now.getTime() - new Date(current.arrivedAt).getTime() >= WAITING_MS) {
       current = await transition(current, "driver_waiting", { status: "in_progress", startedAt: now }, "in_progress");
     }
   }
 
   if (current.status === "in_progress" && current.startedAt) {
-    const progress = (now.getTime() - current.startedAt.getTime()) / 1000 / sim.rideSeconds;
+    const progress = (now.getTime() - new Date(current.startedAt).getTime()) / 1000 / sim.rideSeconds;
     const route = current.routeGeometry;
     if (progress >= 1) {
       const dest = { latitude: current.destinationLat, longitude: current.destinationLng };

@@ -104,7 +104,7 @@ export async function getDriverState(driver: Driver): Promise<DriverStateView> {
         durationSeconds: row.order.durationSeconds,
         routeGeometry: row.order.routeGeometry,
         passenger: { name: row.passenger.name || "Пассажир", phone: row.passenger.phone },
-        createdAt: row.order.createdAt.toISOString(),
+        createdAt: new Date(row.order.createdAt).toISOString(),
         nextAction: nextDriverAction(row.order.status),
         canDecline: canDeclineStatus(row.order.status),
       }
@@ -193,7 +193,7 @@ export async function listAvailableOrders(driver: Driver): Promise<AvailableOrde
       tripDurationSeconds: order.durationSeconds,
       price: order.estimatedPrice,
       tariffName: tariffName ?? order.tariffId,
-      createdAt: order.createdAt.toISOString(),
+      createdAt: new Date(order.createdAt).toISOString(),
     };
     })
     .filter((item: AvailableOrderView) => item.distanceToPickupMeters <= MAX_PICKUP_DISTANCE_KM * 1000)
@@ -323,7 +323,7 @@ export async function listDriverTrips(driver: Driver): Promise<DriverTripView[]>
     return {
     id: order.id,
     status: order.status,
-    createdAt: order.createdAt.toISOString(),
+    createdAt: new Date(order.createdAt).toISOString(),
     pickupAddress: order.pickupAddress,
     destinationAddress: order.destinationAddress,
     price: order.finalPrice ?? order.estimatedPrice,

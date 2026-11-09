@@ -30,7 +30,7 @@ const PAYMENT_SYNC_INTERVAL_MS = 5_000;
 export async function createOrder(user: User, estimateId: string, tariffId: string): Promise<Order> {
   const [estimate] = await db.select().from(fareEstimates).where(eq(fareEstimates.id, estimateId));
   if (!estimate || estimate.userId !== user.id) throw Errors.notFound("Расчёт стоимости");
-  if (estimate.expiresAt.getTime() < Date.now()) {
+  if (new Date(estimate.expiresAt).getTime() < Date.now()) {
     throw new AppError("estimate_expired", "Расчёт стоимости устарел. Постройте маршрут заново.", 409);
   }
   const quote = (estimate.quotes as FareQuote[]).find((q: FareQuote) => q.tariffId === tariffId);
@@ -153,7 +153,7 @@ export async function getOrderView(user: User, orderId: string): Promise<OrderVi
   if (
     payment &&
     (payment.status === "pending" || payment.status === "waiting_for_capture") &&
-    Date.now() - payment.updatedAt.getTime() > PAYMENT_SYNC_INTERVAL_MS
+    Date.now() - new Date(payment.updatedAt).getTime() > PAYMENT_SYNC_INTERVAL_MS
   ) {
     try {
       const synced = await syncPayment(payment);
@@ -186,9 +186,9 @@ export async function getOrderView(user: User, orderId: string): Promise<OrderVi
     routeGeometry: order.routeGeometry,
     cancelReason: order.cancelReason,
     canCancel: CANCELLABLE_STATUSES.includes(order.status),
-    createdAt: order.createdAt.toISOString(),
-    completedAt: order.completedAt?.toISOString() ?? null,
-    paidAt: order.paidAt?.toISOString() ?? null,
+    createdAt: new Date(order.createdAt).toISOString(),
+    completedAt: order.completedAt ? new Date(order.completedAt).toISOString() : null ?? null,
+    paidAt: order.paidAt ? new Date(order.paidAt).toISOString() : null ?? null,
     driver,
     payment: payment
       ? {
@@ -254,7 +254,7 @@ export async function listOrders(user: User): Promise<OrderSummary[]> {
     return {
     id: order.id,
     status: order.status,
-    createdAt: order.createdAt.toISOString(),
+    createdAt: new Date(order.createdAt).toISOString(),
     pickupAddress: order.pickupAddress,
     destinationAddress: order.destinationAddress,
     tariffName: tariff?.name ?? order.tariffId,
