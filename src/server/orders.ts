@@ -31,76 +31,57 @@ const PAYMENT_SYNC_INTERVAL_MS = 5_000;
 export async function createOrder(user: User, estimateId: string, tariffId: string): Promise<Order> {
   const [rawEstimate] = await db.select().from(fareEstimates).where(eq(fareEstimates.id, estimateId));
   if (!rawEstimate || rawEstimate.userId !== user.id) throw Errors.notFound("Расчёт стоимости");
-  
-  // Парсим строки обратно в объекты, так как YDB хранит их как Utf8
+
   const estimate = {
     ...rawEstimate,
     quotes: typeof rawEstimate.quotes === 'string' ? JSON.parse(rawEstimate.quotes) : rawEstimate.quotes,
     routeGeometry: typeof rawEstimate.routeGeometry === 'string' ? JSON.parse(rawEstimate.routeGeometry) : rawEstimate.routeGeometry
   };
-  
+
   if (new Date(estimate.expiresAt).getTime() < Date.now()) {
-    throw new AppError("estimate_expired", "Расчёт стоимости устарел. Постройте маршрут заново.", 409);
+    throw new AppError("estimate_expired", "Расчёт стоимости устарел.", 409);
   }
+
   const quote = (estimate.quotes as FareQuote[]).find((q: FareQuote) => q.tariffId === tariffId);
   if (!quote) throw Errors.validation("Выбранный тариф недоступен для этого маршрута");
 
   const [tariff] = await db.select().from(tariffs).where(eq(tariffs.id, tariffId));
   if (!tariff || !tariff.isActive) throw Errors.validation("Тариф недоступен");
-  if (tariff.version !== quote.tariffVersion) {
-    throw new AppError("tariff_changed", "Тариф обновился. Постройте маршрут заново.", 409);
-  }
 
-  const active = await db
-    .select({ id: orders.id })
-    .from(orders)
-    .where(and(eq(orders.passengerId, user.id), inArray(orders.status, ACTIVE_STATUSES)))
-    .limit(1);
-  if (active.length > 0) {
-    throw new AppError("active_order_exists", "У вас уже есть активный заказ", 409);
-  }
+  const active = await db.select({ id: orders.id }).from(orders).where(and(eq(orders.passengerId, user.id), inArray(orders.status, ACTIVE_STATUSES))).limit(1);
+  if (active.length > 0) throw new AppError("active_order_exists", "У вас уже есть активный заказ", 409);
 
-  // Неоплаченная поездка блокирует новый заказ, только если оплата реально возможна.
-  if (isYooKassaConfigured()) {
-    const unpaid = await db
-      .select({ id: orders.id })
-      .from(orders)
-      .where(and(eq(orders.passengerId, user.id), inArray(orders.status, UNPAID_STATUSES)))
-      .limit(1);
-    if (unpaid.length > 0) {
-      throw new AppError("unpaid_order_exists", "Сначала оплатите предыдущую поездку", 409);
-    }
-  }
-
-  // 🛡️ Защита от старой сломанной сессии
-  if (!user.id || user.id === '[id]') {
-    throw new Error("Ваша сессия устарела. Пожалуйста, очистите куки или зайдите в режиме инкогнито.");
-  }
-
-  const orderId = crypto.randomUUID(); // Генерируем UUID напрямую, без newId()
+  const orderId = crypto.randomUUID();
   const now = new Date().toISOString();
 
-  await db.insert(orders).values({
-    id: orderId,
-    passengerId: user.id,
-    status: "searching",
-    pickupAddress: estimate.pickupAddress,
-    pickupLat: Number(estimate.pickupLat),
-    pickupLng: Number(estimate.pickupLng),
-    destinationAddress: estimate.destinationAddress,
-    destinationLat: Number(estimate.destinationLat),
-    destinationLng: Number(estimate.destinationLng),
-    tariffId,
-    tariffVersion: quote.tariffVersion,
-    estimateId: estimate.id,
-    estimatedPrice: quote.price,
-    currency: "RUB",
-    distanceMeters: estimate.distanceMeters,
-    durationSeconds: estimate.durationSeconds,
-    routeGeometry: typeof estimate.routeGeometry === 'string' ? estimate.routeGeometry : JSON.stringify(estimate.routeGeometry),
-    createdAt: now,
-    updatedAt: now,
-  } as any);
+  await db.execute(sql`
+    INSERT INTO orders (
+      id, passenger_id, status, pickup_address, pickup_lat, pickup_lng,
+      destination_address, destination_lat, destination_lng,
+      tariff_id, tariff_version, estimate_id, estimated_price, currency,
+      distance_meters, duration_seconds, route_geometry, created_at, updated_at
+    ) VALUES (
+      CAST(${orderId} AS Utf8),
+      CAST(${user.id} AS Utf8),
+      CAST('searching' AS Utf8),
+      CAST(${estimate.pickupAddress} AS Utf8),
+      CAST(${Number(estimate.pickupLat)} AS Double),
+      CAST(${Number(estimate.pickupLng)} AS Double),
+      CAST(${estimate.destinationAddress} AS Utf8),
+      CAST(${Number(estimate.destinationLat)} AS Double),
+      CAST(${Number(estimate.destinationLng)} AS Double),
+      CAST(${tariffId} AS Utf8),
+      CAST(${quote.tariffVersion} AS Int32),
+      CAST(${estimate.id} AS Utf8),
+      CAST(${quote.price} AS Int32),
+      CAST('RUB' AS Utf8),
+      CAST(${estimate.distanceMeters} AS Int32),
+      CAST(${estimate.durationSeconds} AS Int32),
+      CAST(${typeof estimate.routeGeometry === 'string' ? estimate.routeGeometry : JSON.stringify(estimate.routeGeometry)} AS Utf8),
+      CAST(${now} AS Utf8),
+      CAST(${now} AS Utf8)
+    )
+  `);
 
   const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
   return order;
