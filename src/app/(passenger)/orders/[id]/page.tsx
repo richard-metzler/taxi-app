@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOrder } from "@/features/ride_order/useOrder";
 import { Button, Spinner } from "@/core/widgets/ui";
-import Link from "next/link";
 
 export default function OrderPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -25,7 +24,8 @@ export default function OrderPage({ params }: { params: { id: string } }) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-danger">У вас нет доступа к этому заказу</p>
-        <Link href="/home"><Button>На главную</Button></Link>
+        <p className="text-sm text-gray-500">ID заказа: {params.id}</p>
+        <Button onClick={() => router.push("/home")}>На главную</Button>
       </main>
     );
   }
@@ -34,7 +34,7 @@ export default function OrderPage({ params }: { params: { id: string } }) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-danger">{error || "Заказ не найден"}</p>
-        <Link href="/home"><Button>На главную</Button></Link>
+        <Button onClick={() => router.push("/home")}>На главную</Button>
       </main>
     );
   }
