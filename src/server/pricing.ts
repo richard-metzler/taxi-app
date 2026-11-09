@@ -28,12 +28,12 @@ export async function availableTariffsAt(point: LatLng): Promise<AvailableTariff
   if (match.kind === "outside") {
     throw new AppError("out_of_service_area", outOfZoneMessage(match), 422);
   }
-  const rows = await db
+  const rows = (await db
     .select({ tariff: tariffs })
     .from(tariffZones)
     .innerJoin(tariffs, eq(tariffs.id, tariffZones.tariffId))
     .where(and(eq(tariffZones.zoneId, match.zone.id), eq(tariffs.isActive, "true" as any)))
-    .orderBy(asc(tariffs.sortOrder));
+    .orderBy(asc(tariffs.sortOrder))) as Array<{ tariff: Tariff }>;
   const suburban = match.kind === "suburban";
   const list = rows.map((r) => r.tariff).filter((t) => !suburban || !CITY_ONLY_TARIFFS.includes(t.id));
   const name = zoneDisplayName(match);
