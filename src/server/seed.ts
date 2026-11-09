@@ -18,9 +18,20 @@ export async function ensureSeeded(): Promise<void> {
   const [{ value: tariffCount }] = await db.select({ value: count() }).from(tariffs);
   if (Number(tariffCount) === 0) {
     await db.insert(tariffs).values([
-      { id: "econom", version: 1, name: "Эконом", description: "Недорогие поездки по городу", icon: "🚗", sortOrder: 1, isActive: true, baseFare: 8900, perKm: 1400, perMinute: 500, minimumFare: 14900, updatedAt: new Date() },
-      { id: "comfort", version: 1, name: "Комфорт", description: "Новые автомобили, больше пространства", icon: "🚙", sortOrder: 2, isActive: true, baseFare: 12900, perKm: 1900, perMinute: 700, minimumFare: 19900, updatedAt: new Date() },
-      { id: "business", version: 1, name: "Бизнес", description: "Премиальные автомобили и водители", icon: "🚘", sortOrder: 3, isActive: true, baseFare: 24900, perKm: 3200, perMinute: 1100, minimumFare: 39900, updatedAt: new Date() },
+      { 
+        id: "standard", 
+        version: 1, 
+        name: "Стандарт", 
+        description: "Поездки по городу и области", 
+        icon: "🚕", 
+        sortOrder: 1, 
+        isActive: true, 
+        baseFare: 8900, 
+        perKm: 1400, 
+        perMinute: 500, 
+        minimumFare: 14900, 
+        updatedAt: new Date() 
+      },
     ]);
   }
 
@@ -37,20 +48,18 @@ export async function ensureSeeded(): Promise<void> {
         sortOrder: i + 1,
       })),
     );
-    const links = ZONES.flatMap((z) =>
-      (z.premium ? ["econom", "comfort", "business"] : ["econom", "comfort"]).map((tariffId) => ({ tariffId, zoneId: z.id })),
-    );
+    const links = ZONES.map((z) => ({ tariffId: "standard", zoneId: z.id }));
     try { await db.insert(tariffZones).values(links); } catch (e) { console.warn("tariffZones already seeded"); }
   }
 
   const [{ value: driverCount }] = await db.select({ value: count() }).from(drivers);
   if (Number(driverCount) === 0) {
     const demoDrivers = [
-      { name: "Алексей Смирнов", rating: 4.9, brand: "Lada", model: "Vesta", color: "Белый", plate: "А123ВС70", tariffId: "econom" },
-      { name: "Дмитрий Козлов", rating: 4.8, brand: "Kia", model: "Rio", color: "Серый", plate: "Е456КХ70", tariffId: "econom" },
-      { name: "Сергей Иванов", rating: 4.9, brand: "Skoda", model: "Octavia", color: "Чёрный", plate: "М789ОР70", tariffId: "comfort" },
-      { name: "Андрей Петров", rating: 5.0, brand: "Toyota", model: "Camry", color: "Серебристый", plate: "Т321УН70", tariffId: "comfort" },
-      { name: "Игорь Волков", rating: 5.0, brand: "Mercedes-Benz", model: "E-класс", color: "Чёрный", plate: "В001ОС70", tariffId: "business" },
+      { name: "Алексей Смирнов", rating: 4.9, brand: "Lada", model: "Vesta", color: "Белый", plate: "А123ВС70", tariffId: "standard" },
+      { name: "Дмитрий Козлов", rating: 4.8, brand: "Kia", model: "Rio", color: "Серый", plate: "Е456КХ70", tariffId: "standard" },
+      { name: "Сергей Иванов", rating: 4.9, brand: "Skoda", model: "Octavia", color: "Чёрный", plate: "М789ОР70", tariffId: "standard" },
+      { name: "Андрей Петров", rating: 5.0, brand: "Toyota", model: "Camry", color: "Серебристый", plate: "Т321УН70", tariffId: "standard" },
+      { name: "Игорь Волков", rating: 5.0, brand: "Mercedes-Benz", model: "E-класс", color: "Чёрный", plate: "В001ОС70", tariffId: "standard" },
     ];
     for (const d of demoDrivers) {
       const driverId = newId();
