@@ -15,11 +15,11 @@ export async function recordAuthDiagnostic(event: string, userId: string | null)
       event,
       userId,
       authorization: t.authorization,
-      sessionHeader: t.sessionHeader ? "true" : "false",
-      cookie: t.cookie ? "true" : "false",
-      clientHeader: t.clientHeader ? "true" : "false",
-      bodySession: t.bodySession ? "true" : "false",
-      viaRpc: t.viaRpc ? "true" : "false",
+      sessionHeader: t.sessionHeader,
+      cookie: t.cookie,
+      clientHeader: t.clientHeader,
+      bodySession: t.bodySession,
+      viaRpc: t.viaRpc,
       headerNames: t.headerNames,
       forwardedHost: t.forwardedHost,
       forwardedProto: t.forwardedProto,
@@ -29,7 +29,7 @@ export async function recordAuthDiagnostic(event: string, userId: string | null)
       createdAt: new Date(),
     });
     if (Math.random() < 0.05) {
-      await db.delete(authDiagnostics).where(lt(authDiagnostics.createdAt, new Date(Date.now() - RETENTION_MS).toISOString()));
+      await db.delete(authDiagnostics).where(lt(authDiagnostics.createdAt, new Date(Date.now() - RETENTION_MS)));
     }
   } catch (error) {
     console.warn("[diagnostics] Не удалось записать диагностику:", (error as Error).message);

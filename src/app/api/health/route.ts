@@ -1,14 +1,14 @@
+import { NextResponse } from "next/server";
+import { db } from "@/db";
 import { sql } from "drizzle-orm";
-import { db, isYdbConfigured } from "@/db";
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
-/** Проверяет доступность выбранной базы: YDB, если она настроена, иначе PostgreSQL. */
 export async function GET() {
   try {
-    await db.execute(sql`select 1`);
-    return Response.json({ ok: true, database: isYdbConfigured() ? "ydb" : "postgres" });
-  } catch {
-    return Response.json({ ok: false }, { status: 500 });
+    await db.execute(sql`SELECT 1`);
+    return NextResponse.json({ status: "ok", database: "connected" });
+  } catch (error) {
+    return NextResponse.json({ status: "error", database: "disconnected" }, { status: 500 });
   }
 }

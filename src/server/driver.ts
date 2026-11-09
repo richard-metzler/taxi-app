@@ -225,7 +225,7 @@ export async function acceptOrder(driver: Driver, orderId: string): Promise<void
   const busyClaim = await db
     .update(drivers)
     .set({ isBusy: true })
-    .where(and(eq(drivers.id, driver.id), eq(drivers.isBusy, "false"), eq(drivers.isOnline, "true")))
+    .where(and(eq(drivers.id, driver.id), eq(drivers.isBusy, false), eq(drivers.isOnline, true)))
     .returning({ id: drivers.id });
   if (busyClaim.length === 0) throw new AppError("driver_busy", "У вас уже есть активный заказ", 409);
 

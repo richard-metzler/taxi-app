@@ -18,9 +18,9 @@ export async function ensureSeeded(): Promise<void> {
   const [{ value: tariffCount }] = await db.select({ value: count() }).from(tariffs);
   if (Number(tariffCount) === 0) {
     await db.insert(tariffs).values([
-      { id: "econom", version: 1, name: "Эконом", description: "Недорогие поездки по городу", icon: "🚗", sortOrder: 1, isActive: "true", baseFare: 8900, perKm: 1400, perMinute: 500, minimumFare: 14900, updatedAt: new Date().toISOString() },
-      { id: "comfort", version: 1, name: "Комфорт", description: "Новые автомобили, больше пространства", icon: "🚙", sortOrder: 2, isActive: "true", baseFare: 12900, perKm: 1900, perMinute: 700, minimumFare: 19900, updatedAt: new Date().toISOString() },
-      { id: "business", version: 1, name: "Бизнес", description: "Премиальные автомобили и водители", icon: "🚘", sortOrder: 3, isActive: "true", baseFare: 24900, perKm: 3200, perMinute: 1100, minimumFare: 39900, updatedAt: new Date().toISOString() },
+      { id: "econom", version: 1, name: "Эконом", description: "Недорогие поездки по городу", icon: "🚗", sortOrder: 1, isActive: true, baseFare: 8900, perKm: 1400, perMinute: 500, minimumFare: 14900, updatedAt: new Date() },
+      { id: "comfort", version: 1, name: "Комфорт", description: "Новые автомобили, больше пространства", icon: "🚙", sortOrder: 2, isActive: true, baseFare: 12900, perKm: 1900, perMinute: 700, minimumFare: 19900, updatedAt: new Date() },
+      { id: "business", version: 1, name: "Бизнес", description: "Премиальные автомобили и водители", icon: "🚘", sortOrder: 3, isActive: true, baseFare: 24900, perKm: 3200, perMinute: 1100, minimumFare: 39900, updatedAt: new Date() },
     ]);
   }
 
@@ -33,7 +33,7 @@ export async function ensureSeeded(): Promise<void> {
         latitude: z.lat,
         longitude: z.lng,
         radiusKm: z.radiusKm,
-        isActive: "true",
+        isActive: true,
         sortOrder: i + 1,
       })),
     );
@@ -58,12 +58,12 @@ export async function ensureSeeded(): Promise<void> {
         id: driverId,
         name: d.name,
         rating: d.rating,
-        isSimulated: "true",
-        isOnline: "false",
-        isBusy: "false",
+        isSimulated: true,
+        isOnline: false,
+        isBusy: false,
         photoUrl: null,
         userId: null,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
       });
       await db.insert(vehicles).values({
         id: newId(),
@@ -79,7 +79,7 @@ export async function ensureSeeded(): Promise<void> {
         latitude: DRIVERS_HOME.latitude + (Math.random() - 0.5) * 0.02,
         longitude: DRIVERS_HOME.longitude + (Math.random() - 0.5) * 0.04,
         heading: 0,
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
       });
     }
   }

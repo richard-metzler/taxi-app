@@ -59,9 +59,9 @@ async function hasLiveDrivers(tariffId: string): Promise<boolean> {
     .innerJoin(driverLocations, eq(driverLocations.driverId, drivers.id))
     .where(
       and(
-        eq(drivers.isSimulated, "false"),
-        eq(drivers.isOnline, "true"),
-        eq(drivers.isBusy, "false"),
+        eq(drivers.isSimulated, false),
+        eq(drivers.isOnline, true),
+        eq(drivers.isBusy, false),
         eq(vehicles.tariffId, tariffId),
         gt(driverLocations.updatedAt, freshAfter),
       ),
@@ -98,7 +98,7 @@ async function tryAssignDriver(order: Order, now: Date): Promise<Order> {
     .select({ driver: drivers, vehicle: vehicles })
     .from(drivers)
     .innerJoin(vehicles, eq(vehicles.driverId, drivers.id))
-    .where(and(eq(drivers.isSimulated, "true"), eq(drivers.isBusy, "false"), eq(vehicles.tariffId, order.tariffId)))
+    .where(and(eq(drivers.isSimulated, true), eq(drivers.isBusy, false), eq(vehicles.tariffId, order.tariffId)))
     .limit(1);
 
   const candidate = candidates[0];
