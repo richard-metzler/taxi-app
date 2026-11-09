@@ -25,7 +25,7 @@ export default function OrderPage({ params }: { params: { id: string } }) {
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-danger">У вас нет доступа к этому заказу</p>
         <p className="text-sm text-gray-500">ID заказа: {params.id}</p>
-        <Button onClick={() => router.push("/home")}>На главную</Button>
+        <Button onClick={() => { window.location.href = "/home"; }}>На главную</Button>
       </main>
     );
   }
@@ -34,7 +34,7 @@ export default function OrderPage({ params }: { params: { id: string } }) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-danger">{error || "Заказ не найден"}</p>
-        <Button onClick={() => router.push("/home")}>На главную</Button>
+        <Button onClick={() => { window.location.href = "/home"; }}>На главную</Button>
       </main>
     );
   }
@@ -105,10 +105,10 @@ export default function OrderPage({ params }: { params: { id: string } }) {
 
           {isFinal && (
             <div className="flex gap-2 w-full">
-              <Button variant="default" className="flex-1" onClick={() => router.push("/history")}>
+              <Button variant="default" className="flex-1" onClick={() => { window.location.href = "/history"; }}>
                 История
               </Button>
-              <Button variant="primary" className="flex-1" onClick={() => router.push("/home")}>
+              <Button variant="primary" className="flex-1" onClick={() => { window.location.href = "/home"; }}>
                 Новый заказ
               </Button>
             </div>
