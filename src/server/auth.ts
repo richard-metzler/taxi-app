@@ -58,8 +58,8 @@ async function issueSession(user: User): Promise<SignInResult> {
     id: newId(),
     userId: user.id,
     tokenHash: sha256(token),
-    expiresAt: expiresAt.toISOString(),
-    createdAt: new Date().toISOString(),
+    expiresAt: expiresAt,
+    createdAt: new Date(),
   });
   return { user, token, expiresAt };
 }
@@ -98,14 +98,14 @@ export async function registerWithPassword(input: {
   let user: User;
 
   if (existing) {
-    const now = new Date().toISOString();
+    const now = new Date();
     await db.update(users).set({ name, passwordHash, updatedAt: now }).where(and(eq(users.id, existing.id), isNull(users.passwordHash)));
     const refreshed = await db.select().from(users).where(eq(users.id, existing.id));
     if (!refreshed[0]) throw phoneTakenError(existing.role, role);
     user = refreshed[0];
   } else {
     const userId = newId();
-    const now = new Date().toISOString();
+    const now = new Date();
     await db.insert(users).values({
       id: userId,
       phone,
@@ -113,8 +113,8 @@ export async function registerWithPassword(input: {
       passwordHash,
       role,
       navigator: "yandex",
-      createdAt: now,
-      updatedAt: now,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     const created = await db.select().from(users).where(eq(users.id, userId));
     if (!created[0]) throw phoneTakenError(null, role);
@@ -131,7 +131,7 @@ export async function registerWithPassword(input: {
         isBusy: "false",
         isSimulated: "false",
         rating: 5,
-        createdAt: now,
+        createdAt: new Date(),
       });
       await db.insert(vehicles).values({
         id: newId(),
@@ -181,7 +181,7 @@ export async function signInWithMax(maxUserId: string, role: AccountRole, name?:
     return issueSession(existing);
   }
   const userName = name?.trim() || "Пользователь MAX";
-  const now = new Date().toISOString();
+  const now = new Date();
   const userId = newId();
   await db.insert(users).values({
     id: userId,
@@ -190,8 +190,8 @@ export async function signInWithMax(maxUserId: string, role: AccountRole, name?:
     passwordHash: null,
     role,
     navigator: "yandex",
-    createdAt: now,
-    updatedAt: now,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   });
   const created = await db.select().from(users).where(eq(users.id, userId));
   if (!created[0]) throw new AppError("user_create_failed", "Не удалось создать пользователя", 500);
@@ -207,7 +207,7 @@ export async function signInWithMax(maxUserId: string, role: AccountRole, name?:
       isBusy: "false",
       isSimulated: "false",
       rating: 5,
-      createdAt: now,
+      createdAt: new Date(),
     });
   }
   return issueSession(user);
@@ -218,7 +218,7 @@ export async function resolveSession(): Promise<{ user: User; source: TokenSourc
   if (candidates.length === 0) return null;
   const hashes = candidates.map((candidate) => sha256(candidate.token));
   const sessionRows = await db.select().from(sessions).where(inArray(sessions.tokenHash, hashes));
-  const now = new Date().toISOString();
+  const now = new Date();
   const typedSessions = sessionRows as Array<{ id: string; userId: string; tokenHash: string; expiresAt: string }>;
   const validSessions = typedSessions.filter((s) => s.expiresAt > now);
   if (validSessions.length === 0) return null;

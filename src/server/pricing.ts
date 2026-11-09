@@ -138,7 +138,7 @@ export async function createEstimate(userId: string, input: EstimateInput): Prom
     distanceMeters: route.distanceMeters,
     durationSeconds: route.durationSeconds,
     routeGeometry: route.geometry,
-    expiresAt: expiresAt.toISOString(),
+    expiresAt: expiresAt,
     routeSource: route.source,
     zone,
     tariffs: available.map((t) => {

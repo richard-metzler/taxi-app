@@ -26,7 +26,7 @@ export async function recordAuthDiagnostic(event: string, userId: string | null)
       secFetchSite: t.secFetchSite,
       origin: t.origin,
       userAgent: t.userAgent,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
     });
     if (Math.random() < 0.05) {
       await db.delete(authDiagnostics).where(lt(authDiagnostics.createdAt, new Date(Date.now() - RETENTION_MS).toISOString()));

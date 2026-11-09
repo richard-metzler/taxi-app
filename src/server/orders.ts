@@ -52,7 +52,7 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
   if (active.length > 0) throw new AppError("active_order_exists", "У вас уже есть активный заказ", 409);
 
   const orderId = crypto.randomUUID();
-  const now = new Date().toISOString();
+  const now = new Date();
 
   await db.execute(sql`
     INSERT INTO orders (
