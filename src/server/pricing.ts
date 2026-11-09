@@ -46,7 +46,7 @@ export async function availableTariffsAt(point: LatLng): Promise<AvailableTariff
   const list = rows.map((r: { tariff: Tariff }) => r.tariff).filter((t: Tariff) => !suburban || !CITY_ONLY_TARIFFS.includes(t.id));
   const name = zoneDisplayName(match);
   if (list.length === 0) {
-    throw new AppError("no_tariffs_in_zone", `В зоне «${name}» сейчас нет доступных тарифов`, 422);
+    throw new AppError("no_tariffs_in_zone", `Извините, тарифы временно недоступны. Попробуйте позже или измените адрес`, 422);
   }
   return {
     zone: { id: match.zone.id, name, suburban },
