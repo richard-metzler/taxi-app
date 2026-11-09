@@ -219,8 +219,7 @@ export async function resolveSession(): Promise<{ user: User; source: TokenSourc
   const hashes = candidates.map((candidate) => sha256(candidate.token));
   const sessionRows = await db.select().from(sessions).where(inArray(sessions.tokenHash, hashes));
   const now = new Date();
-  const typedSessions = sessionRows as Array<{ id: string; userId: string; tokenHash: string; expiresAt: string }>;
-  const validSessions = typedSessions.filter((s) => s.expiresAt > now);
+  const validSessions = (sessionRows as any[]).filter((s) => new Date(s.expiresAt) > now);
   if (validSessions.length === 0) return null;
   const userIds = validSessions.map((s) => s.userId);
   const userRows = (await db.select().from(users).where(inArray(users.id, userIds))) as User[];
