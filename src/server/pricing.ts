@@ -2,36 +2,28 @@ import "server-only";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { fareEstimates, serviceZones, tariffZones, tariffs, type FareQuote, type Tariff } from "@/db/schema";
-import { newId } from "./ids";
 import { Errors, AppError } from "@/core/errors";
 import { haversineMeters, isValidLatLng, type LatLng } from "@/core/geo";
 import { buildRoute } from "./routing";
 import { ensureSeeded } from "./seed";
 import { calculateFare } from "./fare-calculator";
 import { CITY_ONLY_TARIFFS, MAX_TRIP_STRAIGHT_KM, matchZone, outOfZoneMessage, zoneDisplayName } from "./service-area";
+import { newId } from "./ids";
 
 export { calculateFare };
 
-export const ESTIMATE_TTL_MS = 1000 * 60 * 10; // оценка действительна 10 минут
+export const ESTIMATE_TTL_MS = 1000 * 60 * 10;
 
-/** Зона точки подачи и доступные в ней тарифы. */
 export type AvailableTariffs = {
   zone: { id: string; name: string; suburban: boolean };
   tariffs: Tariff[];
-  /** Дополнительное время подачи из города (для пригородных заказов), секунды. */
   extraPickupSeconds: number;
 };
 
-/** Средняя скорость подачи за город, км/ч. */
 const SUBURBAN_SPEED_KMH = 60;
 
-/**
- * Тарифы, доступные в точке подачи. В городе — тарифы его зоны; в пригороде и области
- * (до SUBURBAN_RANGE_KM от границы) — тарифы ближайшего города без премиальных классов.
- * Дальше — понятная ошибка с ближайшим городом.
- */
 export async function availableTariffsAt(point: LatLng): Promise<AvailableTariffs> {
-  const zones = await db.select().from(serviceZones).where(eq(serviceZones.isActive, "true"));
+  const zones = await db.select().from(serviceZones).where(eq(serviceZones.isActive, "true" as any));
   const match = matchZone(point, zones);
   if (match.kind === "outside") {
     throw new AppError("out_of_service_area", outOfZoneMessage(match), 422);
@@ -40,13 +32,13 @@ export async function availableTariffsAt(point: LatLng): Promise<AvailableTariff
     .select({ tariff: tariffs })
     .from(tariffZones)
     .innerJoin(tariffs, eq(tariffs.id, tariffZones.tariffId))
-    .where(and(eq(tariffZones.zoneId, match.zone.id), eq(tariffs.isActive, "true")))
+    .where(and(eq(tariffZones.zoneId, match.zone.id), eq(tariffs.isActive, "true" as any)))
     .orderBy(asc(tariffs.sortOrder));
   const suburban = match.kind === "suburban";
-  const list = rows.map((r: { tariff: Tariff }) => r.tariff).filter((t: Tariff) => !suburban || !CITY_ONLY_TARIFFS.includes(t.id));
+  const list = rows.map((r) => r.tariff).filter((t) => !suburban || !CITY_ONLY_TARIFFS.includes(t.id));
   const name = zoneDisplayName(match);
   if (list.length === 0) {
-    throw new AppError("no_tariffs_in_zone", `Извините, тарифы временно недоступны. Попробуйте позже или измените адрес`, 422);
+    throw new AppError("no_tariffs_in_zone", `Извините, тарифы временно недоступны. Попробуйте позже или измените адрес.`, 422);
   }
   return {
     zone: { id: match.zone.id, name, suburban },
@@ -55,10 +47,8 @@ export async function availableTariffsAt(point: LatLng): Promise<AvailableTariff
   };
 }
 
-/** Оценка времени подачи в секундах — зависит от класса и загруженности (упрощённо). */
 function estimatePickupEta(tariffId: string): number {
-  const base: Record<string, number> = { econom: 240, comfort: 360, business: 540 };
-  return base[tariffId] ?? 300;
+  return 300; // фиксированное время подачи для упрощения
 }
 
 export type EstimateInput = {
@@ -73,7 +63,6 @@ export type EstimateResult = {
   routeGeometry: [number, number][];
   expiresAt: string;
   routeSource: "osrm" | "fallback";
-  /** Зона обслуживания точки подачи (suburban — пригород/область ближайшего города). */
   zone: { id: string; name: string; suburban: boolean };
   tariffs: Array<{
     id: string;
@@ -86,7 +75,6 @@ export type EstimateResult = {
   }>;
 };
 
-/** Серверная оценка поездки по всем доступным тарифам. Сохраняется для последующего создания заказа. */
 export async function createEstimate(userId: string, input: EstimateInput): Promise<EstimateResult> {
   await ensureSeeded();
   if (!isValidLatLng(input.pickup) || !isValidLatLng(input.destination)) {
@@ -103,13 +91,12 @@ export async function createEstimate(userId: string, input: EstimateInput): Prom
   if (straightKm > MAX_TRIP_STRAIGHT_KM) {
     throw new AppError(
       "trip_too_long",
-      `Слишком дальняя поездка (≈ ${Math.round(straightKm)} км по прямой). Междугородние поездки пока не поддерживаются — максимум ${MAX_TRIP_STRAIGHT_KM} км.`,
+      `Слишком дальняя поездка (≈ ${Math.round(straightKm)} км по прямой). Максимум ${MAX_TRIP_STRAIGHT_KM} км.`,
       422,
     );
   }
 
   const { zone, tariffs: available, extraPickupSeconds } = await availableTariffsAt(input.pickup);
-
   const route = await buildRoute(input.pickup, input.destination);
 
   const quotes: FareQuote[] = available.map((t) => ({
@@ -121,23 +108,23 @@ export async function createEstimate(userId: string, input: EstimateInput): Prom
 
   const expiresAt = new Date(Date.now() + ESTIMATE_TTL_MS);
   const estimateId = newId();
-  const [estimate] = await db
-    .insert(fareEstimates)
-    .values({
-      userId,
-      pickupAddress: input.pickup.address,
-      pickupLat: input.pickup.latitude,
-      pickupLng: input.pickup.longitude,
-      destinationAddress: input.destination.address,
-      destinationLat: input.destination.latitude,
-      destinationLng: input.destination.longitude,
-      distanceMeters: route.distanceMeters,
-      durationSeconds: route.durationSeconds,
-      routeGeometry: route.geometry,
-      quotes,
-      expiresAt,
-    })
-    .returning();
+
+  await db.insert(fareEstimates).values({
+    id: estimateId,
+    userId,
+    pickupAddress: input.pickup.address,
+    pickupLat: Number(input.pickup.latitude),
+    pickupLng: Number(input.pickup.longitude),
+    destinationAddress: input.destination.address,
+    destinationLat: Number(input.destination.latitude),
+    destinationLng: Number(input.destination.longitude),
+    distanceMeters: route.distanceMeters,
+    durationSeconds: route.durationSeconds,
+    routeGeometry: JSON.stringify(route.geometry) as any,
+    quotes: JSON.stringify(quotes) as any,
+    expiresAt: expiresAt.toISOString(),
+    createdAt: new Date().toISOString(),
+  } as any);
 
   return {
     estimateId: estimateId,
