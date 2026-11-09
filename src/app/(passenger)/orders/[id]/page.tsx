@@ -211,7 +211,7 @@ function OrderScreen() {
 
         {/* Действия */}
         {order.canCancel ? (
-          <Button variant="danger" onClick={cancel} loading={cancelling}>
+          <Button variant="danger" onClick={() => { alert("Кнопка нажата! Отправляем запрос..."); cancel(); }} loading={cancelling}>
             Отменить заказ
           </Button>
         ) : null}
