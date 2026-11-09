@@ -72,27 +72,36 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
   }
 
   const orderId = newId();
-  await db.insert(orders).values({
-    id: orderId,
-    passengerId: user.id,
-    status: "searching",
-    pickupAddress: estimate.pickupAddress,
-    pickupLat: estimate.pickupLat,
-    pickupLng: estimate.pickupLng,
-    destinationAddress: estimate.destinationAddress,
-    destinationLat: estimate.destinationLat,
-    destinationLng: estimate.destinationLng,
-    tariffId,
-    tariffVersion: quote.tariffVersion,
-    estimateId: estimate.id,
-    estimatedPrice: quote.price,
-    currency: "RUB",
-    distanceMeters: estimate.distanceMeters,
-    durationSeconds: estimate.durationSeconds,
-    routeGeometry: typeof estimate.routeGeometry === 'string' ? estimate.routeGeometry : JSON.stringify(estimate.routeGeometry),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  } as any);
+  const now = new Date().toISOString();
+
+  await db.execute(sql`
+    INSERT INTO orders (
+      id, passenger_id, status, pickup_address, pickup_lat, pickup_lng,
+      destination_address, destination_lat, destination_lng,
+      tariff_id, tariff_version, estimate_id, estimated_price, currency,
+      distance_meters, duration_seconds, route_geometry, created_at, updated_at
+    ) VALUES (
+      CAST(${orderId} AS Utf8),
+      CAST(${user.id} AS Utf8),
+      CAST(${'searching'} AS Utf8),
+      CAST(${estimate.pickupAddress} AS Utf8),
+      CAST(${Number(estimate.pickupLat)} AS Double),
+      CAST(${Number(estimate.pickupLng)} AS Double),
+      CAST(${estimate.destinationAddress} AS Utf8),
+      CAST(${Number(estimate.destinationLat)} AS Double),
+      CAST(${Number(estimate.destinationLng)} AS Double),
+      CAST(${tariffId} AS Utf8),
+      CAST(${quote.tariffVersion} AS Int32),
+      CAST(${estimate.id} AS Utf8),
+      CAST(${quote.price} AS Int32),
+      CAST(${'RUB'} AS Utf8),
+      CAST(${estimate.distanceMeters} AS Int32),
+      CAST(${estimate.durationSeconds} AS Int32),
+      CAST(${typeof estimate.routeGeometry === 'string' ? estimate.routeGeometry : JSON.stringify(estimate.routeGeometry)} AS Utf8),
+      CAST(${now} AS Utf8),
+      CAST(${now} AS Utf8)
+    )
+  `);
 
   const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
   return order;
