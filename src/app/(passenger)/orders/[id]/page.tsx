@@ -211,18 +211,18 @@ function OrderScreen() {
 
         {/* Действия */}
         {order.canCancel ? (
-          <Button variant="danger" onClick={() => { alert("Кнопка нажата! Отправляем запрос..."); cancel(); }} loading={cancelling}>
+          <Button variant="danger" onClick={() => { console.log("Нажато!"); cancel(); }} loading={cancelling}>
             Отменить заказ
-          </Button>
+          </Button></div>
         ) : null}
         {isFinal ? (
           <div className="flex gap-2">
             <Button className="flex-1" onClick={() => router.push("/history")}>
               История
-            </Button>
+            </Button></div>
             <Button className="flex-1" variant="primary" onClick={() => router.push("/home")}>
               Новый заказ
-            </Button>
+            </Button></div>
           </div>
         ) : null}
       </CollapsibleSheet>
