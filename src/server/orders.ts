@@ -63,27 +63,30 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
     }
   }
 
-  const [order] = await db
-    .insert(orders)
-    .values({
-      passengerId: user.id,
-      status: "searching",
-      pickupAddress: estimate.pickupAddress,
-      pickupLat: estimate.pickupLat,
-      pickupLng: estimate.pickupLng,
-      destinationAddress: estimate.destinationAddress,
-      destinationLat: estimate.destinationLat,
-      destinationLng: estimate.destinationLng,
-      tariffId,
-      tariffVersion: quote.tariffVersion,
-      estimateId: estimate.id,
-      estimatedPrice: quote.price,
-      currency: "RUB",
-      distanceMeters: estimate.distanceMeters,
-      durationSeconds: estimate.durationSeconds,
-      routeGeometry: estimate.routeGeometry,
-    })
-    .returning();
+  const orderId = newId();
+  await db.insert(orders).values({
+    id: orderId,
+    passengerId: user.id,
+    status: "searching",
+    pickupAddress: estimate.pickupAddress,
+    pickupLat: estimate.pickupLat,
+    pickupLng: estimate.pickupLng,
+    destinationAddress: estimate.destinationAddress,
+    destinationLat: estimate.destinationLat,
+    destinationLng: estimate.destinationLng,
+    tariffId,
+    tariffVersion: quote.tariffVersion,
+    estimateId: estimate.id,
+    estimatedPrice: quote.price,
+    currency: "RUB",
+    distanceMeters: estimate.distanceMeters,
+    durationSeconds: estimate.durationSeconds,
+    routeGeometry: typeof estimate.routeGeometry === 'string' ? estimate.routeGeometry : JSON.stringify(estimate.routeGeometry),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  } as any);
+
+  const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
   return order;
 }
 
@@ -183,7 +186,7 @@ export async function getOrderView(user: User, orderId: string): Promise<OrderVi
     currency: order.currency,
     distanceMeters: order.distanceMeters,
     durationSeconds: order.durationSeconds,
-    routeGeometry: order.routeGeometry,
+    routeGeometry: typeof order.routeGeometry === 'string' ? JSON.parse(order.routeGeometry) : order.routeGeometry,
     cancelReason: order.cancelReason,
     canCancel: CANCELLABLE_STATUSES.includes(order.status),
     createdAt: new Date(order.createdAt).toISOString(),
