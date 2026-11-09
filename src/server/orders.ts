@@ -28,8 +28,16 @@ const PAYMENT_SYNC_INTERVAL_MS = 5_000;
 
 /** Создание заказа на основе серверной оценки. Статус выставляет сервер. */
 export async function createOrder(user: User, estimateId: string, tariffId: string): Promise<Order> {
-  const [estimate] = await db.select().from(fareEstimates).where(eq(fareEstimates.id, estimateId));
-  if (!estimate || estimate.userId !== user.id) throw Errors.notFound("Расчёт стоимости");
+  const [rawEstimate] = await db.select().from(fareEstimates).where(eq(fareEstimates.id, estimateId));
+  if (!rawEstimate || rawEstimate.userId !== user.id) throw Errors.notFound("Расчёт стоимости");
+  
+  // Парсим строки обратно в объекты, так как YDB хранит их как Utf8
+  const estimate = {
+    ...rawEstimate,
+    quotes: typeof rawEstimate.quotes === 'string' ? JSON.parse(rawEstimate.quotes) : rawEstimate.quotes,
+    routeGeometry: typeof rawEstimate.routeGeometry === 'string' ? JSON.parse(rawEstimate.routeGeometry) : rawEstimate.routeGeometry
+  };
+  
   if (new Date(estimate.expiresAt).getTime() < Date.now()) {
     throw new AppError("estimate_expired", "Расчёт стоимости устарел. Постройте маршрут заново.", 409);
   }
