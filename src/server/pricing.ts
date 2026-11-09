@@ -126,8 +126,8 @@ export async function createEstimate(userId: string, input: EstimateInput): Prom
       CAST(${Number(input.destination.longitude)} AS Double),
       CAST(${route.distanceMeters} AS Int32), 
       CAST(${route.durationSeconds} AS Int32), 
-      CAST(${JSON.stringify(route.geometry)} AS Json), 
-      CAST(${JSON.stringify(quotes)} AS Json),
+      CAST(${JSON.stringify(route.geometry)} AS Utf8), 
+      CAST(${JSON.stringify(quotes)} AS Utf8),
       CAST(${expiresAt.toISOString()} AS Utf8), 
       CAST(${new Date().toISOString()} AS Utf8)
     )
