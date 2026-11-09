@@ -116,10 +116,20 @@ export async function createEstimate(userId: string, input: EstimateInput): Prom
       distance_meters, duration_seconds, route_geometry, quotes,
       expires_at, created_at
     ) VALUES (
-      ${estimateId}, ${userId}, ${input.pickup.address}, ${Number(input.pickup.latitude)}, ${Number(input.pickup.longitude)},
-      ${input.destination.address}, ${Number(input.destination.latitude)}, ${Number(input.destination.longitude)},
-      ${route.distanceMeters}, ${route.durationSeconds}, ${JSON.stringify(route.geometry)}, ${JSON.stringify(quotes)},
-      ${expiresAt.toISOString()}, ${new Date().toISOString()}
+      CAST(${estimateId} AS Utf8), 
+      CAST(${userId} AS Utf8), 
+      CAST(${input.pickup.address} AS Utf8), 
+      CAST(${Number(input.pickup.latitude)} AS Double), 
+      CAST(${Number(input.pickup.longitude)} AS Double),
+      CAST(${input.destination.address} AS Utf8), 
+      CAST(${Number(input.destination.latitude)} AS Double), 
+      CAST(${Number(input.destination.longitude)} AS Double),
+      CAST(${route.distanceMeters} AS Int32), 
+      CAST(${route.durationSeconds} AS Int32), 
+      CAST(${JSON.stringify(route.geometry)} AS Json), 
+      CAST(${JSON.stringify(quotes)} AS Json),
+      CAST(${expiresAt.toISOString()} AS Utf8), 
+      CAST(${new Date().toISOString()} AS Utf8)
     )
   `);
 
