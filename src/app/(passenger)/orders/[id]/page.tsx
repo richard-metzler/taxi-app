@@ -35,6 +35,7 @@ function OrderScreen() {
   const { user, loading } = useRequireAuth();
   const { order, error, forbidden, reload } = useOrder(params.id);
   const [cancelling, setCancelling] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [sheetCollapsed, setSheetCollapsed] = useState(false);
   const [driverCollapsed, setDriverCollapsed] = useState(false);
@@ -74,7 +75,25 @@ function OrderScreen() {
     return (
       <main className="flex min-h-dvh items-center justify-center">
         <Spinner className="h-8 w-8 text-accent" />
-      </main>
+      
+      {showCancelModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="text-lg font-bold mb-2 text-ink">Отменить заказ?</h3>
+            <p className="text-sm text-muted mb-6">Вы уверены, что хотите отменить поездку?</p>
+            <div className="flex gap-3">
+              <Button variant="secondary" className="flex-1" onClick={() => setShowCancelModal(false)}>
+                Нет
+              </Button>
+              <Button variant="danger" className="flex-1" onClick={() => setShowCancelModal(true)}>
+                Да, отменить
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </main>
     );
   }
 
@@ -86,7 +105,25 @@ function OrderScreen() {
         <Link href="/home" className="neo-btn-primary px-6 py-3 font-semibold">
           На главную
         </Link>
-      </main>
+      
+      {showCancelModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="text-lg font-bold mb-2 text-ink">Отменить заказ?</h3>
+            <p className="text-sm text-muted mb-6">Вы уверены, что хотите отменить поездку?</p>
+            <div className="flex gap-3">
+              <Button variant="secondary" className="flex-1" onClick={() => setShowCancelModal(false)}>
+                Нет
+              </Button>
+              <Button variant="danger" className="flex-1" onClick={() => setShowCancelModal(true)}>
+                Да, отменить
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </main>
     );
   }
 
@@ -94,7 +131,25 @@ function OrderScreen() {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6">
         {error ? <ErrorBanner message={error} onRetry={() => void reload()} /> : <Spinner className="h-8 w-8 text-accent" />}
-      </main>
+      
+      {showCancelModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="text-lg font-bold mb-2 text-ink">Отменить заказ?</h3>
+            <p className="text-sm text-muted mb-6">Вы уверены, что хотите отменить поездку?</p>
+            <div className="flex gap-3">
+              <Button variant="secondary" className="flex-1" onClick={() => setShowCancelModal(false)}>
+                Нет
+              </Button>
+              <Button variant="danger" className="flex-1" onClick={() => setShowCancelModal(true)}>
+                Да, отменить
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </main>
     );
   }
 
@@ -226,6 +281,24 @@ function OrderScreen() {
           </div>
         ) : null}
       </CollapsibleSheet>
+    
+      {showCancelModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="text-lg font-bold mb-2 text-ink">Отменить заказ?</h3>
+            <p className="text-sm text-muted mb-6">Вы уверены, что хотите отменить поездку?</p>
+            <div className="flex gap-3">
+              <Button variant="secondary" className="flex-1" onClick={() => setShowCancelModal(false)}>
+                Нет
+              </Button>
+              <Button variant="danger" className="flex-1" onClick={() => setShowCancelModal(true)}>
+                Да, отменить
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }
@@ -236,7 +309,25 @@ export default function OrderPage() {
       fallback={
         <main className="flex min-h-dvh items-center justify-center">
           <Spinner className="h-8 w-8 text-accent" />
-        </main>
+        
+      {showCancelModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="text-lg font-bold mb-2 text-ink">Отменить заказ?</h3>
+            <p className="text-sm text-muted mb-6">Вы уверены, что хотите отменить поездку?</p>
+            <div className="flex gap-3">
+              <Button variant="secondary" className="flex-1" onClick={() => setShowCancelModal(false)}>
+                Нет
+              </Button>
+              <Button variant="danger" className="flex-1" onClick={() => setShowCancelModal(true)}>
+                Да, отменить
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </main>
       }
     >
       <OrderScreen />
