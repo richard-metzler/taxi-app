@@ -71,8 +71,7 @@ function OrderScreen() {
   };
 
   if (loading || !user) {
-  const [showCancelModal, setShowCancelModal] = useState(false);
-
+  
     return (
       <main className="flex min-h-dvh items-center justify-center">
         <Spinner className="h-8 w-8 text-accent" />
@@ -305,6 +304,8 @@ function OrderScreen() {
 }
 
 export default function OrderPage() {
+  const [showCancelModal, setShowCancelModal] = useState(false);
+
   return (
     <Suspense
       fallback={
