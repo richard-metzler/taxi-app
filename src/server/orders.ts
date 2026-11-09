@@ -187,8 +187,8 @@ export async function getOrderView(user: User, orderId: string): Promise<OrderVi
     cancelReason: order.cancelReason,
     canCancel: CANCELLABLE_STATUSES.includes(order.status),
     createdAt: new Date(order.createdAt).toISOString(),
-    completedAt: order.completedAt ? new Date(order.completedAt).toISOString() : null ?? null,
-    paidAt: order.paidAt ? new Date(order.paidAt).toISOString() : null ?? null,
+    completedAt: order.completedAt ? new Date(order.completedAt).toISOString() : null,
+    paidAt: order.paidAt ? new Date(order.paidAt).toISOString() : null,
     driver,
     payment: payment
       ? {
