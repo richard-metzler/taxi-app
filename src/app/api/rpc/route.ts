@@ -21,6 +21,7 @@ import * as profile from "../profile/route";
 import * as driverRoot from "../driver/route";
 import * as driverStatus from "../driver/status/route";
 import * as driverLocation from "../driver/location/route";
+{ method: "POST", pattern: /^\/api\/driver\/register$/, run: (req) => driverRegister.POST(req) },
 import * as driverAvailable from "../driver/orders/available/route";
 import * as driverHistory from "../driver/orders/history/route";
 import * as driverAccept from "../driver/orders/[id]/accept/route";
