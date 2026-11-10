@@ -8,7 +8,7 @@ import type { UserProfile } from "@/shared/types";
 const NAVIGATORS = ["yandex", "dgis", "google"] as const;
 
 export function toProfile(user: User): UserProfile {
-  return { id: user.id, phone: user.phone, name: user.name, role: user.role, navigator: user.navigator };
+  return { id: user.id, phone: user.phone, name: user.name, role: user.role || "passenger", navigator: user.navigator };
 }
 
 export async function updateProfile(user: User, patch: { name?: string; navigator?: string }): Promise<User> {
