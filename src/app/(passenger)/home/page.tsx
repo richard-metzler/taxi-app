@@ -7,9 +7,12 @@ import type { EstimateView } from "@/shared/types";
 import { AddressInput } from "@/features/addresses/AddressInput";
 import { Button } from "@/core/widgets/ui";
 import RideMap from "@/features/map/RideMap";
+import { useGeolocation } from "@/features/home/useGeolocation";
+import { CollapsibleSheet } from "@/core/widgets/CollapsibleSheet";
 
 export default function HomePage() {
   const router = useRouter();
+  const geo = useGeolocation();
   
   const [pickup, setPickup] = useState<any>(null);
   const [destination, setDestination] = useState<any>(null);
@@ -21,11 +24,11 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [estimating, setEstimating] = useState(false);
   const [ordering, setOrdering] = useState(false);
+  const [sheetCollapsed, setSheetCollapsed] = useState(false);
 
   // Состояние для плашки свободных машин
   const [availableDrivers, setAvailableDrivers] = useState<number | null>(null);
 
-  // Опрос количества свободных машин каждые 10 секунд
   useEffect(() => {
     const fetchStatus = async () => {
       try {
@@ -40,6 +43,24 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Автоматически подставляем геопозицию в "Откуда", если пользователь еще ничего не ввел
+  useEffect(() => {
+    if (geo.position && !pickup && !pickupText) {
+      const timer = setTimeout(async () => {
+        try {
+          const { item } = await api.geocode.reverse(geo.position!.latitude, geo.position!.longitude);
+          if (item) {
+            setPickup(item);
+            setPickupText(item.address);
+          }
+        } catch (e) {
+          console.error("Не удалось определить адрес");
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [geo.position, pickup, pickupText]);
+
   const handleEstimate = async () => {
     if (!pickup || !destination) {
       setError("Пожалуйста, выберите адреса из списка подсказок");
@@ -51,6 +72,7 @@ export default function HomePage() {
       const res = await api.fare.estimate(pickup, destination);
       setEstimate(res);
       setSelected(res.tariffs[0]);
+      setSheetCollapsed(false); // Разворачиваем шторку, чтобы показать цену
     } catch (err) {
       setEstimate(null);
       setError(err instanceof ApiError ? err.message : "Не удалось рассчитать маршрут");
@@ -76,19 +98,22 @@ export default function HomePage() {
 
   return (
     <main className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-surface">
-      {/* Карта на весь экран */}
+      {/* Карта */}
       <div className="absolute inset-0 z-0">
         <RideMap
-          center={pickup || { latitude: 56.4846, longitude: 84.9476 }}
+          center={pickup || geo.position || { latitude: 56.4846, longitude: 84.9476 }}
           pickup={pickup}
           destination={destination}
-          fitKey={estimate ? estimate.estimateId : ""}
+          userLocation={geo.position}
+          fitKey={estimate ? estimate.estimateId : (pickup ? "pickup" : "")}
+          layoutKey={!sheetCollapsed}
+          className="h-full w-full"
         />
       </div>
 
-      {/* Плашка со свободными машинами (поверх карты) */}
+      {/* Плашка со свободными машинами (поверх всего) */}
       {availableDrivers !== null && (
-        <div className="absolute left-4 top-4 z-[99999] flex items-center gap-2 rounded-2xl bg-white/90 px-3 py-2 shadow-lg backdrop-blur-md border border-gray-200">
+        <div className="absolute left-4 top-4 z-[9999] flex items-center gap-2 rounded-2xl bg-white/90 px-3 py-2 shadow-lg backdrop-blur-md border border-gray-200">
           <span className="text-2xl leading-none">🚕</span>
           <div className={`h-3.5 w-3.5 rounded-full ${availableDrivers > 0 ? "bg-green-500" : "bg-red-500"}`} />
           {availableDrivers > 0 && (
@@ -97,24 +122,27 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Нижняя панель с адресами и кнопкой заказа */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col rounded-t-3xl bg-white p-5 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
-        <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-gray-300" />
-        
-        {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-4 text-sm">{error}</div>}
+      {/* Шторка */}
+      <CollapsibleSheet
+        id="passenger-sheet"
+        collapsed={sheetCollapsed}
+        onCollapsedChange={setSheetCollapsed}
+        title={estimate ? `Маршрут готов · ${estimate.tariffs[0].price / 100} ₽` : "Куда поедем?"}
+      >
+        <div className="flex flex-col gap-4 pb-4">
+          {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm">{error}</div>}
 
-        <div className="flex flex-col gap-3">
-          <AddressInput 
-            label="Откуда" 
-            value={pickup} 
+          <AddressInput
+            label="Откуда"
+            value={pickup}
             onSelect={(p) => { setPickup(p); setEstimate(null); }}
             placeholder="Улица, дом..."
             onTextChange={setPickupText}
             icon="📍"
           />
-          <AddressInput 
-            label="Куда" 
-            value={destination} 
+          <AddressInput
+            label="Куда"
+            value={destination}
             onSelect={(d) => { setDestination(d); setEstimate(null); }}
             placeholder="Куда едем?"
             onTextChange={setDestinationText}
@@ -122,8 +150,8 @@ export default function HomePage() {
           />
 
           {!estimate ? (
-            <Button 
-              onClick={handleEstimate} 
+            <Button
+              onClick={handleEstimate}
               disabled={!pickup || !destination || estimating}
               className="mt-2 w-full"
             >
@@ -141,7 +169,7 @@ export default function HomePage() {
             </div>
           )}
         </div>
-      </div>
+      </CollapsibleSheet>
     </main>
   );
 }
