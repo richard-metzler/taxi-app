@@ -136,6 +136,20 @@ export default function DriverHomePage() {
     return <DriverSetup onComplete={() => window.location.reload()} />;
   }
 
+  if (!state.driver.isApproved) {
+    return (
+      <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-surface p-6 text-center">
+        <div className="neo-btn p-8 rounded-3xl">
+          <div className="w-16 h-16 bg-accent/20 text-accent rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+            ⏳
+          </div>
+          <h1 className="text-2xl font-bold text-ink mb-2">Анкета на модерации</h1>
+          <p className="text-muted mb-6">Мы проверяем ваши документы. Обычно это занимает до 24 часов. Пожалуйста, зайдите позже.</p>
+        </div>
+      </main>
+    );
+  }
+
   const summary = currentOrder
     ? { title: driverStatusText(currentOrder.status), subtitle: currentOrder.pickup.address, badge: formatMoney(currentOrder.price) }
     : isOnline

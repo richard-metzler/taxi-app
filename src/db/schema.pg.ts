@@ -138,6 +138,7 @@ export const drivers = pgTable("drivers", {
   rating: doublePrecision("rating").notNull().default(5),
   isSimulated: boolean("is_simulated").notNull().default(false),
   isBusy: boolean("is_busy").notNull().default(false),
+  isApproved: boolean("is_approved").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

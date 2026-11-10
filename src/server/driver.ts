@@ -116,6 +116,7 @@ export async function getDriverState(driver: Driver): Promise<DriverStateView> {
       name: driver.name,
       rating: driver.rating,
       isOnline: driver.isOnline,
+      isApproved: driver.isApproved,
       vehicle: vehicle
         ? {
             brand: vehicle.brand,
@@ -134,6 +135,9 @@ export async function getDriverState(driver: Driver): Promise<DriverStateView> {
 /** Выход на линию (нужна текущая позиция) и уход с линии (нельзя во время заказа). */
 export async function setDriverOnline(driver: Driver, online: boolean, position: unknown): Promise<{ isOnline: boolean }> {
   if (online) {
+    if (!driver.isApproved) {
+      throw new AppError("not_approved", "Ваша анкета еще на модерации. Дождитесь одобрения.", 403);
+    }
     await loadVehicle(driver.id);
     if (!isValidLatLng(position as Partial<LatLng>)) {
       throw Errors.validation("Не удалось определить местоположение. Разрешите доступ к геолокации.");
@@ -203,6 +207,7 @@ export async function listAvailableOrders(driver: Driver): Promise<AvailableOrde
 
 /** Принятие заказа. Занять заказ может только один водитель — проверка атомарная. */
 export async function acceptOrder(driver: Driver, orderId: string): Promise<void> {
+  if (!driver.isApproved) throw new AppError("not_approved", "Ваша анкета еще на модерации.", 403);
   if (!driver.isOnline) throw new AppError("driver_offline", "Выйдите на линию, чтобы принимать заказы", 409);
   const vehicle = await loadVehicle(driver.id);
   const location = await loadLocation(driver.id);
