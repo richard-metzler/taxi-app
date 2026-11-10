@@ -14,6 +14,7 @@ import { useGeolocation } from "@/features/home/useGeolocation";
 import { useDriverDashboard } from "@/features/driver/useDriverDashboard";
 import { useDriverLocation } from "@/features/driver/useDriverLocation";
 import { ActiveOrderPanel, OfflinePanel, OnlinePanel } from "@/features/driver/DriverPanels";
+import { DriverSetup } from "@/features/driver/DriverSetup";
 
 const RideMap = dynamic(() => import("@/features/map/RideMap"), { ssr: false });
 
