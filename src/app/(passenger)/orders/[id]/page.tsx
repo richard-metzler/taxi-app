@@ -169,10 +169,10 @@ export default function OrderPage() {
       </CollapsibleSheet>
 
       {showCancelModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-border">
-            <h3 className="text-xl font-bold text-ink mb-2">Отменить заказ?</h3>
-            <p className="text-muted mb-6">Вы уверены, что хотите отменить поездку?</p>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="bg-[#E9EDF2] rounded-3xl p-6 max-w-sm w-full shadow-[0_10px_40px_rgba(0,0,0,0.3)]">
+            <h3 className="text-xl font-bold text-ink mb-2 text-center">Отменить заказ?</h3>
+            <p className="text-muted mb-6 text-center">Вы уверены, что хотите отменить поездку?</p>
             <div className="flex gap-3">
               <Button variant="default" className="flex-1" onClick={() => setShowCancelModal(false)}>
                 Нет
