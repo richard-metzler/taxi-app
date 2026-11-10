@@ -98,14 +98,11 @@ export default function OrderPage() {
         id="order-sheet"
         collapsed={sheetCollapsed}
         onCollapsedChange={setSheetCollapsed}
-        title={
-          <div className="flex flex-col text-ink text-center">
-            <span className="text-lg font-bold">{statusText}</span>
-            <span className="text-xs text-muted">Заказ #{order.id.slice(0, 6)}</span>
-          </div>
-        }
+        title={statusText}
       >
         <div className="flex flex-col gap-4 pb-4">
+          <p className="text-center text-xs text-muted -mt-2 mb-2">Заказ #{order.id.slice(0, 6)}</p>
+          
           {/* Карточка водителя */}
           {order.driver && (
             <div className="rounded-2xl bg-surface-muted p-4 border border-border">
