@@ -141,7 +141,25 @@ export default function OrderPage() {
                 Отменить заказ
               </Button>
             )}
-            {isFinal && (
+            
+            {order.status === "payment_pending" && (
+              <>
+                <Button variant="primary" className="w-full" onClick={() => window.location.href = `/payment-return?orderId=${order.id}`}>
+                  Оплатить {order.finalPrice ? order.finalPrice / 100 : order.estimatedPrice / 100} ₽
+                </Button>
+                <Button variant="default" className="w-full" onClick={() => { window.location.href = "/home"; }}>
+                  На главную
+                </Button>
+              </>
+            )}
+
+            {(isFinal || order.status === "in_progress") && (
+              <Button variant="default" onClick={() => { window.location.href = "/home"; }} className="w-full">
+                На главную
+              </Button>
+            )}
+            
+            {isFinal && order.status !== "payment_pending" && (
               <Button variant="primary" onClick={() => { window.location.href = "/home"; }} className="w-full">
                 Новый заказ
               </Button>
