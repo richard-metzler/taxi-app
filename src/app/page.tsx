@@ -28,8 +28,12 @@ export default function Home() {
     } catch (e) {
       console.error(e);
     } finally {
-      // Принудительный переход в любом случае
-      window.location.href = `/${role}`;
+      // Принудительный переход по правильным путям
+      if (role === 'passenger') {
+        window.location.href = "/home";
+      } else {
+        window.location.href = "/driver";
+      }
     }
   };
 

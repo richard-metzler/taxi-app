@@ -25,52 +25,56 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Ошибка сохранения");
 
-      onComplete(); // Перезагружаем страницу водителя
+      onComplete();
     } catch (err: any) {
-      setError(err.message);
+      if (err.message.includes('backend_starting') || err.message.includes('fetch')) {
+        setError("Сервер просыпается. Подождите 5 секунд и нажмите еще раз.");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-gray-50 p-6">
-      <div className="bg-white rounded-2xl p-6 shadow-xl">
-        <h1 className="text-2xl font-bold mb-2">Данные водителя</h1>
-        <p className="text-sm text-gray-500 mb-6">Заполните информацию один раз, и она сохранится в базе.</p>
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-surface p-6">
+      <div className="neo-btn p-6 rounded-3xl">
+        <h1 className="text-2xl font-bold text-ink mb-2">Данные водителя</h1>
+        <p className="text-sm text-muted mb-6">Заполните информацию один раз, и она сохранится в базе.</p>
 
         {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-4 text-sm">{error}</div>}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Ваше имя</label>
+            <label className="block text-sm font-bold text-ink mb-1">Ваше имя</label>
             <input
               type="text"
               required
               placeholder="Например: Сергей"
-              className="w-full p-3 border rounded-xl outline-none focus:border-accent"
+              className="neo-inset w-full p-3 rounded-xl outline-none text-ink"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Марка и модель авто</label>
+            <label className="block text-sm font-bold text-ink mb-1">Марка и модель авто</label>
             <input
               type="text"
               required
               placeholder="Например: Kia Rio"
-              className="w-full p-3 border rounded-xl outline-none focus:border-accent"
+              className="neo-inset w-full p-3 rounded-xl outline-none text-ink"
               value={carModel}
               onChange={(e) => setCarModel(e.target.value)}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Госномер</label>
+            <label className="block text-sm font-bold text-ink mb-1">Госномер</label>
             <input
               type="text"
               required
               placeholder="Например: А123ВС70"
-              className="w-full p-3 border rounded-xl outline-none focus:border-accent"
+              className="neo-inset w-full p-3 rounded-xl outline-none text-ink"
               value={plate}
               onChange={(e) => setPlate(e.target.value)}
             />

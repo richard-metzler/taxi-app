@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { drivers, vehicles } from "@/db/schema";
+import { drivers, vehicles, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getCurrentUser } from "@/server/auth";
 
 export async function POST(req: Request) {
   try {
     const user = await getCurrentUser();
-    if (!user || user.role !== "driver") {
-      return NextResponse.json({ error: "Доступно только водителям" }, { status: 403 });
+    if (!user) {
+      return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+    }
+
+    // Если роль еще пассажир, принудительно меняем на водителя
+    if (user.role !== "driver") {
+      await db.update(users).set({ role: "driver" }).where(eq(users.id, user.id));
     }
 
     const { name, carModel, plate } = await req.json();
@@ -17,11 +22,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Заполните все поля" }, { status: 400 });
     }
 
-    // 1. Ищем водителя по ID пользователя
     let [driver] = await db.select().from(drivers).where(eq(drivers.userId, user.id));
 
     if (!driver) {
-      // Если профиля нет — создаем
       [driver] = await db.insert(drivers).values({
         userId: user.id,
         name: name,
@@ -31,15 +34,12 @@ export async function POST(req: Request) {
         rating: 5.0,
       }).returning();
     } else {
-      // Если профиль есть — обновляем имя
       await db.update(drivers).set({ name: name }).where(eq(drivers.id, driver.id));
     }
 
-    // 2. Ищем машину
     let [vehicle] = await db.select().from(vehicles).where(eq(vehicles.driverId, driver.id));
 
     if (!vehicle) {
-      // Если машины нет — создаем
       await db.insert(vehicles).values({
         driverId: driver.id,
         brand: "Авто",
@@ -49,7 +49,6 @@ export async function POST(req: Request) {
         tariffId: "standard",
       });
     } else {
-      // Если машина есть — обновляем
       await db.update(vehicles).set({
         model: carModel,
         plate: plate.toUpperCase(),
