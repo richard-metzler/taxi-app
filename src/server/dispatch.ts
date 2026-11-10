@@ -26,7 +26,7 @@ const EVENT_TEXTS: Record<string, { title: string; body: string }> = {
   driver_arriving: { title: "Водитель подъезжает", body: "Водитель направляется к вам" },
   driver_waiting: { title: "Водитель ожидает", body: "Автомобиль на месте подачи" },
   in_progress: { title: "Поездка началась", body: "Счастливого пути!" },
-  payment_pending: { title: "Поездка завершена", body: "Требуется оплата поездки" },
+  completed: { title: "Поездка завершена", body: "Спасибо за поездку!" },
   cancelled: { title: "Заказ отменён", body: "К сожалению, нет доступных водителей" },
   driver_declined: { title: "Водитель отказался", body: "Ищем другого водителя" },
 };
