@@ -26,7 +26,7 @@ export async function updateProfile(user: User, patch: { name?: string; navigato
     values.navigator = patch.navigator as User["navigator"];
   }
   
-  values.updatedAt = new Date().toISOString() as any;
+  values.updatedAt = new Date() as any;
 
   console.log('[profile] Отправляем в базу:', values);
   await db.update(users).set(values).where(eq(users.id, user.id));
