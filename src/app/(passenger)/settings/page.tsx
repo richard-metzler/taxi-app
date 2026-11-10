@@ -86,25 +86,7 @@ export default function SettingsPage() {
         <ErrorBanner message={error} />
 
         <Button
-          onClick={() => {
-            window.location.href = "/?switch=driver";
-          }}
-        >
-          Сменить роль (стать водителем)
-        </Button>
-
-        <Button
-          variant="danger"
-          loading={signingOut}
-          onClick={async () => {
-            setSigningOut(true);
-            try {
-              await localStorage.setItem("max_auto_login_disabled", "true"); signOut();
-            } catch (err) {
-              setError(err instanceof ApiError ? err.message : "Не удалось выйти");
-              setSigningOut(false);
-            }
-          }}
+          onClick={() => { window.location.href = "/?switch=true"; }}
         >
           Выйти из аккаунта
         </Button>

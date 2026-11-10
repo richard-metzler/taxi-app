@@ -124,10 +124,10 @@ export default function DriverSettingsPage() {
 
         <ErrorBanner message={error} />
 
-        <Button loading={signingOut} onClick={() => { localStorage.setItem("max_auto_login_disabled", "true"); void leave(true); }}>
+        <Button loading={signingOut} onClick={() => { window.location.href = "/?switch=true"; }}>
           Сменить роль (выйти из аккаунта)
         </Button>
-        <Button variant="danger" loading={signingOut} onClick={() => { localStorage.setItem("max_auto_login_disabled", "true"); void leave(false); }}>
+        <Button variant="danger" loading={signingOut} onClick={() => { window.location.href = "/?switch=true"; }}>
           Выйти из аккаунта
         </Button>
       </div>

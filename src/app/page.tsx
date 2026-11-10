@@ -7,10 +7,32 @@ import { RoleSelect } from "@/features/authentication/RoleSelect";
 
 export default function LandingPage() {
   const { user, loading } = useSession();
+  const [isSwitching, setIsSwitching] = useState(false);
+  
+  // Состояния для онбординга
   const [name, setName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // Проверяем, пришли ли мы на страницу для смены роли
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      setIsSwitching(params.get("switch") === "true");
+    }
+  }, []);
+
+  // АВТО-ВХОД: Если пользователь есть и мы не меняем роль — кидаем в его кабинет
+  useEffect(() => {
+    if (loading) return;
+    if (isSwitching) return; // Если меняем роль, ничего не делаем
+
+    if (user) {
+      window.location.replace(user.role === "driver" ? "/driver" : "/home");
+    }
+  }, [user, loading, isSwitching]);
+
+  // Обработка онбординга (ввод имени)
   const handleOnboard = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!name.trim()) return;
@@ -36,7 +58,25 @@ export default function LandingPage() {
     }
   };
 
-  if (loading) {
+  // Обработка смены роли
+  const handleSwitchRole = async (role: "passenger" | "driver") => {
+    try {
+      const maxUserId = (window as any).WebApp?.initDataUnsafe?.user?.id;
+      if (maxUserId) {
+        await fetch("/api/auth/max", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ maxUserId: String(maxUserId), role }),
+        });
+      }
+      window.location.href = role === "passenger" ? "/home" : "/driver";
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Если идет загрузка или мы перенаправляем — показываем спиннер
+  if (loading || (user && !isSwitching)) {
     return (
       <main className="flex min-h-dvh items-center justify-center">
         <Spinner className="h-8 w-8 text-accent" />
@@ -44,21 +84,12 @@ export default function LandingPage() {
     );
   }
 
-  // Если пользователь уже есть в базе, показываем выбор роли (Пассажир/Водитель)
-  if (user) {
-    return <RoleSelect onChoose={(role) => {
-      // При выборе роли обновляем её на сервере и переходим
-      fetch('/api/auth/max', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ maxUserId: user.phone.replace('max_', ''), role }),
-      }).then(() => {
-        window.location.href = role === 'passenger' ? '/home' : '/driver';
-      });
-    }} />;
+  // Экран выбора роли (только если нажали "Сменить роль")
+  if (isSwitching) {
+    return <RoleSelect onChoose={handleSwitchRole} />;
   }
 
-  // Онбординг для новых пользователей
+  // Онбординг (если пользователя нет в базе)
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-surface p-6">
       <div className="neo-btn p-8 rounded-3xl text-center">
