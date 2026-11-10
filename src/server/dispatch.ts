@@ -108,18 +108,8 @@ async function tryAssignDriver(order: Order, now: Date): Promise<Order> {
   }
 
   const pickup = { latitude: order.pickupLat, longitude: order.pickupLng };
-  const randomStart = offsetLatLng(pickup, 1200 + Math.random() * 800, Math.random() * 360);
-  
-  // Строим маршрут по дорогам для водителя
-  const approachRoute = await buildRoute(randomStart, pickup);
-  
-  // Берем самую первую точку маршрута (она уже на дороге), чтобы машина не летела по полям
-  const start = { 
-    latitude: approachRoute.geometry[0][0], 
-    longitude: approachRoute.geometry[0][1] 
-  };
-  
-  const approachSeconds = approachRoute.durationSeconds;
+  const start = offsetLatLng(pickup, 1200 + Math.random() * 800, Math.random() * 360);
+  const approachSeconds = 45; // Фиксированное время в пути
   const rideSeconds = Math.max(30, Math.min(90, Math.round(order.durationSeconds / 20)));
 
   const [updated] = await db
@@ -134,7 +124,6 @@ async function tryAssignDriver(order: Order, now: Date): Promise<Order> {
         driverStartLat: start.latitude,
         driverStartLng: start.longitude,
         approachSeconds: approachSeconds,
-        approachRoute: approachRoute.geometry, // Сохраняем маршрут!
         rideSeconds,
       } as any,
     })

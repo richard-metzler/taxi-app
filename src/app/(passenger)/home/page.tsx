@@ -216,12 +216,7 @@ export default function HomePage() {
           )
         }
       >
-        {unpaidOrderId ? (
-          <Link href={`/orders/${unpaidOrderId}`} className="neo-inset flex items-center justify-between px-4 py-3 text-sm">
-            <span className="font-semibold text-accent">Есть неоплаченная поездка</span>
-            <span className="text-muted">Оплатить →</span>
-          </Link>
-        ) : null}
+        
         {geo.error && !pickup ? <ErrorBanner message={geo.error} onRetry={onLocate} /> : null}
 
         <AddressInput
