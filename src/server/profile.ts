@@ -12,6 +12,7 @@ export function toProfile(user: User): UserProfile {
 }
 
 export async function updateProfile(user: User, patch: { name?: string; navigator?: string }): Promise<User> {
+  console.log('[profile] Обновление профиля. User ID:', user.id, 'Patch:', patch);
   const values: Partial<User> = {};
   if (patch.name !== undefined) {
     const name = patch.name.trim();
@@ -27,6 +28,7 @@ export async function updateProfile(user: User, patch: { name?: string; navigato
   
   values.updatedAt = new Date().toISOString() as any;
 
+  console.log('[profile] Отправляем в базу:', values);
   await db.update(users).set(values).where(eq(users.id, user.id));
   
   const [updated] = await db.select().from(users).where(eq(users.id, user.id));
