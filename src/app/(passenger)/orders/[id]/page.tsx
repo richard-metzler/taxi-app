@@ -13,7 +13,16 @@ export default function OrderPage({ params }: { params: { id: string } }) {
   const [isCancelling, setIsCancelling] = useState(false);
 
   if (!order && !error && !forbidden) {
+    if (!params.id || params.id === 'undefined' || params.id === '') {
     return (
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-danger">Заказ не найден или ID пуст</p>
+        <a href="/home" className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-white font-medium hover:bg-gray-800 transition-colors">На главную</a>
+      </main>
+    );
+  }
+
+  return (
       <main className="flex min-h-dvh items-center justify-center">
         <Spinner className="h-8 w-8 text-accent" />
       </main>
