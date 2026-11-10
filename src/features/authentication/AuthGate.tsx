@@ -50,7 +50,7 @@ export function AuthGate({ children, role }: { children: ReactNode; role: AppRol
 
   const otherRole = user && isAppRole(user.role) && user.role !== role ? user.role : null;
   useEffect(() => {
-    if (otherRole) router.replace(homePathForRole(otherRole));
+    // Отключено для возможности смены роли
   }, [otherRole, router]);
 
   if (loading || otherRole || (maxLoginTried && !user)) {

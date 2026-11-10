@@ -176,41 +176,53 @@ export async function signInWithPassword(input: { phone: unknown; password: unkn
 
 export async function signInWithMax(maxUserId: string, role: AccountRole, name?: string): Promise<SignInResult> {
   const phone = `max_${maxUserId}`;
-  const existing = await findByPhone(phone);
+  const [existing] = await db.select().from(users).where(eq(users.phone, phone));
+
   if (existing) {
+    // 🚀 Если роль отличается, обновляем её в базе!
+    if (existing.role !== role) {
+      await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, existing.id));
+      existing.role = role;
+      
+      // Если стали водителем, создаем профиль водителя (если его нет)
+      if (role === "driver") {
+        const [driver] = await db.select().from(drivers).where(eq(drivers.userId, existing.id));
+        if (!driver) {
+          await db.insert(drivers).values({
+            userId: existing.id,
+            name: existing.name || "Водитель",
+            isOnline: false,
+            isBusy: false,
+            isSimulated: false,
+            rating: 5,
+          });
+        }
+      }
+    }
     return issueSession(existing);
   }
+
+  // Создание нового пользователя (как было раньше)
   const userName = name?.trim() || "Пользователь MAX";
-  const now = new Date();
-  const userId = newId();
-  await db.insert(users).values({
-    id: userId,
+  const [created] = await db.insert(users).values({
     phone,
     name: userName,
     passwordHash: null,
     role,
-    navigator: "yandex",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
-  const created = await db.select().from(users).where(eq(users.id, userId));
-  if (!created[0]) throw new AppError("user_create_failed", "Не удалось создать пользователя", 500);
-  const user = created[0];
+  }).returning();
 
   if (role === "driver") {
-    await db.insert(drivers).values({
-      id: newId(),
-      userId: user.id,
-      name: userName,
-      photoUrl: null,
+    await db.insert(drivers).values({ 
+      userId: created.id, 
+      name: userName, 
       isOnline: false,
       isBusy: false,
       isSimulated: false,
       rating: 5,
-      createdAt: new Date(),
     });
   }
-  return issueSession(user);
+
+  return issueSession(created);
 }
 
 export async function resolveSession(): Promise<{ user: User; source: TokenSource } | null> {
