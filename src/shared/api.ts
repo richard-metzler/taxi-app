@@ -274,19 +274,12 @@ export const api = {
       request<{ orderId: string; status: string }>("/api/orders", { method: "POST", body: { estimateId, tariffId } }),
     get: (id: string) => request<{ order: OrderView }>(`/api/orders/${encodeURIComponent(id)}`),
     cancel: (id: string) => request<{ status: string }>(`/api/orders/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
-    active: () => request<{ orderId: string | null; unpaidOrderId: string | null }>("/api/orders/active"),
+    active: () => request<{ orderId: string | null }>("/api/orders/active"),
     list: () => request<{ items: OrderSummary[] }>("/api/orders"),
     events: (since: string | null) =>
       request<{ items: { id: string; orderId: string; type: string; title: string; body: string; createdAt: string }[]; now: string }>(
         `/api/orders/events${since ? `?since=${encodeURIComponent(since)}` : ""}`,
       ),
   },
-  payments: {
-    availability: () => request<{ configured: boolean; provider: string }>("/api/payments"),
-    create: (orderId: string) => request<{ payment: PaymentCreated }>("/api/payments", { method: "POST", body: { orderId } }),
-    get: (id: string) =>
-      request<{ payment: { id: string; status: string; amount: number; paymentMethod: string | null; failureReason: string | null } }>(
-        `/api/payments/${encodeURIComponent(id)}`,
-      ),
-  },
+
 };

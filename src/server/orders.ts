@@ -22,7 +22,7 @@ import { AppError, Errors } from "@/core/errors";
 import { newId } from "./ids";
 import { haversineMeters } from "@/core/geo";
 import { ACTIVE_STATUSES, CANCELLABLE_STATUSES, UNPAID_STATUSES, advanceSimulation, releaseDriver } from "./dispatch";
-import { isYooKassaConfigured, syncPayment } from "./yookassa";
+
 import type { OrderView, OrderSummary } from "@/shared/types";
 
 const PAYMENT_SYNC_INTERVAL_MS = 5_000;
@@ -184,16 +184,7 @@ export async function getOrderView(user: User, orderId: string): Promise<OrderVi
     completedAt: order.completedAt ? new Date(order.completedAt).toISOString() : null,
     paidAt: order.paidAt ? new Date(order.paidAt).toISOString() : null,
     driver,
-    payment: payment
-      ? {
-          id: payment.id,
-          status: payment.status,
-          amount: payment.amount,
-          paymentMethod: payment.paymentMethod,
-          confirmationUrl: payment.confirmationUrl,
-          failureReason: payment.failureReason,
-        }
-      : null,
+    payment: null,
     simulation: order.simulation, // <--- Добавили маршрут водителя
   };
 }

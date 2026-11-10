@@ -21,10 +21,7 @@ export const orderStatusEnum = pgEnum("order_status", [
   "driver_waiting",
   "in_progress",
   "completed",
-  "payment_pending",
-  "paid",
   "cancelled",
-  "payment_failed",
 ]);
 export const paymentStatusEnum = pgEnum("payment_status", [
   "pending",
