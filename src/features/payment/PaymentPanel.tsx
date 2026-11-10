@@ -76,7 +76,7 @@ export function PaymentPanel({ order, returnedFromProvider }: Props) {
     <div className="flex flex-col gap-3">
       <div className="neo-inset flex items-center justify-between px-4 py-3">
         <div>
-          <div className="text-sm text-muted">К оплате · банковская карта (ЮKassa)</div>
+          <div className="text-sm text-muted"> · банковская карта (ЮKassa)</div>
           <div className="text-2xl font-bold">{formatMoney(amount)}</div>
         </div>
         {payment ? (
