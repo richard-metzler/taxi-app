@@ -47,7 +47,7 @@ export default function OrderPage() {
               ✓
             </div>
             <h3 className="text-xl font-bold text-ink mb-2">Поездка завершена</h3>
-            <p className="text-muted mb-6">С Вас <span className="text-xl font-bold text-ink">{order?.finalPrice ? order.finalPrice / 100 : order?.estimatedPrice / 100} ₽</span></p>
+            <p className="text-muted mb-6">С Вас <span className="text-xl font-bold text-ink">{(order?.finalPrice || order?.estimatedPrice || 0) / 100} ₽</span></p>
             <Button variant="primary" className="w-full" onClick={() => { window.location.href = "/home"; }}>
               На главную
             </Button>
@@ -71,7 +71,7 @@ export default function OrderPage() {
               ✓
             </div>
             <h3 className="text-xl font-bold text-ink mb-2">Поездка завершена</h3>
-            <p className="text-muted mb-6">С Вас <span className="text-xl font-bold text-ink">{order?.finalPrice ? order.finalPrice / 100 : order?.estimatedPrice / 100} ₽</span></p>
+            <p className="text-muted mb-6">С Вас <span className="text-xl font-bold text-ink">{(order?.finalPrice || order?.estimatedPrice || 0) / 100} ₽</span></p>
             <Button variant="primary" className="w-full" onClick={() => { window.location.href = "/home"; }}>
               На главную
             </Button>
@@ -96,7 +96,7 @@ export default function OrderPage() {
               ✓
             </div>
             <h3 className="text-xl font-bold text-ink mb-2">Поездка завершена</h3>
-            <p className="text-muted mb-6">С Вас <span className="text-xl font-bold text-ink">{order?.finalPrice ? order.finalPrice / 100 : order?.estimatedPrice / 100} ₽</span></p>
+            <p className="text-muted mb-6">С Вас <span className="text-xl font-bold text-ink">{(order?.finalPrice || order?.estimatedPrice || 0) / 100} ₽</span></p>
             <Button variant="primary" className="w-full" onClick={() => { window.location.href = "/home"; }}>
               На главную
             </Button>
@@ -250,7 +250,7 @@ export default function OrderPage() {
               ✓
             </div>
             <h3 className="text-xl font-bold text-ink mb-2">Поездка завершена</h3>
-            <p className="text-muted mb-6">С Вас <span className="text-xl font-bold text-ink">{order?.finalPrice ? order.finalPrice / 100 : order?.estimatedPrice / 100} ₽</span></p>
+            <p className="text-muted mb-6">С Вас <span className="text-xl font-bold text-ink">{(order?.finalPrice || order?.estimatedPrice || 0) / 100} ₽</span></p>
             <Button variant="primary" className="w-full" onClick={() => { window.location.href = "/home"; }}>
               На главную
             </Button>
