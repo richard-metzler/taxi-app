@@ -14,7 +14,6 @@ export async function POST(req: Request) {
       await db.update(users).set({ role: "driver" }).where(eq(users.id, user.id));
     }
 
-    // Парсим FormData (текст + файлы)
     const formData = await req.formData();
     const name = formData.get("name") as string;
     const carModel = formData.get("carModel") as string;
@@ -46,33 +45,44 @@ export async function POST(req: Request) {
       await db.update(vehicles).set({ model: carModel, color: color || "Не указан", plate: plate.toUpperCase() }).where(eq(vehicles.id, vehicle.id));
     }
 
-    // 2. Отправляем email (Nodemailer)
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT || 465),
-        secure: true,
-        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-      });
+    // 2. Отправляем email в фоне (не блокируем ответ клиенту)
+    const sendEmailAsync = async () => {
+      if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+        try {
+          const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT || 465),
+            secure: true,
+            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+            connectionTimeout: 10000, // 10 сек на подключение
+          });
 
-      const selfieBuffer = Buffer.from(await selfie.arrayBuffer());
-      const licenseBuffer = Buffer.from(await licensePhoto.arrayBuffer());
+          const selfieBuffer = Buffer.from(await selfie.arrayBuffer());
+          const licenseBuffer = Buffer.from(await licensePhoto.arrayBuffer());
 
-      await transporter.sendMail({
-        from: `"Такси Рядом" <${process.env.SMTP_USER}>`,
-        to: "taxi_r9dom@mail.ru",
-        subject: `Новый водитель на модерацию: ${name}`,
-        text: `Водитель: ${name}\nТелефон: ${user.phone}\nАвто: ${carModel}, ${color}, ${plate}\nMAX ID: ${user.phone.replace('max_', '')}`,
-        attachments: [
-          { filename: `selfie_${name}.jpg`, content: selfieBuffer },
-          { filename: `license_${name}.jpg`, content: licenseBuffer },
-        ],
-      });
-      console.log(`[moderation] Email sent for driver ${name}`);
-    } else {
-      console.warn("[moderation] SMTP credentials not set. Email skipped.");
-    }
+          await transporter.sendMail({
+            from: `"Такси Рядом" <${process.env.SMTP_USER}>`,
+            to: "taxi_r9dom@mail.ru",
+            subject: `Новый водитель на модерацию: ${name}`,
+            text: `Водитель: ${name}\nТелефон: ${user.phone}\nАвто: ${carModel}, ${color}, ${plate}\nMAX ID: ${user.phone.replace('max_', '')}`,
+            attachments: [
+              { filename: `selfie_${name}.jpg`, content: selfieBuffer },
+              { filename: `license_${name}.jpg`, content: licenseBuffer },
+            ],
+          });
+          console.log(`[moderation] Email sent for driver ${name}`);
+        } catch (err: any) {
+          console.error("[moderation] Email failed:", err.message);
+        }
+      } else {
+        console.warn("[moderation] SMTP credentials not set. Email skipped.");
+      }
+    };
 
+    // Запускаем отправку, но не ждем её завершения
+    sendEmailAsync();
+
+    // 3. Сразу возвращаем успех клиенту
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     console.error("[driver/register] Ошибка:", error);
