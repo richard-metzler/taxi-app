@@ -253,6 +253,9 @@ export const api = {
     update: (patch: { name?: string; navigator?: string }) =>
       request<{ user: UserProfile }>("/api/profile", { method: "PATCH", body: patch }),
   },
+  system: {
+    getStatus: () => request<{ count: number }>("/api/system/status"),
+  },
   geocode: {
     search: (q: string, near?: { latitude: number; longitude: number } | null) => {
       const p = new URLSearchParams({ q });

@@ -16,6 +16,7 @@ import * as ordersActive from "../orders/active/route";
 import * as ordersEvents from "../orders/events/route";
 import * as ordersRoot from "../orders/route";
 import * as profile from "../profile/route";
+import * as systemStatus from "../system/status/route";
 import * as driverRoot from "../driver/route";
 import * as driverStatus from "../driver/status/route";
 import * as driverLocation from "../driver/location/route";
@@ -45,6 +46,7 @@ const ID = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-f
 const withParams = <T extends Record<string, string>>(params: T) => ({ params: Promise.resolve(params) });
 
 const ROUTES: RouteDef[] = [
+  { method: "GET", pattern: /^\/api\/system\/status$/, run: () => systemStatus.GET() },
   { method: "POST", pattern: /^\/api\/driver\/register$/, run: (req) => driverRegister.POST(req) },
   { method: "POST", pattern: /^\/api\/auth\/register$/, run: (req) => authRegister.POST(req) },
   { method: "POST", pattern: /^\/api\/auth\/login$/, run: (req) => authLogin.POST(req) },
