@@ -21,6 +21,7 @@ export function AuthGate({ children, role }: { children: ReactNode; role: AppRol
   useEffect(() => {
     if (loading || user || maxLoginTried) return;
     if (typeof window === 'undefined') return;
+    if (localStorage.getItem("max_auto_login_disabled") === "true") return;
 
     const maxUserId = (window as any).WebApp?.initDataUnsafe?.user?.id;
     if (!maxUserId) return;
@@ -71,7 +72,7 @@ export function AuthGate({ children, role }: { children: ReactNode; role: AppRol
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-muted">Эта учётная запись не поддерживается в приложении.</p>
-        <Button onClick={() => { localStorage.setItem("max_auto_login_disabled", "true"); void signOut(); }}>Выйти из аккаунта</Button>
+        <Button onClick={() => { localStorage.setItem("max_auto_login_disabled", "true"); void signOut().then(() => { window.location.href = "/"; }); }}>Выйти из аккаунта</Button>
       </main>
     );
   }
