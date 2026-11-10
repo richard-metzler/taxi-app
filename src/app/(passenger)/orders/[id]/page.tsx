@@ -67,6 +67,10 @@ export default function OrderPage() {
   };
 
   const route = typeof order.routeGeometry === 'string' ? JSON.parse(order.routeGeometry) : order.routeGeometry;
+  
+  // Маршрут водителя к вам (из симуляции)
+  const driverRoute = (order.simulation as any)?.approachRoute || null;
+  const showDriverRoute = ["driver_assigned", "driver_arriving"].includes(order.status);
 
   // Текст статуса для шапки шторки
   const statusText = 
@@ -89,7 +93,8 @@ export default function OrderPage() {
           driver={order.driver?.location}
           route={route}
           fitKey={order.id}
-          showDriverRoute={["driver_assigned", "driver_arriving"].includes(order.status)}
+          showDriverRoute={showDriverRoute}
+          driverRoute={driverRoute}
           layoutKey={!sheetCollapsed}
           className="h-full w-full"
         />

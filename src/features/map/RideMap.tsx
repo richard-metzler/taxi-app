@@ -15,6 +15,7 @@ export type RideMapProps = {
   driver?: (LatLng & { heading?: number }) | null;
   route?: [number, number][] | null;
   showDriverRoute?: boolean;
+  driverRoute?: [number, number][] | null;
   userLocation?: LatLng | null;
   pickupDraggable?: boolean;
   onPickupDragEnd?: (p: LatLng) => void;
@@ -228,16 +229,13 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
     driverRouteRef.current?.remove();
     driverRouteRef.current = null;
 
-    if (props.showDriverRoute && props.driver && props.pickup) {
+    if (props.showDriverRoute && props.driverRoute) {
       driverRouteRef.current = L.polyline(
-        [
-          [props.driver.latitude, props.driver.longitude],
-          [props.pickup.latitude, props.pickup.longitude]
-        ],
-        { color: "#10b981", weight: 5, opacity: 0.8, dashArray: "8, 8" } // Зеленый пунктир
+        props.driverRoute,
+        { color: "#10b981", weight: 5, opacity: 0.8 } // Зеленый сплошной маршрут
       ).addTo(map);
     }
-  }, [props.showDriverRoute, props.driver, props.pickup]);
+  }, [props.showDriverRoute, props.driverRoute]);
 
   return (
     <div

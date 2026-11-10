@@ -3,6 +3,7 @@ import { and, eq, gt, isNull, notInArray } from "drizzle-orm";
 import { db } from "@/db";
 import { driverLocations, drivers, orderEvents, orders, vehicles, type Order } from "@/db/schema";
 import { bearingDegrees, lerpLatLng, offsetLatLng, pointAlongPolyline, type LatLng } from "@/core/geo";
+import { buildRoute } from "./routing";
 import { newId } from "./ids";
 
 /**
@@ -108,6 +109,10 @@ async function tryAssignDriver(order: Order, now: Date): Promise<Order> {
 
   const pickup = { latitude: order.pickupLat, longitude: order.pickupLng };
   const start = offsetLatLng(pickup, 1200 + Math.random() * 800, Math.random() * 360);
+  
+  // Строим маршрут по дорогам для водителя
+  const approachRoute = await buildRoute(start, pickup);
+  const approachSeconds = approachRoute.durationSeconds;
   const rideSeconds = Math.max(30, Math.min(90, Math.round(order.durationSeconds / 20)));
 
   const [updated] = await db
@@ -121,9 +126,10 @@ async function tryAssignDriver(order: Order, now: Date): Promise<Order> {
       simulation: {
         driverStartLat: start.latitude,
         driverStartLng: start.longitude,
-        approachSeconds: APPROACH_SECONDS,
+        approachSeconds: approachSeconds,
+        approachRoute: approachRoute.geometry, // Сохраняем маршрут!
         rideSeconds,
-      },
+      } as any,
     })
     .where(and(eq(orders.id, order.id), eq(orders.status, "searching"), isNull(orders.driverId)))
     .returning();
