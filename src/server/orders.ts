@@ -51,7 +51,10 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
   const active = await db.select({ id: orders.id }).from(orders).where(and(eq(orders.passengerId, user.id), inArray(orders.status, ACTIVE_STATUSES))).limit(1);
   if (active.length > 0) throw new AppError("active_order_exists", "У вас уже есть активный заказ", 409);
 
+  const orderId = newId();
+
   const [order] = await db.insert(orders).values({
+    id: orderId,
     passengerId: user.id,
     status: "searching",
     pickupAddress: estimate.pickupAddress,

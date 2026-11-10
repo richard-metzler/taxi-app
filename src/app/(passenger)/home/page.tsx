@@ -44,7 +44,12 @@ export default function HomePage() {
     api.orders
       .active()
       .then(({ orderId, unpaidOrderId }) => {
-        if (orderId) router.replace(`/orders/${orderId}`);
+        
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+        if (orderId && isUuid) {
+          router.replace(`/orders/${orderId}`);
+        }
+
         else {
           setUnpaidOrderId(unpaidOrderId);
           setCheckingActive(false);
