@@ -3,6 +3,40 @@
 import { useState } from "react";
 import { Button } from "@/core/widgets/ui";
 
+// Функция для сжатия изображения на клиенте (чтобы не переполнить память сервера)
+const compressImage = async (file: File): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 800; // Сжимаем до 800px по ширине
+        const scale = MAX_WIDTH / img.width;
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(new File([blob], file.name, { type: "image/jpeg" }));
+            } else {
+              reject(new Error("Ошибка сжатия"));
+            }
+          },
+          "image/jpeg",
+          0.7 // Качество 70%
+        );
+      };
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
+  });
+};
+
 export function DriverSetup({ onComplete }: { onComplete: () => void }) {
   const [name, setName] = useState("");
   const [carModel, setCarModel] = useState("");
@@ -21,28 +55,35 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
       setError("Пожалуйста, прикрепите селфи и фото прав");
       return;
     }
-    
-    // Проверка размера (до 5 МБ), чтобы Layero не выдал ошибку 413
-    if (selfie.size > 5 * 1024 * 1024 || licensePhoto.size > 5 * 1024 * 1024) {
-      setError("Размер каждого фото не должен превышать 5 МБ");
-      return;
-    }
 
     setLoading(true);
     setError("");
 
     try {
+      // 1. Сжимаем фото
+      const compressedSelfie = await compressImage(selfie);
+      const compressedLicense = await compressImage(licensePhoto);
+
+      // 2. Формируем данные
       const formData = new FormData();
       formData.append("name", name);
       formData.append("carModel", carModel);
       formData.append("plate", plate);
       formData.append("color", color);
-      formData.append("selfie", selfie);
-      formData.append("licensePhoto", licensePhoto);
+      formData.append("selfie", compressedSelfie);
+      formData.append("licensePhoto", compressedLicense);
 
+      // 3. Берем токен сессии (как в api.ts)
+      const token = localStorage.getItem("taxi_passenger_session");
+
+      // 4. Отправляем с правильными заголовками
       const res = await fetch("/api/driver/register", {
         method: "POST",
-        body: formData, // Отправляем как FormData (с файлами)
+        headers: {
+          "x-session-token": token || "",
+          "x-taxi-client": "web",
+        },
+        body: formData,
       });
 
       const data = await res.json();
@@ -50,8 +91,8 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
 
       onComplete();
     } catch (err: any) {
-      if (err.message.includes('backend_starting')) {
-        setError("Сервер просыпается. Подождите 5 секунд и нажмите еще раз.");
+      if (err.message.includes('fetch') || err.message.includes('network')) {
+        setError("Сервер не отвечает. Проверьте интернет и попробуйте еще раз.");
       } else {
         setError(err.message);
       }
@@ -86,7 +127,6 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
             <input type="text" required placeholder="Например: Белый" className="neo-inset w-full p-3 rounded-xl outline-none text-ink" value={color} onChange={(e) => setColor(e.target.value)} />
           </div>
           
-          {/* Загрузка файлов */}
           <div>
             <label className="block text-sm font-bold text-ink mb-1">Селфи</label>
             <input type="file" accept="image/*" capture="user" required className="w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-accent/10 file:text-accent hover:file:bg-accent/20" onChange={(e) => setSelfie(e.target.files?.[0] || null)} />
