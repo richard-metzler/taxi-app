@@ -172,16 +172,7 @@ export default function HomePage() {
   if (loading || !user || checkingActive) {
     return (
       <main className="flex min-h-dvh items-center justify-center">
-      {/* Плашка со свободными машинами */}
-      {availableDrivers !== null && (
-        <div className="absolute left-4 top-4 z-[1000] flex items-center gap-2 rounded-2xl bg-white/90 px-3 py-2 shadow-lg backdrop-blur-md border border-gray-200">
-          <span className="text-2xl leading-none">🚕</span>
-          <div className={`h-3.5 w-3.5 rounded-full ${availableDrivers > 0 ? "bg-green-500" : "bg-red-500"}`} />
-          {availableDrivers > 0 && (
-            <span className="font-bold text-black">{availableDrivers}</span>
-          )}
-        </div>
-      )}
+      
 
         <Spinner className="h-8 w-8 text-accent" />
       </main>
@@ -205,6 +196,17 @@ export default function HomePage() {
           flyTo={flyTo}
         />
       </div>
+
+      {/* Плашка со свободными машинами */}
+      {availableDrivers !== null && (
+        <div className="absolute left-4 top-4 z-[1000] flex items-center gap-2 rounded-2xl bg-white/90 px-3 py-2 shadow-lg backdrop-blur-md border border-gray-200">
+          <span className="text-2xl leading-none">🚕</span>
+          <div className={`h-3.5 w-3.5 rounded-full ${availableDrivers > 0 ? "bg-green-500" : "bg-red-500"}`} />
+          {availableDrivers > 0 && (
+            <span className="font-bold text-black">{availableDrivers}</span>
+          )}
+        </div>
+      )}
 
       {/* Кнопка «моё местоположение» */}
       <button
