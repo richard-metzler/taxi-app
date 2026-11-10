@@ -196,8 +196,12 @@ export async function signInWithMax(maxUserId: string, role: AccountRole, name?:
 
   let user: User;
   if (existing) {
-    await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, existing.id));
+    const updates: any = { role, updatedAt: new Date() };
+    if (name) updates.name = name; // Сохраняем имя, если пришло из онбординга
+    
+    await db.update(users).set(updates).where(eq(users.id, existing.id));
     existing.role = role;
+    if (name) existing.name = name;
     user = existing;
   } else {
     const userName = name?.trim() || "Пользователь MAX";
