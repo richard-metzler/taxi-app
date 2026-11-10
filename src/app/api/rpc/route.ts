@@ -1,6 +1,7 @@
 import { AppError, handleApiError } from "@/core/errors";
 import { runWithRpcContext } from "@/server/session-context";
 import { isTokenFormat } from "@/server/session-transport";
+import * as driverRegister from "@/app/api/driver/register/route";
 import * as authLogout from "../auth/logout/route";
 import * as authMe from "../auth/me/route";
 import * as authRegister from "../auth/register/route";
