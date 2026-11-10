@@ -108,10 +108,17 @@ async function tryAssignDriver(order: Order, now: Date): Promise<Order> {
   }
 
   const pickup = { latitude: order.pickupLat, longitude: order.pickupLng };
-  const start = offsetLatLng(pickup, 1200 + Math.random() * 800, Math.random() * 360);
+  const randomStart = offsetLatLng(pickup, 1200 + Math.random() * 800, Math.random() * 360);
   
   // Строим маршрут по дорогам для водителя
-  const approachRoute = await buildRoute(start, pickup);
+  const approachRoute = await buildRoute(randomStart, pickup);
+  
+  // Берем самую первую точку маршрута (она уже на дороге), чтобы машина не летела по полям
+  const start = { 
+    latitude: approachRoute.geometry[0][0], 
+    longitude: approachRoute.geometry[0][1] 
+  };
+  
   const approachSeconds = approachRoute.durationSeconds;
   const rideSeconds = Math.max(30, Math.min(90, Math.round(order.durationSeconds / 20)));
 
