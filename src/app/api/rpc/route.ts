@@ -21,7 +21,6 @@ import * as profile from "../profile/route";
 import * as driverRoot from "../driver/route";
 import * as driverStatus from "../driver/status/route";
 import * as driverLocation from "../driver/location/route";
-{ method: "POST", pattern: /^\/api\/driver\/register$/, run: (req) => driverRegister.POST(req) },
 import * as driverAvailable from "../driver/orders/available/route";
 import * as driverHistory from "../driver/orders/history/route";
 import * as driverAccept from "../driver/orders/[id]/accept/route";
@@ -48,6 +47,7 @@ const ID = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-f
 const withParams = <T extends Record<string, string>>(params: T) => ({ params: Promise.resolve(params) });
 
 const ROUTES: RouteDef[] = [
+  { method: "POST", pattern: /^\/api\/driver\/register$/, run: (req) => driverRegister.POST(req) },
   { method: "POST", pattern: /^\/api\/auth\/register$/, run: (req) => authRegister.POST(req) },
   { method: "POST", pattern: /^\/api\/auth\/login$/, run: (req) => authLogin.POST(req) },
   { method: "POST", pattern: /^\/api\/auth\/logout$/, run: (req) => authLogout.POST(req) },
