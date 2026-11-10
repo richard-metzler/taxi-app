@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { signOut } from "@/server/auth";
 
-export async function POST() {
+// Возвращаем параметр req, так как RPC-диспетчер передает его при вызове
+export async function POST(req: Request) {
   try {
-    // На сервере просто вызываем функцию выхода, без всяких localStorage
     await signOut();
     return NextResponse.json({ ok: true });
   } catch (error) {
