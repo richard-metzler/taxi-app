@@ -21,6 +21,7 @@ export async function POST(req: Request) {
     const { estimateId, tariffId } = (await req.json()) as { estimateId?: string; tariffId?: string };
     if (!estimateId || !tariffId) throw Errors.validation("Не указаны расчёт или тариф");
     const order = await createOrder(user, estimateId, tariffId);
+    return NextResponse.json({ ...order, orderId: order.id }, { status: 201 });
     return NextResponse.json({ orderId: order.id, status: order.status }, { status: 201 });
   } catch (e) {
     return handleApiError(e);
