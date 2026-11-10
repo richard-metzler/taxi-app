@@ -9,8 +9,12 @@ import { Button } from "@/core/widgets/ui";
 
 export default function HomePage() {
   const router = useRouter();
+  
   const [pickup, setPickup] = useState<any>(null);
   const [destination, setDestination] = useState<any>(null);
+  const [pickupText, setPickupText] = useState("");
+  const [destinationText, setDestinationText] = useState("");
+  
   const [estimate, setEstimate] = useState<EstimateView | null>(null);
   const [selected, setSelected] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +22,10 @@ export default function HomePage() {
   const [ordering, setOrdering] = useState(false);
 
   const handleEstimate = async () => {
-    if (!pickup || !destination) return;
+    if (!pickup || !destination) {
+      setError("Пожалуйста, выберите адреса из списка подсказок");
+      return;
+    }
     setEstimating(true);
     setError(null);
     try {
@@ -54,10 +61,29 @@ export default function HomePage() {
       
       {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-4 text-sm">{error}</div>}
 
-      <div className="bg-white p-4 rounded-xl shadow-sm mb-4 flex flex-col gap-3">
-        <AddressInput label="Откуда" value={pickup} onSelect={setPickup} />
-        <AddressInput label="Куда" value={destination} onSelect={setDestination} />
-        <Button onClick={handleEstimate} disabled={!pickup || !destination || estimating}>
+      <div className="bg-white p-4 rounded-xl shadow-sm mb-4 flex flex-col gap-4">
+        <AddressInput 
+          label="Откуда" 
+          value={pickup} 
+          onSelect={setPickup}
+          placeholder="Улица, дом..."
+          onTextChange={setPickupText}
+          icon="📍"
+        />
+        <AddressInput 
+          label="Куда" 
+          value={destination} 
+          onSelect={setDestination}
+          placeholder="Куда едем?"
+          onTextChange={setDestinationText}
+          icon="🏁"
+        />
+        
+        <Button 
+          onClick={handleEstimate} 
+          disabled={!pickup || !destination || estimating}
+          className="mt-2"
+        >
           {estimating ? "Расчёт..." : "Рассчитать стоимость"}
         </Button>
       </div>
@@ -65,7 +91,8 @@ export default function HomePage() {
       {estimate && selected && (
         <div className="bg-white p-4 rounded-xl shadow-sm mb-4">
           <h2 className="font-bold text-lg mb-2">{selected.name}</h2>
-          <p className="text-2xl font-bold mb-4">{selected.price / 100} ₽</p>
+          <p className="text-sm text-gray-500 mb-4">Машина приедет через {Math.ceil(selected.pickupEtaSeconds / 60)} мин.</p>
+          <p className="text-3xl font-bold mb-4">{selected.price / 100} ₽</p>
           <Button variant="primary" className="w-full" onClick={handleOrder} loading={ordering}>
             Заказать
           </Button>
