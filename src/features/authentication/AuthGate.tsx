@@ -69,9 +69,15 @@ export function AuthGate({ children, role }: { children: ReactNode; role: AppRol
   }
 
   if (!user) {
-    const rootPath = homePathForRole(role);
-    const showNotice = gateReason === "expired" || (gateReason === "initial" && pathname !== rootPath);
-    return <LoginFlow key={`login-${role}`} role={role} notice={showNotice ? RETURN_NOTICE : null} />;
+    // Вместо формы входа отправляем на главный экран выбора роли
+    if (typeof window !== 'undefined') {
+      window.location.href = "/";
+    }
+    return (
+      <main className="flex min-h-dvh items-center justify-center">
+        <Spinner className="h-8 w-8 text-accent" />
+      </main>
+    );
   }
 
   if (!isAppRole(user.role)) {
