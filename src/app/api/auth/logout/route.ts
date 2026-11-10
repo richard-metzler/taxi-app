@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server";
-import { handleApiError } from "@/core/errors";
 import { signOut } from "@/server/auth";
-import { isHttpsRequest } from "@/server/request-origin";
-import { serializeClearSessionCookies } from "@/server/session-transport";
 
-/** POST /api/auth/logout — выход: сессия удаляется на сервере, cookie очищаются во всех вариантах. */
-export async function POST(req: Request) {
+export async function POST() {
   try {
-    await localStorage.setItem("max_auto_login_disabled", "true"); signOut();
-    const res = NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
-    for (const cookie of serializeClearSessionCookies(isHttpsRequest(req))) res.headers.append("Set-Cookie", cookie);
-    return res;
-  } catch (e) {
-    return handleApiError(e);
+    // На сервере просто вызываем функцию выхода, без всяких localStorage
+    await signOut();
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("[logout] Ошибка при выходе:", error);
+    return NextResponse.json({ error: "Ошибка выхода" }, { status: 500 });
   }
 }
