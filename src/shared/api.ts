@@ -232,6 +232,8 @@ export const api = {
   },
   /** Интерфейс водителя. Все изменения статусов заказа выполняет сервер. */
   driver: {
+    register: (data: { name: string; carModel: string; plate: string }) =>
+      request<{ ok: true }>("/api/driver/register", { method: "POST", body: data }),
     state: () => request<DriverStateView>("/api/driver"),
     setStatus: (online: boolean, position?: { latitude: number; longitude: number }) =>
       request<{ isOnline: boolean }>("/api/driver/status", { method: "POST", body: { online, ...position } }),

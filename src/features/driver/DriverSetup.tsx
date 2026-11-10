@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/core/widgets/ui";
+import { api } from "@/shared/api";
 
 export function DriverSetup({ onComplete }: { onComplete: () => void }) {
   const [name, setName] = useState("");
@@ -16,15 +17,8 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
     setError("");
 
     try {
-      const res = await fetch("/api/driver/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, carModel, plate }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Ошибка сохранения");
-
+      // Используем правильный API-клиент, который передает токен
+      await api.driver.register({ name, carModel, plate });
       onComplete();
     } catch (err: any) {
       if (err.message.includes('backend_starting') || err.message.includes('fetch')) {
