@@ -20,6 +20,22 @@ const RideMap = dynamic(() => import("@/features/map/RideMap"), { ssr: false });
 const DEFAULT_CENTER: LatLng = { latitude: 56.4846, longitude: 84.9476 };
 
 export default function HomePage() {
+  const [availableDrivers, setAvailableDrivers] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const { count } = await api.system.getStatus();
+        setAvailableDrivers(count);
+      } catch (e) {
+        console.error("Не удалось узнать количество машин");
+      }
+    };
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   const router = useRouter();
   const { user, loading } = useRequireAuth();
   const geo = useGeolocation();
@@ -30,7 +46,6 @@ export default function HomePage() {
   const [destinationText, setDestinationText] = useState("");
   const [estimate, setEstimate] = useState<EstimateView | null>(null);
   const [estimating, setEstimating] = useState(false);
-  const [availableDrivers, setAvailableDrivers] = useState<number | null>(null);
   const [ordering, setOrdering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [flyTo, setFlyTo] = useState<{ point: LatLng; nonce: number } | null>(null);
@@ -155,22 +170,7 @@ export default function HomePage() {
   );
 
   if (loading || !user || checkingActive) {
-  
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const { count } = await api.system.getStatus();
-        setAvailableDrivers(count);
-      } catch (e) {
-        console.error("Не удалось узнать количество машин");
-      }
-    };
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
+    return (
       <main className="flex min-h-dvh items-center justify-center">
       {/* Плашка со свободными машинами */}
       {availableDrivers !== null && (
