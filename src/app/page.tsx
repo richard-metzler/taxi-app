@@ -1,48 +1,29 @@
 "use client";
-import { logClient } from "@/shared/logger";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useSession } from "@/shared/session";
-import { getStoredRole, homePathForRole, isAppRole, setStoredRole, type AppRole } from "@/shared/role";
 import { RoleSelect } from "@/features/authentication/RoleSelect";
-import { Spinner } from "@/core/widgets/ui";
 
-/**
- * Точка входа приложения.
- * - Есть сессия — сразу открывается раздел роли учётной записи (без повторной регистрации).
- * - Нет сессии, но роль выбрана раньше — открывается вход этой роли.
- * - Ничего не выбрано — экран выбора роли.
- */
-export default function RootPage() {
+export default function Home() {
   const router = useRouter();
-  const { user, loading } = useSession();
-  const [stored, setStored] = useState<AppRole | null | undefined>(undefined);
 
-  useEffect(() => {
-    setStored(getStoredRole());
-  }, []);
+  const selectRole = async (role: 'passenger' | 'driver') => {
+    // Сбрасываем старую сессию и флаги
+    localStorage.removeItem("taxi_passenger_session");
+    localStorage.removeItem("max_auto_login_disabled");
+    if (typeof window !== "undefined") window.name = "";
 
-  useEffect(() => {
-    if (loading || stored === undefined) return;
-    if (user && isAppRole(user.role)) router.replace(homePathForRole(user.role));
-    else if (stored) router.replace(homePathForRole(stored));
-  }, [loading, stored, user, router]);
+    // Если открыто в MAX, принудительно меняем роль в базе
+    if (typeof window !== "undefined" && (window as any).WebApp?.initDataUnsafe?.user?.id) {
+      const maxUserId = String((window as any).WebApp.initDataUnsafe.user.id);
+      await fetch('/api/auth/max', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maxUserId, role }),
+      });
+    }
+    
+    router.push(`/${role}`);
+  };
 
-  if (loading || stored === undefined || (user && isAppRole(user.role)) || stored) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center" aria-busy="true">
-        <Spinner className="h-8 w-8 text-accent" />
-      </main>
-    );
-  }
-
-  return (
-    <RoleSelect
-      onChoose={(role) => {
-        setStoredRole(role);
-        setStored(role);
-      }}
-    />
-  );
+  return <RoleSelect onChoose={selectRole} />;
 }

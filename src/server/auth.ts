@@ -2,7 +2,7 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { and, eq, gt, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { drivers, sessions, users, vehicles, type User } from "@/db/schema";
+import { drivers, sessions, users, vehicles, userRoles, type User } from "@/db/schema";
 import { AppError, Errors } from "@/core/errors";
 import { normalizePhone } from "@/core/phone";
 import { validateVehicle, type VehicleInput } from "@/core/vehicle";
@@ -194,51 +194,41 @@ export async function signInWithMax(maxUserId: string, role: AccountRole, name?:
   const phone = `max_${maxUserId}`;
   const [existing] = await db.select().from(users).where(eq(users.phone, phone));
 
+  let user: User;
   if (existing) {
-    // 🚀 Если роль отличается, обновляем её в базе!
-    if (existing.role !== role) {
-      await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, existing.id));
-      existing.role = role;
-      
-      // Если стали водителем, создаем профиль водителя (если его нет)
-      if (role === "driver") {
-        const [driver] = await db.select().from(drivers).where(eq(drivers.userId, existing.id));
-        if (!driver) {
-          await db.insert(drivers).values({
-            userId: existing.id,
-            name: existing.name || "Водитель",
-            isOnline: false,
-            isBusy: false,
-            isSimulated: false,
-            rating: 5,
-          });
-        }
-      }
-    }
-    return issueSession(existing);
+    await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, existing.id));
+    existing.role = role;
+    user = existing;
+  } else {
+    const userName = name?.trim() || "Пользователь MAX";
+    const [created] = await db.insert(users).values({
+      phone,
+      name: userName,
+      passwordHash: null,
+      role,
+    }).returning();
+    user = created;
   }
 
-  // Создание нового пользователя (как было раньше)
-  const userName = name?.trim() || "Пользователь MAX";
-  const [created] = await db.insert(users).values({
-    phone,
-    name: userName,
-    passwordHash: null,
-    role,
-  }).returning();
+  // Сохраняем роль в user_roles (если еще не сохранена)
+  await db.insert(userRoles).values({ userId: user.id, role }).onConflictDoNothing();
 
+  // Создаем профиль водителя, если его нет
   if (role === "driver") {
-    await db.insert(drivers).values({ 
-      userId: created.id, 
-      name: userName, 
-      isOnline: false,
-      isBusy: false,
-      isSimulated: false,
-      rating: 5,
-    });
+    const [driver] = await db.select().from(drivers).where(eq(drivers.userId, user.id));
+    if (!driver) {
+      await db.insert(drivers).values({
+        userId: user.id,
+        name: user.name || "Водитель",
+        isOnline: false,
+        isBusy: false,
+        isSimulated: false,
+        rating: 5,
+      });
+    }
   }
 
-  return issueSession(created);
+  return issueSession(user);
 }
 
 export async function resolveSession(): Promise<{ user: User; source: TokenSource } | null> {

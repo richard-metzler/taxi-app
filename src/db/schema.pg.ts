@@ -49,11 +49,16 @@ export const users = pgTable("users", {
   phone: text("phone").notNull().unique(),
   name: text("name").notNull().default(""),
   passwordHash: text("password_hash"),
-  role: userRoleEnum("role").notNull().default("passenger"),
+  role: userRoleEnum("role"),
   navigator: navigatorEnum("navigator").notNull().default("yandex"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const userRoles = pgTable("user_roles", {
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: userRoleEnum("role").notNull(),
+}, (t) => [primaryKey({ columns: [t.userId, t.role] })]);
 
 export const authAttempts = pgTable("auth_attempts", {
   key: text("key").primaryKey(),
