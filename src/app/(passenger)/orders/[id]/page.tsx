@@ -89,6 +89,7 @@ export default function OrderPage() {
           driver={order.driver?.location}
           route={route}
           fitKey={order.id}
+          showDriverRoute={["driver_assigned", "driver_arriving"].includes(order.status)}
           layoutKey={!sheetCollapsed}
           className="h-full w-full"
         />

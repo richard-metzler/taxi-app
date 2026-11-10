@@ -14,6 +14,7 @@ export type RideMapProps = {
   destination?: LatLng | null;
   driver?: (LatLng & { heading?: number }) | null;
   route?: [number, number][] | null;
+  showDriverRoute?: boolean;
   userLocation?: LatLng | null;
   pickupDraggable?: boolean;
   onPickupDragEnd?: (p: LatLng) => void;
@@ -69,6 +70,7 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
   const driverRef = useRef<L.Marker | null>(null);
   const userRef = useRef<L.Marker | null>(null);
   const routeRef = useRef<L.Polyline | null>(null);
+  const driverRouteRef = useRef<L.Polyline | null>(null);
   const callbacksRef = useRef({ onPickupDragEnd: props.onPickupDragEnd, onMapClick: props.onMapClick });
   callbacksRef.current = { onPickupDragEnd: props.onPickupDragEnd, onMapClick: props.onMapClick };
 
@@ -216,6 +218,26 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
     const timer = setTimeout(() => map.invalidateSize(), 180);
     return () => clearTimeout(timer);
   }, [props.layoutKey]);
+
+
+  // Зеленый маршрут водителя до пассажира
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    
+    driverRouteRef.current?.remove();
+    driverRouteRef.current = null;
+
+    if (props.showDriverRoute && props.driver && props.pickup) {
+      driverRouteRef.current = L.polyline(
+        [
+          [props.driver.latitude, props.driver.longitude],
+          [props.pickup.latitude, props.pickup.longitude]
+        ],
+        { color: "#10b981", weight: 5, opacity: 0.8, dashArray: "8, 8" } // Зеленый пунктир
+      ).addTo(map);
+    }
+  }, [props.showDriverRoute, props.driver, props.pickup]);
 
   return (
     <div
