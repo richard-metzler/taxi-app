@@ -1,5 +1,5 @@
-import { logClient } from "@/shared/logger";
 "use client";
+import { logClient } from "@/shared/logger";
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
