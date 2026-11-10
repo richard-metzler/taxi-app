@@ -55,8 +55,8 @@ export default function HomePage() {
       {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-4 text-sm">{error}</div>}
 
       <div className="bg-white p-4 rounded-xl shadow-sm mb-4 flex flex-col gap-3">
-        <AddressInput label="Откуда" value={pickup} onChange={setPickup} />
-        <AddressInput label="Куда" value={destination} onChange={setDestination} />
+        <AddressInput label="Откуда" value={pickup} onSelect={setPickup} />
+        <AddressInput label="Куда" value={destination} onSelect={setDestination} />
         <Button onClick={handleEstimate} disabled={!pickup || !destination || estimating}>
           {estimating ? "Расчёт..." : "Рассчитать стоимость"}
         </Button>
