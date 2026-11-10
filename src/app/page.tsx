@@ -32,8 +32,8 @@ export default function LandingPage() {
     }
   }, [user, loading, isSwitching]);
 
-  const handleOnboard = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleOnboard = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!name.trim()) return;
     setIsSubmitting(true);
     setError("");
@@ -99,7 +99,12 @@ export default function LandingPage() {
             
             {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
             
-            <Button onClick={handleSwitchToDriver} loading={isSubmitting} className="w-full mb-4">
+            <Button 
+              type="button"
+              onClick={handleSwitchToDriver} 
+              loading={isSubmitting} 
+              className="w-full mb-4 touch-manipulation"
+            >
               Я водитель
             </Button>
             <button 
@@ -122,13 +127,21 @@ export default function LandingPage() {
               {error && <div className="text-red-500 text-sm">{error}</div>}
               <input
                 type="text"
-                required
                 placeholder="Ваше имя"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); handleOnboard(); }
+                }}
                 className="neo-inset w-full p-3 rounded-xl outline-none text-center text-lg text-ink"
               />
-              <Button type="submit" variant="primary" className="w-full" loading={isSubmitting}>
+              <Button 
+                type="button" 
+                onClick={() => handleOnboard()} 
+                variant="primary" 
+                className="w-full touch-manipulation" 
+                loading={isSubmitting}
+              >
                 Продолжить
               </Button>
             </form>
