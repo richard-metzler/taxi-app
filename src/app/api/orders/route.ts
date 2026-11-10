@@ -20,8 +20,9 @@ export async function POST(req: Request) {
     if (!estimateId || !tariffId) throw Errors.validation("Не указаны расчёт или тариф");
     
     const order = await createOrder(user, estimateId, tariffId);
-    // Возвращаем заказ вместе с orderId для фронтенда
-    return NextResponse.json({ ...order, orderId: order.id }, { status: 201 });
+    
+    // Возвращаем orderId для фронтенда
+    return NextResponse.json({ orderId: order.id, status: order.status }, { status: 201 });
   } catch (e) {
     return handleApiError(e);
   }

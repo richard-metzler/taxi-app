@@ -53,7 +53,13 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
 
   const orderId = newId();
 
+  const orderId = crypto.randomUUID();
+
+  const orderId = crypto.randomUUID();
+
   const [order] = await db.insert(orders).values({
+    id: orderId,
+    id: orderId,
     id: orderId,
     passengerId: user.id,
     status: "searching",
