@@ -7,7 +7,12 @@ export async function POST(req: NextRequest) {
     const body = await readAuthBody(req);
     const maxUserId = typeof body.maxUserId === 'string' ? body.maxUserId.trim() : '';
     const role = body.role === 'driver' ? 'driver' : 'passenger';
+    
+    // Читаем имя, если оно передано (при онбординге)
+    const name = typeof body.name === 'string' ? body.name.trim() : undefined;
+    
     if (!/^\d+$/.test(maxUserId)) throw new Error('Некорректный MAX ID');
+    
     const result = await signInWithMax(maxUserId, role, name);
     return authResponse(req, result, 200);
   } catch (error) {
