@@ -15,8 +15,6 @@ import * as orderById from "../orders/[id]/route";
 import * as ordersActive from "../orders/active/route";
 import * as ordersEvents from "../orders/events/route";
 import * as ordersRoot from "../orders/route";
-import * as paymentById from "../payments/[id]/route";
-import * as paymentsRoot from "../payments/route";
 import * as profile from "../profile/route";
 import * as driverRoot from "../driver/route";
 import * as driverStatus from "../driver/status/route";
@@ -70,12 +68,9 @@ const ROUTES: RouteDef[] = [
     pattern: new RegExp(`^/api/orders/${ID}/cancel$`),
     run: (req, m) => orderCancel.POST(req, withParams({ id: m[1] })),
   },
-  { method: "GET", pattern: /^\/api\/payments$/, run: () => paymentsRoot.GET() },
-  { method: "POST", pattern: /^\/api\/payments$/, run: (req) => paymentsRoot.POST(req) },
   {
     method: "GET",
     pattern: new RegExp(`^/api/payments/${ID}$`),
-    run: (req, m) => paymentById.GET(req, withParams({ id: m[1] })),
   },
   { method: "GET", pattern: /^\/api\/diagnostics\/transport$/, run: () => diagnosticsTransport.GET() },
   // Интерфейс водителя
