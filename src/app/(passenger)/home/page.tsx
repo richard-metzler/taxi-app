@@ -43,7 +43,7 @@ export default function HomePage() {
     if (!user) return;
     api.orders
       .active()
-      .then(({ orderId, unpaidOrderId }) => {
+      .then(({ orderId }) => {
         if (orderId) router.replace(`/orders/${orderId}`);
         else {
           setUnpaidOrderId(unpaidOrderId);

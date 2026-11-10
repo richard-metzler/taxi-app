@@ -58,7 +58,7 @@ export default function HistoryPage() {
           </div>
         ) : null}
         {items?.map((o) => {
-          const tone = o.status === "paid" ? "success" : o.status === "cancelled" || o.status === "payment_failed" ? "danger" : "accent";
+          const tone = o.status === "completed" ? "success" : o.status === "cancelled" ? "danger" : "accent";
           return (
             <Link key={o.id} href={`/orders/${o.id}`} className="neo block p-4">
               <div className="flex items-center justify-between gap-2">

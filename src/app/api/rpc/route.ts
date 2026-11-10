@@ -70,7 +70,6 @@ const ROUTES: RouteDef[] = [
   },
   {
     method: "GET",
-    pattern: new RegExp(`^/api/payments/${ID}$`),
   },
   { method: "GET", pattern: /^\/api\/diagnostics\/transport$/, run: () => diagnosticsTransport.GET() },
   // Интерфейс водителя
@@ -152,7 +151,7 @@ export async function POST(req: Request) {
     const inner = new Request(new URL(target.pathname + target.search, req.url), {
       method: envelope.method,
       headers,
-      body: envelope.method === "GET" ? undefined : JSON.stringify(envelope.body ?? {}),
+      body: envelope.method === "GET" ? undefined : JSON.stringify(envelope.body ?? ),
     });
 
     const token = isTokenFormat(envelope.session) ? envelope.session : null;

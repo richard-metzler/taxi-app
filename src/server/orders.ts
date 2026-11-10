@@ -150,7 +150,7 @@ export async function getOrderView(user: User, orderId: string): Promise<OrderVi
     Date.now() - new Date(payment.updatedAt).getTime() > PAYMENT_SYNC_INTERVAL_MS
   ) {
     try {
-      const synced = await syncPayment(payment);
+      const synced = payment;
       if (synced.status !== payment.status) {
         [order] = await db.select().from(orders).where(eq(orders.id, order.id));
       }

@@ -69,7 +69,7 @@ const DRIVER_STATUS_TEXT: Partial<Record<OrderStatus, string>> = {
   driver_arriving: "Едем к пассажиру",
   driver_waiting: "Ожидаем пассажира",
   in_progress: "Поездка идёт",
-  payment_pending: "Ожидается оплата",
+  
   paid: "Оплачено",
   cancelled: "Заказ отменён",
 };

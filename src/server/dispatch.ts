@@ -229,7 +229,7 @@ export const ACTIVE_STATUSES: Order["status"][] = [
 ];
 
 /** Статусы завершённой, но не оплаченной поездки. */
-export const UNPAID_STATUSES: Order["status"][] = ["completed", "payment_pending", "payment_failed"];
+export const UNPAID_STATUSES: Order["status"][] = ["completed"];
 
 /** Статусы, при которых пассажир может отменить заказ. */
 export const CANCELLABLE_STATUSES: Order["status"][] = [

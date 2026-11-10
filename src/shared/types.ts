@@ -101,7 +101,7 @@ export const ORDER_STATUS_TEXT: Record<OrderStatus, string> = {
   driver_waiting: "Водитель ожидает",
   in_progress: "Поездка началась",
   completed: "Поездка завершена",
-  payment_pending: "Ожидается оплата",
+  
   paid: "Оплачено",
   cancelled: "Заказ отменён",
   payment_failed: "Оплата не прошла",

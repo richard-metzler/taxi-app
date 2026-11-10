@@ -5,8 +5,7 @@ export const SWIPE_COLLAPSE_PX = 44;
 const ACTION_REQUIRED_STATUSES: ReadonlySet<OrderStatus> = new Set([
   "driver_waiting",
   "completed",
-  "payment_pending",
-  "payment_failed",
+  
   "cancelled",
 ]);
 

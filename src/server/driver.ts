@@ -315,7 +315,7 @@ export async function listDriverTrips(driver: Driver): Promise<DriverTripView[]>
     .from(orders)
     .innerJoin(users, eq(users.id, orders.passengerId))
     .leftJoin(tariffs, eq(tariffs.id, orders.tariffId))
-    .where(and(eq(orders.driverId, driver.id), inArray(orders.status, ["payment_pending", "paid", "payment_failed", "completed", "cancelled"])))
+    .where(and(eq(orders.driverId, driver.id), inArray(orders.status, ["completed", "cancelled"])))
     .orderBy(desc(orders.createdAt))
     .limit(100);
   return rows.map((row: { order: Order; passenger: { name: string }; tariffName: string | null }) => {

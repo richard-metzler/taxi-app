@@ -56,7 +56,7 @@ export default function DriverHistoryPage() {
           <article key={trip.id} className="neo p-4">
             <div className="flex items-center justify-between gap-2">
               <div className="text-xs text-muted">{formatDate(trip.createdAt)}</div>
-              <StatusPill text={driverStatusText(trip.status)} tone={trip.status === "paid" ? "success" : trip.status === "cancelled" ? "danger" : "accent"} />
+              <StatusPill text={driverStatusText(trip.status)} tone={trip.status === "completed" ? "success" : trip.status === "cancelled" ? "danger" : "accent"} />
             </div>
             <div className="mt-2 flex flex-col gap-1 text-sm">
               <div className="flex gap-2">
