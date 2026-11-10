@@ -128,8 +128,11 @@ export default function HomePage() {
     setError(null);
     try {
       const res = await api.orders.create(estimate.estimateId, selected.id);
-      const orderId = (res as any).orderId || (res as any).id;
-      if (!orderId) throw new Error("Сервер не вернул ID заказа");
+      console.log('Ответ от сервера:', res); // Чтобы увидеть, что приходит
+      const orderId = res.orderId || res.id || (res as any).order?.id;
+      if (!orderId) {
+        throw new Error("Сервер не вернул ID заказа. Проверьте логи.");
+      }
       router.push(`/orders/${orderId}`);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Не удалось создать заказ";
