@@ -1,49 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useOrder } from "@/features/ride_order/useOrder";
 import { Button, Spinner } from "@/core/widgets/ui";
+import { api } from "@/shared/api";
 
-export default function OrderPage({ params }: { params: { id: string } }) {
+export default function OrderPage() {
+  const params = useParams();
+  const orderId = params.id as string; // Правильное получение ID в Next 16
   const router = useRouter();
-  const { order, error, forbidden, reload } = useOrder(params.id);
+  
+  const { order, error, forbidden, reload } = useOrder(orderId || "");
   
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  if (!order && !error && !forbidden) {
-    if (!params.id || params.id === 'undefined' || params.id === '') {
+  // Защита от пустого или битого ID
+  if (!orderId || orderId === "undefined" || orderId === "null") {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="text-danger">Заказ не найден или ID пуст</p>
-        <a href="/home" className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-white font-medium hover:bg-gray-800 transition-colors">На главную</a>
+        <p className="text-danger">Ошибка: некорректный ID заказа</p>
+        <Button onClick={() => { window.location.href = "/home"; }}>На главную</Button>
       </main>
     );
   }
 
-  return (
+  if (!order && !error && !forbidden) {
+    return (
       <main className="flex min-h-dvh items-center justify-center">
         <Spinner className="h-8 w-8 text-accent" />
       </main>
     );
   }
 
-  if (forbidden) {
+  if (forbidden || error || !order) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="text-danger">У вас нет доступа к этому заказу</p>
-        <p className="text-sm text-gray-500">ID заказа: {params.id}</p>
-        <a href="/home" className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-white font-medium hover:bg-gray-800 transition-colors">На главную</a>
-      </main>
-    );
-  }
-
-  if (error || !order) {
-    return (
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="text-danger">{error || "Заказ не найден"}</p>
-        <a href="/home" className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-white font-medium hover:bg-gray-800 transition-colors">На главную</a>
+        <p className="text-danger">{forbidden ? "У вас нет доступа к этому заказу" : (error || "Заказ не найден")}</p>
+        <p className="text-sm text-gray-500">ID: {orderId}</p>
+        <Button onClick={() => { window.location.href = "/home"; }}>На главную</Button>
       </main>
     );
   }
@@ -55,8 +51,7 @@ export default function OrderPage({ params }: { params: { id: string } }) {
     setShowCancelModal(false);
     setIsCancelling(true);
     try {
-      const res = await fetch(`/api/orders/${order.id}/cancel`, { method: 'POST' });
-      if (!res.ok) throw new Error('Ошибка при отмене');
+      await api.orders.cancel(order.id);
       await reload();
     } catch (e: any) {
       alert(e.message || 'Не удалось отменить заказ');
@@ -103,8 +98,7 @@ export default function OrderPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* Нижняя панель с кнопками */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 safe-area-pb z-40">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 z-40">
         <div className="max-w-md mx-auto flex flex-col gap-3">
           {canCancel && (
             <Button variant="danger" onClick={() => setShowCancelModal(true)} loading={isCancelling} className="w-full">
@@ -125,11 +119,10 @@ export default function OrderPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* Модальное окно отмены (без системных confirm) */}
       {showCancelModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold mb-2 text-gray-900">Отменить заказ?</h3>
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-xl font-bold mb-2">Отменить заказ?</h3>
             <p className="text-gray-500 mb-6">Вы уверены, что хотите отменить поездку?</p>
             <div className="flex gap-3">
               <Button variant="default" className="flex-1" onClick={() => setShowCancelModal(false)}>

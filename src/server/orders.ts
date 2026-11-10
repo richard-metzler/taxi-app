@@ -48,7 +48,7 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
   const [tariff] = await db.select().from(tariffs).where(eq(tariffs.id, tariffId));
   if (!tariff || !tariff.isActive) throw Errors.validation("Тариф недоступен");
 
-  const active = await db.select({ id: orders.id }).from(orders).where(and(eq(orders.passengerId, user.id), inArray(orders.status, ACTIVE_STATUSES))).limit(1);
+  const active = await db.select({ user.id), inArray(orders.status, ACTIVE_STATUSES))).limit(1);
   if (active.length > 0) throw new AppError("active_order_exists", "У вас уже есть активный заказ", 409);
 
   const orderId = crypto.randomUUID();
@@ -56,7 +56,7 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
 
 
   const [order] = await db.insert(orders).values({
-    id: orderId,
+    id: crypto.randomUUID(),
     passengerId: user.id,
     status: "searching",
     pickupAddress: estimate.pickupAddress,
