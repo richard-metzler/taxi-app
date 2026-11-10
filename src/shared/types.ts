@@ -102,10 +102,9 @@ export const ORDER_STATUS_TEXT: Record<OrderStatus, string> = {
   in_progress: "Поездка началась",
   completed: "Поездка завершена",
   
-  paid: "Оплачено",
+  
   cancelled: "Заказ отменён",
-  payment_failed: "Оплата не прошла",
-};
+  };
 
 export const PAYMENT_STATUS_TEXT: Record<PaymentStatus, string> = {
   pending: "Ожидает оплаты",

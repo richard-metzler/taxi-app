@@ -88,7 +88,7 @@ export default function OrderPage() {
     order.status === "in_progress" ? "В поездке" :
     order.status === "completed" ? "Поездка завершена" :
     order.status === "cancelled" ? "Заказ отменён" :
-    order.status === "paid" ? "Заказ оплачен" : "";
+    "";
 
   return (
     <main className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-surface">

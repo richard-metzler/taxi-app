@@ -68,9 +68,7 @@ const ROUTES: RouteDef[] = [
     pattern: new RegExp(`^/api/orders/${ID}/cancel$`),
     run: (req, m) => orderCancel.POST(req, withParams({ id: m[1] })),
   },
-  {
-    method: "GET",
-  },
+  
   { method: "GET", pattern: /^\/api\/diagnostics\/transport$/, run: () => diagnosticsTransport.GET() },
   // Интерфейс водителя
   { method: "GET", pattern: /^\/api\/driver$/, run: () => driverRoot.GET() },
