@@ -46,6 +46,7 @@ export type OrderView = {
   paidAt: string | null;
   driver: DriverView | null;
   payment: PaymentView | null;
+  simulation?: any;
 };
 
 export type OrderSummary = {

@@ -194,6 +194,7 @@ export async function getOrderView(user: User, orderId: string): Promise<OrderVi
           failureReason: payment.failureReason,
         }
       : null,
+    simulation: order.simulation, // <--- Добавили маршрут водителя
   };
 }
 
