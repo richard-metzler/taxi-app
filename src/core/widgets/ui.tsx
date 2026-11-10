@@ -70,7 +70,7 @@ export function OfflineBanner() {
 
 type NavItem = { href: string; label: string; icon: string };
 
-const PASSENGER_NAV: NavItem[] = [
+export const PASSENGER_NAV: NavItem[] = [
   { href: "/home", label: "Заказ", icon: "🗺️" },
   { href: "/history", label: "История", icon: "🕓" },
   { href: "/settings", label: "Настройки", icon: "⚙️" },
