@@ -7,7 +7,7 @@ import { serializeClearSessionCookies } from "@/server/session-transport";
 /** POST /api/auth/logout — выход: сессия удаляется на сервере, cookie очищаются во всех вариантах. */
 export async function POST(req: Request) {
   try {
-    await signOut();
+    await localStorage.setItem("max_auto_login_disabled", "true"); signOut();
     const res = NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
     for (const cookie of serializeClearSessionCookies(isHttpsRequest(req))) res.headers.append("Set-Cookie", cookie);
     return res;

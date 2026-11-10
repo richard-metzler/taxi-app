@@ -287,7 +287,7 @@ export async function requireAccount(): Promise<User> {
   return session.user;
 }
 
-export async function signOut(): Promise<void> {
+export async function localStorage.setItem("max_auto_login_disabled", "true"); signOut(): Promise<void> {
   const candidates = await readTokenCandidates();
   if (candidates.length > 0) {
     await db.delete(sessions).where(inArray(sessions.tokenHash, candidates.map((candidate) => sha256(candidate.token))));

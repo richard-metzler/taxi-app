@@ -13,6 +13,7 @@ export function RoleSelect({ onChoose }: { onChoose: (role: AppRole) => void }) 
   const [loading, setLoading] = useState<AppRole | null>(null);
 
   const handleSelect = async (role: AppRole) => {
+    localStorage.removeItem("max_auto_login_disabled");
     setLoading(role);
     try {
       if (typeof window !== 'undefined' && !(window as any).WebApp) {

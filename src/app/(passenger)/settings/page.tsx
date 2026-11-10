@@ -100,7 +100,7 @@ export default function SettingsPage() {
           onClick={async () => {
             setSigningOut(true);
             try {
-              await signOut();
+              await localStorage.setItem("max_auto_login_disabled", "true"); signOut();
             } catch (err) {
               setError(err instanceof ApiError ? err.message : "Не удалось выйти");
               setSigningOut(false);
