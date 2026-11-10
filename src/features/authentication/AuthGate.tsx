@@ -71,7 +71,7 @@ export function AuthGate({ children, role }: { children: ReactNode; role: AppRol
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-muted">Эта учётная запись не поддерживается в приложении.</p>
-        <Button onClick={() => void localStorage.setItem("max_auto_login_disabled", "true"); signOut()}>Выйти из аккаунта</Button>
+        <Button onClick={() => { localStorage.setItem("max_auto_login_disabled", "true"); void signOut(); }}>Выйти из аккаунта</Button>
       </main>
     );
   }
