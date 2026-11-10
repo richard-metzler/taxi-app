@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     const maxUserId = typeof body.maxUserId === 'string' ? body.maxUserId.trim() : '';
     const role = body.role === 'driver' ? 'driver' : 'passenger';
     if (!/^\d+$/.test(maxUserId)) throw new Error('Некорректный MAX ID');
-    const result = await signInWithMax(maxUserId, role);
+    const result = await signInWithMax(maxUserId, role, name);
     return authResponse(req, result, 200);
   } catch (error) {
     return authErrorResponse(error);
