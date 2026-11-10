@@ -229,7 +229,7 @@ export function LoginFlow({ role, notice }: Props) {
           <button
             type="button"
             id="auth-change-role"
-            onClick={changeRole}
+            onClick={() => { localStorage.setItem("max_auto_login_disabled", "true"); changeRole(); }}
             disabled={busy}
             className="text-xs font-semibold text-accent underline underline-offset-4"
           >

@@ -87,6 +87,7 @@ export default function SettingsPage() {
 
         <Button
           onClick={() => {
+            localStorage.setItem("max_auto_login_disabled", "true");
             clearStoredRole();
             void signOut({ to: "/" });
           }}
