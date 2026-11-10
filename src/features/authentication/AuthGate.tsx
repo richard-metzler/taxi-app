@@ -6,6 +6,7 @@ import { useSession } from "@/shared/session";
 import { homePathForRole, isAppRole, type AppRole } from "@/shared/role";
 import { Button, Spinner } from "@/core/widgets/ui";
 import { LoginFlow } from "./LoginFlow";
+import { logClient } from "@/shared/logger";
 
 export const RETURN_NOTICE =
   "Чтобы продолжить, войдите по номеру телефона и паролю. После входа вы вернётесь на прежнюю страницу.";
@@ -19,11 +20,16 @@ export function AuthGate({ children, role }: { children: ReactNode; role: AppRol
 
   // 🚀 Авто-логин через MAX
   useEffect(() => {
+    logClient("AuthGate useEffect triggered", { loading, user: !!user, maxLoginTried });
     if (loading || user || maxLoginTried) return;
     if (typeof window === 'undefined') return;
-    if (localStorage.getItem("max_auto_login_disabled") === "true") return;
+    if (localStorage.getItem("max_auto_login_disabled") === "true") {
+      logClient("AuthGate: auto-login disabled by flag");
+      return;
+    }
 
     const maxUserId = (window as any).WebApp?.initDataUnsafe?.user?.id;
+    logClient("AuthGate: MAX ID found?", { maxUserId });
     if (!maxUserId) return;
 
     setMaxLoginTried(true);

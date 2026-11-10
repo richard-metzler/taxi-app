@@ -1,3 +1,4 @@
+import { logClient } from "@/shared/logger";
 "use client";
 
 import { useRouter } from "next/navigation";
