@@ -163,12 +163,28 @@ export async function signInWithPassword(input: { phone: unknown; password: unkn
     throw new AppError("invalid_credentials", "Неверный номер телефона или пароль", 401);
   }
   if (user.role !== "passenger" && user.role !== "driver") throw Errors.forbidden();
-  if (input.role !== undefined && requestedRole(input.role) !== user.role) {
-    throw new AppError(
-      "role_mismatch",
-      `Этот номер зарегистрирован как ${ROLE_TEXT[user.role as AccountRole]}. Смените роль и войдите снова.`,
-      403,
-    );
+  if (input.role !== undefined) {
+    const targetRole = requestedRole(input.role);
+    if (targetRole !== user.role) {
+      // Обновляем роль в базе данных
+      await db.update(users).set({ role: targetRole, updatedAt: new Date() }).where(eq(users.id, user.id));
+      user.role = targetRole;
+      
+      // Если стали водителем — создаем профиль водителя
+      if (targetRole === "driver") {
+        const [driver] = await db.select().from(drivers).where(eq(drivers.userId, user.id));
+        if (!driver) {
+          await db.insert(drivers).values({
+            userId: user.id,
+            name: user.name || "Водитель",
+            isOnline: false,
+            isBusy: false,
+            isSimulated: false,
+            rating: 5,
+          });
+        }
+      }
+    }
   }
   await resetAuthAttempts("login", phone);
   return issueSession(user);
