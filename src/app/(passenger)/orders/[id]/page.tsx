@@ -25,7 +25,7 @@ export default function OrderPage({ params }: { params: { id: string } }) {
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-danger">У вас нет доступа к этому заказу</p>
         <p className="text-sm text-gray-500">ID заказа: {params.id}</p>
-        <Button onClick={() => { window.location.href = "/home"; }}>На главную</Button>
+        <a href="/home" className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-white font-medium hover:bg-gray-800 transition-colors">На главную</a>
       </main>
     );
   }
@@ -34,7 +34,7 @@ export default function OrderPage({ params }: { params: { id: string } }) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-danger">{error || "Заказ не найден"}</p>
-        <Button onClick={() => { window.location.href = "/home"; }}>На главную</Button>
+        <a href="/home" className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-white font-medium hover:bg-gray-800 transition-colors">На главную</a>
       </main>
     );
   }
