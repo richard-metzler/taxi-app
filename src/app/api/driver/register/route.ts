@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       await db.update(users).set({ role: "driver" }).where(eq(users.id, user.id));
     }
 
-    const { name, carModel, plate } = await req.json();
+    const { name, carModel, plate, color } = await req.json();
 
     if (!name || !carModel || !plate) {
       return NextResponse.json({ error: "Заполните все поля" }, { status: 400 });
@@ -44,13 +44,14 @@ export async function POST(req: Request) {
         driverId: driver.id,
         brand: "Авто",
         model: carModel,
-        color: "Любой",
+        color: color || "Не указан",
         plate: plate.toUpperCase(),
         tariffId: "standard",
       });
     } else {
       await db.update(vehicles).set({
         model: carModel,
+        color: color || "Не указан",
         plate: plate.toUpperCase(),
       }).where(eq(vehicles.id, vehicle.id));
     }

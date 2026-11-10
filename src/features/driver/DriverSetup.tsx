@@ -8,6 +8,7 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
   const [name, setName] = useState("");
   const [carModel, setCarModel] = useState("");
   const [plate, setPlate] = useState("");
+  const [color, setColor] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -18,7 +19,7 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
 
     try {
       // Используем правильный API-клиент, который передает токен
-      await api.driver.register({ name, carModel, plate });
+      await api.driver.register({ name, carModel, plate, color });
       onComplete();
     } catch (err: any) {
       if (err.message.includes('backend_starting') || err.message.includes('fetch')) {
@@ -71,6 +72,18 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
               className="neo-inset w-full p-3 rounded-xl outline-none text-ink"
               value={plate}
               onChange={(e) => setPlate(e.target.value)}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-bold text-ink mb-1">Цвет авто</label>
+            <input
+              type="text"
+              required
+              placeholder="Например: Белый"
+              className="neo-inset w-full p-3 rounded-xl outline-none text-ink"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
             />
           </div>
           <Button type="submit" variant="primary" className="mt-2 w-full" loading={loading}>
