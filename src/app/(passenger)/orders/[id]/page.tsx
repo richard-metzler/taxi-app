@@ -16,11 +16,21 @@ export default function OrderPage() {
   const { order, error, forbidden, reload } = useOrder(orderId);
   
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [sheetCollapsed, setSheetCollapsed] = useState(false);
 
   useEffect(() => {
-    if (!order || order.status === "completed" || order.status === "cancelled") return;
+    if (!order) return;
+    
+    // Если поездка завершилась, показываем чек
+    if (order.status === "completed") {
+      setShowReceipt(true);
+      return;
+    }
+
+    if (order.status === "cancelled") return;
+
     const interval = setInterval(() => { reload(); }, 3000);
     return () => clearInterval(interval);
   }, [order?.status, reload]);
@@ -29,7 +39,23 @@ export default function OrderPage() {
     return (
       <main className="flex min-h-dvh items-center justify-center">
         <p className="text-danger">Ошибка: некорректный ID заказа</p>
-      </main>
+      
+      {showReceipt && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="bg-[#E9EDF2] rounded-3xl p-6 max-w-sm w-full shadow-[0_10px_40px_rgba(0,0,0,0.3)] text-center">
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+              ✓
+            </div>
+            <h3 className="text-xl font-bold text-ink mb-2">Поездка завершена</h3>
+            <p className="text-muted mb-6">С Вас <span className="text-xl font-bold text-ink">{order?.finalPrice ? order.finalPrice / 100 : order?.estimatedPrice / 100} ₽</span></p>
+            <Button variant="primary" className="w-full" onClick={() => { window.location.href = "/home"; }}>
+              На главную
+            </Button>
+          </div>
+        </div>
+      )}
+
+    </main>
     );
   }
 
@@ -37,7 +63,23 @@ export default function OrderPage() {
     return (
       <main className="flex min-h-dvh items-center justify-center">
         <Spinner className="h-8 w-8 text-accent" />
-      </main>
+      
+      {showReceipt && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="bg-[#E9EDF2] rounded-3xl p-6 max-w-sm w-full shadow-[0_10px_40px_rgba(0,0,0,0.3)] text-center">
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+              ✓
+            </div>
+            <h3 className="text-xl font-bold text-ink mb-2">Поездка завершена</h3>
+            <p className="text-muted mb-6">С Вас <span className="text-xl font-bold text-ink">{order?.finalPrice ? order.finalPrice / 100 : order?.estimatedPrice / 100} ₽</span></p>
+            <Button variant="primary" className="w-full" onClick={() => { window.location.href = "/home"; }}>
+              На главную
+            </Button>
+          </div>
+        </div>
+      )}
+
+    </main>
     );
   }
 
@@ -46,7 +88,23 @@ export default function OrderPage() {
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-danger">{forbidden ? "У вас нет доступа к этому заказу" : (error || "Заказ не найден")}</p>
         <Button onClick={() => { window.location.href = "/home"; }}>На главную</Button>
-      </main>
+      
+      {showReceipt && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="bg-[#E9EDF2] rounded-3xl p-6 max-w-sm w-full shadow-[0_10px_40px_rgba(0,0,0,0.3)] text-center">
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+              ✓
+            </div>
+            <h3 className="text-xl font-bold text-ink mb-2">Поездка завершена</h3>
+            <p className="text-muted mb-6">С Вас <span className="text-xl font-bold text-ink">{order?.finalPrice ? order.finalPrice / 100 : order?.estimatedPrice / 100} ₽</span></p>
+            <Button variant="primary" className="w-full" onClick={() => { window.location.href = "/home"; }}>
+              На главную
+            </Button>
+          </div>
+        </div>
+      )}
+
+    </main>
     );
   }
 
@@ -184,6 +242,22 @@ export default function OrderPage() {
           </div>
         </div>
       )}
+    
+      {showReceipt && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="bg-[#E9EDF2] rounded-3xl p-6 max-w-sm w-full shadow-[0_10px_40px_rgba(0,0,0,0.3)] text-center">
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+              ✓
+            </div>
+            <h3 className="text-xl font-bold text-ink mb-2">Поездка завершена</h3>
+            <p className="text-muted mb-6">С Вас <span className="text-xl font-bold text-ink">{order?.finalPrice ? order.finalPrice / 100 : order?.estimatedPrice / 100} ₽</span></p>
+            <Button variant="primary" className="w-full" onClick={() => { window.location.href = "/home"; }}>
+              На главную
+            </Button>
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }

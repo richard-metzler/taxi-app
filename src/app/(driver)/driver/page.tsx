@@ -113,6 +113,9 @@ export default function DriverHomePage() {
     setActionError(null);
     try {
       await api.driver.action(currentOrder.id, action);
+      if (action === "complete") {
+        alert("Спасибо за выполненный заказ!");
+      }
     } catch (cause) {
       fail(cause, "Не удалось выполнить действие");
     } finally {

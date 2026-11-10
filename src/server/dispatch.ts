@@ -210,7 +210,7 @@ export async function advanceSimulation(order: Order): Promise<Order> {
       current = await transition(
         current,
         "in_progress",
-        { status: "payment_pending", completedAt: now, finalPrice: current.estimatedPrice },
+        { status: "completed", completedAt: now, finalPrice: current.estimatedPrice },
         "payment_pending",
       );
       await db.update(drivers).set({ isBusy: false }).where(eq(drivers.id, driverId));

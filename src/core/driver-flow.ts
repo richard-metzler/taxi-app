@@ -10,7 +10,7 @@ export const DRIVER_TRANSITIONS: Record<Exclude<DriverAction, "decline">, Step> 
   depart: { from: "driver_assigned", to: "driver_arriving", label: "Выехал к пассажиру" },
   arrived: { from: "driver_arriving", to: "driver_waiting", label: "Я на месте" },
   start: { from: "driver_waiting", to: "in_progress", label: "Начать поездку" },
-  complete: { from: "in_progress", to: "payment_pending", label: "Завершить поездку" },
+  complete: { from: "in_progress", to: "completed", label: "Завершить поездку" },
 };
 
 /** Следующее основное действие водителя для текущего статуса заказа. */
