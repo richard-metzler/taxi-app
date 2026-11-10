@@ -129,6 +129,10 @@ export default function DriverHomePage() {
     );
   }
 
+  if (!state.driver.vehicle) {
+    return <DriverSetup onComplete={() => window.location.reload()} />;
+  }
+
   const summary = currentOrder
     ? { title: driverStatusText(currentOrder.status), subtitle: currentOrder.pickup.address, badge: formatMoney(currentOrder.price) }
     : isOnline
