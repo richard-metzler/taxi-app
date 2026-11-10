@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useSession } from "@/shared/session";
 import { Spinner } from "@/core/widgets/ui";
@@ -8,21 +7,20 @@ import type { AppRole } from "@/shared/role";
 
 export function AuthGate({ children, role }: { children: ReactNode; role: AppRole }) {
   const { user, loading } = useSession();
-  const router = useRouter();
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     if (loading) return;
 
-    // 🚀 ГЛАВНОЕ ПРАВИЛО: Если нет юзера или его активная роль не совпадает, 
-    // выкидываем на главный экран выбора роли. Никаких автологинов.
+    // 🚀 Если нет пользователя или его роль не совпадает с требуемой,
+    // просто выкидываем на главную страницу (онбординг или выбор роли).
     if (!user || user.role !== role) {
-      router.replace("/");
+      window.location.replace("/");
       return;
     }
 
     setChecking(false);
-  }, [user, loading, role, router]);
+  }, [user, loading, role]);
 
   if (loading || checking) {
     return (
