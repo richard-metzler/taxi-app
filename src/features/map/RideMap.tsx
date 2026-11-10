@@ -229,13 +229,36 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
     driverRouteRef.current?.remove();
     driverRouteRef.current = null;
 
-    if (props.showDriverRoute && props.driverRoute) {
-      driverRouteRef.current = L.polyline(
-        props.driverRoute,
-        { color: "#10b981", weight: 5, opacity: 0.8 } // Зеленый сплошной маршрут
-      ).addTo(map);
+    if (props.showDriverRoute && props.driverRoute && props.driver) {
+      let closestIdx = 0;
+      let minDst = Infinity;
+      const dLat = props.driver.latitude;
+      const dLng = props.driver.longitude;
+
+      // Ищем ближайшую точку на маршруте к текущему положению машины
+      for (let i = 0; i < props.driverRoute.length; i++) {
+        const p = props.driverRoute[i];
+        const dist = (p[0] - dLat) ** 2 + (p[1] - dLng) ** 2; 
+        if (dist < minDst) {
+          minDst = dist;
+          closestIdx = i;
+        }
+      }
+
+      // Берем текущую позицию машины и оставшуюся часть маршрута
+      const remainingRoute = [
+        [dLat, dLng] as [number, number],
+        ...props.driverRoute.slice(closestIdx)
+      ];
+
+      if (remainingRoute.length > 1) {
+        driverRouteRef.current = L.polyline(
+          remainingRoute,
+          { color: "#10b981", weight: 5, opacity: 0.8 }
+        ).addTo(map);
+      }
     }
-  }, [props.showDriverRoute, props.driverRoute]);
+  }, [props.showDriverRoute, props.driverRoute, props.driver]);
 
   return (
     <div
