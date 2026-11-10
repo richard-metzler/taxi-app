@@ -15,6 +15,7 @@ export type DriverProfileView = {
   name: string;
   rating: number;
   isOnline: boolean;
+  isApproved: boolean;
   vehicle: DriverVehicleView | null;
 };
 
