@@ -85,33 +85,19 @@ export default function SettingsPage() {
 
         <ErrorBanner message={error} />
 
-        <button
-      onClick={() => {
-        if (typeof window !== "undefined") {
-          localStorage.clear();
-          document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-          window.location.href = '/';
-        }
-      }}
-      className="neo-btn flex h-12 w-full items-center justify-center text-base font-semibold text-red-500"
-    >
-      Выйти из аккаунта
-    </button>
+        <Button
+          onClick={() => { window.location.href = "/?switch=true"; }}
+        >
+          Выйти из аккаунта
+        </Button>
       </div>
       <div className="sticky bottom-0">
 
         {/* Кнопки управления аккаунтом */}
         <div className="flex flex-col gap-3 mt-4">
-          <button
-      onClick={() => {
-        if (typeof window !== "undefined") {
-          window.location.href = '/?switch=true';
-        }
-      }}
-      className="neo-btn flex h-12 w-full items-center justify-center text-base font-semibold text-ink"
-    >
-      Сменить роль
-    </button>
+          <Button onClick={() => { window.location.href = "/?switch=true"; }}>
+            Сменить роль
+          </Button>
         </div>
 
       <BottomNav />
