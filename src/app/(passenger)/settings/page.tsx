@@ -63,10 +63,10 @@ export default function SettingsPage() {
           {saved ? <div className="text-center text-sm text-success">Сохранено</div> : null}
         
         <div className="mt-6 flex flex-col gap-3 pb-8">
-          <button onClick={() => { if (typeof window !== "undefined") { localStorage.clear(); document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"; window.location.href = "/"; } }} className="flex h-14 w-full items-center justify-center rounded-2xl bg-white text-base font-semibold text-red-500 shadow-sm border border-gray-100 active:bg-gray-50">
+          <button onClick={() => { if (typeof window !== "undefined") { localStorage.clear(); document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"; window.location.href = "/"; } }} className="neo-btn flex h-14 w-full items-center justify-center text-base font-semibold text-red-500" >
             Выйти из аккаунта
           </button>
-          <button onClick={() => { if (typeof window !== "undefined") { window.location.href = "/?switch=true"; } }} className="flex h-14 w-full items-center justify-center rounded-2xl bg-white text-base font-semibold text-ink shadow-sm border border-gray-100 active:bg-gray-50">
+          <button onClick={() => { if (typeof window !== "undefined") { window.location.href = "/?switch=true"; } }} className="neo-btn flex h-14 w-full items-center justify-center text-base font-semibold text-ink" >
             Сменить роль
           </button>
         </div>
