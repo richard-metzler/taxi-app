@@ -132,14 +132,14 @@ export default function DriverSettingsPage() {
         </Button>
       </div>
       <div className="sticky bottom-0">
-        
+
         {/* Кнопки управления аккаунтом */}
         <div className="flex flex-col gap-3 mt-4">
           <Button onClick={() => { window.location.href = "/?switch=true"; }}>
             Сменить роль
           </Button>
         </div>
-    
+
       <BottomNav items={DRIVER_NAV} />
       </div>
     </main>
