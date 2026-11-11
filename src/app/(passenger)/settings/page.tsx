@@ -61,6 +61,15 @@ export default function SettingsPage() {
             Сохранить имя
           </Button>
           {saved ? <div className="text-center text-sm text-success">Сохранено</div> : null}
+        
+        <div className="mt-6 flex flex-col gap-3 pb-8">
+          <button onClick={() => { if (typeof window !== "undefined") { localStorage.clear(); document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"; window.location.href = "/"; } }} className="flex h-14 w-full items-center justify-center rounded-2xl bg-white text-base font-semibold text-red-500 shadow-sm border border-gray-100 active:bg-gray-50">
+            Выйти из аккаунта
+          </button>
+          <button onClick={() => { if (typeof window !== "undefined") { window.location.href = "/?switch=true"; } }} className="flex h-14 w-full items-center justify-center rounded-2xl bg-white text-base font-semibold text-ink shadow-sm border border-gray-100 active:bg-gray-50">
+            Сменить роль
+          </button>
+        </div>
         </section>
 
         <section className="neo flex flex-col gap-2 p-4">
@@ -85,19 +94,12 @@ export default function SettingsPage() {
 
         <ErrorBanner message={error} />
 
-        <Button
-          onClick={() => { window.location.href = "/?switch=true"; }}
-        >
-          Выйти из аккаунта
-        </Button>
       </div>
       <div className="sticky bottom-0">
 
         {/* Кнопки управления аккаунтом */}
         <div className="flex flex-col gap-3 mt-4">
-          <Button onClick={() => { window.location.href = "/?switch=true"; }}>
-            Сменить роль
-          </Button>
+
         </div>
 
       <BottomNav />
