@@ -85,14 +85,7 @@ export default function DriverSettingsPage() {
           </Button>
           {saved ? <div className="text-center text-sm text-success">Сохранено</div> : null}
         
-        <div className="mt-6 flex flex-col gap-3 pb-8">
-          <button onClick={() => { if (typeof window !== "undefined") { localStorage.clear(); document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"; window.location.href = "/"; } }} className="neo-btn flex h-14 w-full items-center justify-center text-base font-semibold text-red-500" >
-            Выйти из аккаунта
-          </button>
-          <button onClick={() => { if (typeof window !== "undefined") { window.location.href = "/?switch=true"; } }} className="neo-btn flex h-14 w-full items-center justify-center text-base font-semibold text-ink" >
-            Сменить роль
-          </button>
-        </div>
+        
         </section>
 
         <section className="neo flex flex-col gap-2 p-4">
@@ -129,7 +122,15 @@ export default function DriverSettingsPage() {
               </button>
             ))}
           </div>
-        </section>
+        <div className="mt-6 flex flex-col gap-3 pb-8">
+          <button onClick={() => { if (typeof window !== "undefined") { localStorage.clear(); document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"; window.location.href = "/"; } }} className="neo-btn flex h-14 w-full items-center justify-center text-base font-semibold text-red-500" >
+            Выйти из аккаунта
+          </button>
+          <button onClick={() => { if (typeof window !== "undefined") { window.location.href = "/?switch=true"; } }} className="neo-btn flex h-14 w-full items-center justify-center text-base font-semibold text-ink" >
+            Сменить роль
+          </button>
+        </div>
+      </section>
 
         <ErrorBanner message={error} />
 
