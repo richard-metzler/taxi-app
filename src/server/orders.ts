@@ -5,6 +5,7 @@ import { db } from "@/db";
 import {
   driverLocations,
   drivers,
+  users,
   fareEstimates,
   orderEvents,
   orders,
@@ -24,6 +25,8 @@ import { haversineMeters } from "@/core/geo";
 import { ACTIVE_STATUSES, CANCELLABLE_STATUSES, UNPAID_STATUSES, advanceSimulation, releaseDriver } from "./dispatch";
 
 import type { OrderView, OrderSummary } from "@/shared/types";
+import { sendMaxNotification } from "@/shared/max-notify";
+import { isUserOnline } from "@/shared/presence";
 
 const PAYMENT_SYNC_INTERVAL_MS = 5_000;
 
@@ -202,6 +205,7 @@ export async function cancelOrder(user: User, orderId: string): Promise<Order> {
     .returning();
   if (!updated) throw new AppError("cannot_cancel", "Заказ уже нельзя отменить", 409);
   await releaseDriver(updated.driverId);
+  
   return updated;
 }
 
