@@ -88,7 +88,7 @@ export function BottomNav({ items = PASSENGER_NAV }: { items?: NavItem[] }) {
   return (
     <nav className="neo safe-bottom mx-auto mb-2 flex w-[calc(100%-1.5rem)] max-w-md items-stretch justify-around px-2 pt-2">
       {items.map((item) => {
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const active = pathname === item.href;
         return (
           <Link
             key={item.href}
