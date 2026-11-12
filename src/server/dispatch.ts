@@ -1,10 +1,12 @@
 import "server-only";
 import { and, eq, gt, isNull, notInArray } from "drizzle-orm";
 import { db } from "@/db";
-import { driverLocations, drivers, orderEvents, orders, vehicles, type Order } from "@/db/schema";
+import { driverLocations, drivers, orderEvents, orders, vehicles, users, type Order } from "@/db/schema";
 import { bearingDegrees, lerpLatLng, offsetLatLng, pointAlongPolyline, type LatLng } from "@/core/geo";
 import { buildRoute } from "./routing";
 import { newId } from "./ids";
+import { sendMaxNotification } from "@/shared/max-notify";
+import { isUserOnline } from "@/shared/presence";
 
 /**
  * ДЕМО-ДИСПЕТЧЕР.
@@ -134,6 +136,21 @@ async function tryAssignDriver(order: Order, now: Date): Promise<Order> {
   await db.update(drivers).set({ isBusy: true }).where(eq(drivers.id, candidate.driver.id));
   await setDriverLocation(candidate.driver.id, start, bearingDegrees(start, pickup));
   await addEvent(updated, "driver_assigned");
+  
+  // Отправляем push пассажиру, если он офлайн
+  const [passenger] = await db.select({ phone: users.phone }).from(users).where(eq(users.id, updated.passengerId));
+  if (passenger?.phone && passenger.phone.startsWith("max_")) {
+    const maxId = passenger.phone.replace("max_", "");
+    const online = await isUserOnline(updated.passengerId);
+    if (!online) {
+      const vehicleInfo = `${candidate.vehicle.brand} ${candidate.vehicle.model}, ${candidate.vehicle.color}, ${candidate.vehicle.plate}`;
+      void sendMaxNotification(
+        maxId, 
+        `🚖 Водитель найден!\nИмя: ${candidate.driver.name}\nАвто: ${vehicleInfo}`
+      );
+    }
+  }
+  
   return updated;
 }
 
