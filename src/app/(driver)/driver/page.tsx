@@ -31,13 +31,28 @@ export default function DriverHomePage() {
   const tracking = useDriverLocation(isOnline);
 
   const [busy, setBusy] = useState(false);
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
 
+  // Состояния для отказов
   const [declineTargetId, setDeclineTargetId] = useState<string | null>(null);
   const [declineModalOpen, setDeclineModalOpen] = useState(false);
-  const declinedIds = useRef<Set<string>>(
-    new Set(JSON.parse(typeof window !== "undefined" ? sessionStorage.getItem("declinedOrders") || "[]" : "[]"))
-  );  const [acceptingId, setAcceptingId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [declinedIds, setDeclinedIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    const saved = sessionStorage.getItem("declinedOrders");
+    return new Set(saved ? JSON.parse(saved) : []);
+  });
+
+  const saveDeclined = (id: string) => {
+    setDeclinedIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      sessionStorage.setItem("declinedOrders", JSON.stringify(Array.from(next)));
+      return next;
+    });
+  };
+
+  
+        const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [incomingOrder, setIncomingOrder] = useState<AvailableOrderView | null>(null);
@@ -48,15 +63,8 @@ export default function DriverHomePage() {
   const centered = useRef(false);
 
   const currentOrder = state?.currentOrder ?? null;
-  const saveDeclined = (id: string) => {
-    declinedIds.current.add(id);
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("declinedOrders", JSON.stringify(Array.from(declinedIds.current)));
-    }
-  };
-
-  const filteredAvailable = available.filter(o => !declinedIds.current.has(o.id));
-  const selected = available.find((order) => order.id === selectedId) ?? null;
+  
+    const selected = available.find((order) => order.id === selectedId) ?? null;
 
   // Показываем модалку при поступлении нового заказа
   useEffect(() => {
@@ -262,8 +270,9 @@ export default function DriverHomePage() {
             }
           }
           setDeclineModalOpen(false);
-          // Перезагружаем страницу, чтобы гарантированно убрать заказ из интерфейса
-          window.location.reload();
+          setDeclineTargetId(null);
+          // Перезагрузка для очистки серверного состояния
+          setTimeout(() => window.location.reload(), 100);
         }}
         onCancel={() => setDeclineModalOpen(false)}
       />
