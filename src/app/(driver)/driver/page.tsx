@@ -72,6 +72,8 @@ export default function DriverHomePage() {
         return;
       }
       await api.driver.setStatus(true, point);
+      // Принудительно отправляем координаты сразу, чтобы сервер знал, где мы
+      await api.driver.sendLocation({ ...point, heading: 0 });
       await reload();
     } catch (cause) {
       fail(cause, "Не удалось выйти на линию");

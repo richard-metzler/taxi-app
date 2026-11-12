@@ -47,6 +47,19 @@ export function useDriverLocation(enabled: boolean) {
       },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 },
     );
+    // Принудительно запрашиваем позицию сразу, не дожидаясь watchPosition
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const point = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+        lastRef.current = { point, heading: pos.coords.heading ?? 0 };
+        setPosition(point);
+        setError(null);
+        send();
+      },
+      undefined,
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+
     const keepAlive = setInterval(() => {
       if (Date.now() - sentAtRef.current >= KEEPALIVE_MS) send();
     }, 5000);
