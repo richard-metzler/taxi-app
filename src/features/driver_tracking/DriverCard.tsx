@@ -18,7 +18,7 @@ export function DriverCard({ driver, showEta }: { driver: DriverView; showEta: b
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <div className="truncate text-base font-bold">{driver.name}</div>
-          <span className="text-xs text-muted">★ {driver.rating.toFixed(1)}</span>
+          
         </div>
         {v ? (
           <div className="text-sm text-muted">

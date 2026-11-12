@@ -65,7 +65,6 @@ test("свёрнутая сводка заказа показывает стат
       id: "drv-1",
       name: "Алексей",
       photoUrl: null,
-      rating: 4.9,
       isSimulated: true,
       vehicle: { brand: "Lada", model: "Vesta", color: "Белый", plate: "А123ВС70", tariffName: "Эконом" },
       location: { latitude: 56.48, longitude: 84.95, heading: 0 },

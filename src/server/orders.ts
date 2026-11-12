@@ -117,7 +117,6 @@ export async function getOrderView(user: User, orderId: string): Promise<OrderVi
         id: row.driver.id,
         name: row.driver.name,
         photoUrl: row.driver.photoUrl,
-        rating: row.driver.rating,
         isSimulated: row.driver.isSimulated,
         vehicle: row.vehicle
           ? {

@@ -8,7 +8,6 @@ export type DriverView = {
   id: string;
   name: string;
   photoUrl: string | null;
-  rating: number;
   isSimulated: boolean;
   vehicle: { brand: string; model: string; color: string; plate: string; tariffName: string } | null;
   location: { latitude: number; longitude: number; heading: number } | null;
