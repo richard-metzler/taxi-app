@@ -267,7 +267,7 @@ export default function DriverHomePage() {
             busy={busy}
             onAction={() => currentOrder.nextAction && void act(currentOrder.nextAction.action)}
             onDecline={() => {
-              if (confirm("Отказаться от заказа? Он вернётся в поиск.")) void act("decline");
+              void act("decline");
             }}
           />
         ) : isOnline ? (
