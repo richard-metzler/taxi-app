@@ -21,11 +21,11 @@ import {
 } from "@/db/schema";
 import { AppError, Errors } from "@/core/errors";
 import { newId } from "./ids";
+import { sendMaxNotification } from "@/shared/max-notify";
 import { haversineMeters } from "@/core/geo";
 import { ACTIVE_STATUSES, CANCELLABLE_STATUSES, UNPAID_STATUSES, advanceSimulation, releaseDriver } from "./dispatch";
 
 import type { OrderView, OrderSummary } from "@/shared/types";
-import { sendMaxNotification } from "@/shared/max-notify";
 import { isUserOnline } from "@/shared/presence";
 
 const PAYMENT_SYNC_INTERVAL_MS = 5_000;
@@ -81,6 +81,28 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
     durationSeconds: estimate.durationSeconds,
     routeGeometry: typeof estimate.routeGeometry === 'string' ? JSON.parse(estimate.routeGeometry) : estimate.routeGeometry,
   }).returning();
+  // Отправляем уведомления свободным водителям этого тарифа
+  try {
+    const availableDrivers = await db
+      .select({ phone: users.phone, driverId: drivers.id, name: drivers.name })
+      .from(drivers)
+      .innerJoin(vehicles, eq(vehicles.driverId, drivers.id))
+      .innerJoin(users, eq(users.id, drivers.userId))
+      .where(and(eq(drivers.isOnline, true), eq(drivers.isBusy, false), eq(vehicles.tariffId, tariffId)));
+      
+    for (const d of availableDrivers) {
+      if (d.phone && d.phone.startsWith("max_")) {
+        const maxId = d.phone.replace("max_", "");
+        // Отправляем асинхронно, чтобы не задерживать ответ пассажиру
+        sendMaxNotification(maxId, `🔔 Новый заказ!\nОткуда: ${order.pickupAddress}\nКуда: ${order.destinationAddress}\nЦена: ${quote.price} ₽`).catch(console.error);
+        // Задержка, чтобы не превысить лимит 2 сообщения в секунду
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+  } catch (e) {
+    console.error("Ошибка оповещения водителей:", e);
+  }
+
   return order;
 }
 
