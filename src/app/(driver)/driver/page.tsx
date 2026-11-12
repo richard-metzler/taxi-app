@@ -15,6 +15,7 @@ import { useDriverDashboard } from "@/features/driver/useDriverDashboard";
 import { useDriverLocation } from "@/features/driver/useDriverLocation";
 import { ActiveOrderPanel, OfflinePanel, OnlinePanel } from "@/features/driver/DriverPanels";
 import { IncomingOrderModal } from "@/features/driver/IncomingOrderModal";
+import { ConfirmModal } from "@/core/widgets/ConfirmModal";
 import { DriverSetup } from "@/features/driver/DriverSetup";
 
 const RideMap = dynamic(() => import("@/features/map/RideMap"), { ssr: false });
@@ -35,6 +36,7 @@ export default function DriverHomePage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [incomingOrder, setIncomingOrder] = useState<AvailableOrderView | null>(null);
+  const [declineModalOpen, setDeclineModalOpen] = useState(false);
   const notifiedOrders = useRef<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [flyTo, setFlyTo] = useState<{ point: LatLng; nonce: number } | null>(null);
@@ -233,6 +235,17 @@ export default function DriverHomePage() {
         />
       )}
 
+      <ConfirmModal
+        isOpen={declineModalOpen}
+        title="Отменить заказ?"
+        message="Вы уверены, что хотите отменить поездку?"
+        confirmText="Да, отменить"
+        cancelText="Нет"
+        isDestructive={true}
+        onConfirm={() => void act("decline")}
+        onCancel={() => setDeclineModalOpen(false)}
+      />
+
       <CollapsibleSheet
         id="driver-sheet"
         collapsed={collapsed}
@@ -266,9 +279,7 @@ export default function DriverHomePage() {
             navigator={user.navigator}
             busy={busy}
             onAction={() => currentOrder.nextAction && void act(currentOrder.nextAction.action)}
-            onDecline={() => {
-              void act("decline");
-            }}
+            onDecline={() => setDeclineModalOpen(true)}
           />
         ) : isOnline ? (
           <OnlinePanel
