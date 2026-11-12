@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/shared/api";
 import { useRequireAuth } from "@/shared/session";
-import { driverStatusText } from "@/shared/driver-types";
+import { driverStatusText, type AvailableOrderView } from "@/shared/driver-types";
 import { formatMoney } from "@/shared/types";
 import type { DriverAction } from "@/core/driver-flow";
 import type { LatLng } from "@/core/geo";
@@ -14,6 +14,7 @@ import { useGeolocation } from "@/features/home/useGeolocation";
 import { useDriverDashboard } from "@/features/driver/useDriverDashboard";
 import { useDriverLocation } from "@/features/driver/useDriverLocation";
 import { ActiveOrderPanel, OfflinePanel, OnlinePanel } from "@/features/driver/DriverPanels";
+import { IncomingOrderModal } from "@/features/driver/IncomingOrderModal";
 import { DriverSetup } from "@/features/driver/DriverSetup";
 
 const RideMap = dynamic(() => import("@/features/map/RideMap"), { ssr: false });
@@ -33,6 +34,8 @@ export default function DriverHomePage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
+  const [incomingOrder, setIncomingOrder] = useState<AvailableOrderView | null>(null);
+  const notifiedOrders = useRef<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [flyTo, setFlyTo] = useState<{ point: LatLng; nonce: number } | null>(null);
   const previousOrderId = useRef<string | null>(null);
@@ -40,6 +43,22 @@ export default function DriverHomePage() {
 
   const currentOrder = state?.currentOrder ?? null;
   const selected = available.find((order) => order.id === selectedId) ?? null;
+
+  // Показываем модалку при поступлении нового заказа
+  useEffect(() => {
+    if (available.length > 0 && !currentOrder && !incomingOrder) {
+      const nextOrder = available.find(o => !notifiedOrders.current.has(o.id));
+      if (nextOrder) {
+        notifiedOrders.current.add(nextOrder.id);
+        setIncomingOrder(nextOrder);
+      }
+    }
+    
+    // Если заказ исчез из списка (его кто-то перехватил), закрываем модалку
+    if (incomingOrder && !available.find(o => o.id === incomingOrder.id)) {
+      setIncomingOrder(null);
+    }
+  }, [available, currentOrder, incomingOrder]);
 
   // Новый заказ раскрывает панель; исчезновение заказа объясняется пользователю.
   useEffect(() => {
@@ -201,6 +220,18 @@ export default function DriverHomePage() {
           <ErrorBanner message={`Нет связи с сервером: ${error}`} />
         </div>
       ) : null}
+
+      {incomingOrder && (
+        <IncomingOrderModal
+          order={incomingOrder}
+          isAccepting={acceptingId === incomingOrder.id}
+          onAccept={() => {
+            void accept(incomingOrder.id);
+            setIncomingOrder(null);
+          }}
+          onDecline={() => setIncomingOrder(null)}
+        />
+      )}
 
       <CollapsibleSheet
         id="driver-sheet"
