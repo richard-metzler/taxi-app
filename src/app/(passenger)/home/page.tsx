@@ -13,6 +13,7 @@ import { CollapsibleSheet } from "@/core/widgets/CollapsibleSheet";
 import { Button, BottomNav, ErrorBanner, Spinner } from "@/core/widgets/ui";
 import { AddressInput } from "@/features/addresses/AddressInput";
 import { useGeolocation } from "@/features/home/useGeolocation";
+import { usePresenceTracker } from "@/shared/usePresenceTracker";
 
 const RideMap = dynamic(() => import("@/features/map/RideMap"), { ssr: false });
 
@@ -38,6 +39,7 @@ export default function HomePage() {
 
   const router = useRouter();
   const { user, loading } = useRequireAuth();
+  usePresenceTracker(user?.id);
   const geo = useGeolocation();
 
   const [pickup, setPickup] = useState<Place | null>(null);

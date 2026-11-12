@@ -15,6 +15,7 @@ import { useDriverDashboard } from "@/features/driver/useDriverDashboard";
 import { useDriverLocation } from "@/features/driver/useDriverLocation";
 import { ActiveOrderPanel, OfflinePanel, OnlinePanel } from "@/features/driver/DriverPanels";
 import { DriverSetup } from "@/features/driver/DriverSetup";
+import { usePresenceTracker } from "@/shared/usePresenceTracker";
 
 const RideMap = dynamic(() => import("@/features/map/RideMap"), { ssr: false });
 
@@ -23,6 +24,7 @@ const DEFAULT_CENTER: LatLng = { latitude: 56.4846, longitude: 84.9476 };
 /** Главный экран водителя: карта, выход на линию, заказы рядом и ведение поездки. */
 export default function DriverHomePage() {
   const { user } = useRequireAuth();
+  usePresenceTracker(user?.id);
   const { state, available, error, reload } = useDriverDashboard();
   const geo = useGeolocation();
   const isOnline = state?.driver.isOnline ?? false;
