@@ -32,12 +32,15 @@ export default function DriverHomePage() {
 
   const [busy, setBusy] = useState(false);
 
-  const declinedIds = useRef<Set<string>>(new Set());  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [declineTargetId, setDeclineTargetId] = useState<string | null>(null);
+  const [declineModalOpen, setDeclineModalOpen] = useState(false);
+  const declinedIds = useRef<Set<string>>(
+    new Set(JSON.parse(typeof window !== "undefined" ? sessionStorage.getItem("declinedOrders") || "[]" : "[]"))
+  );  const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [incomingOrder, setIncomingOrder] = useState<AvailableOrderView | null>(null);
-  const [declineModalOpen, setDeclineModalOpen] = useState(false);
   const notifiedOrders = useRef<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [flyTo, setFlyTo] = useState<{ point: LatLng; nonce: number } | null>(null);
@@ -45,6 +48,13 @@ export default function DriverHomePage() {
   const centered = useRef(false);
 
   const currentOrder = state?.currentOrder ?? null;
+  const saveDeclined = (id: string) => {
+    declinedIds.current.add(id);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("declinedOrders", JSON.stringify(Array.from(declinedIds.current)));
+    }
+  };
+
   const filteredAvailable = available.filter(o => !declinedIds.current.has(o.id));
   const selected = available.find((order) => order.id === selectedId) ?? null;
 
@@ -240,11 +250,21 @@ export default function DriverHomePage() {
       <ConfirmModal
         isOpen={declineModalOpen}
         title="Отменить заказ?"
-        message="Вы уверены, что хотите отменить поездку?"
-        confirmText="Да, отменить"
+        message="Вы уверены, что хотите отказаться от этого заказа?"
+        confirmText="Да, отказаться"
         cancelText="Нет"
         isDestructive={true}
-        onConfirm={() => void act("decline")}
+        onConfirm={() => {
+          if (declineTargetId) {
+            saveDeclined(declineTargetId);
+            if (declineTargetId === currentOrder?.id) {
+              void act("decline");
+            }
+          }
+          setDeclineModalOpen(false);
+          // Перезагружаем страницу, чтобы гарантированно убрать заказ из интерфейса
+          window.location.reload();
+        }}
         onCancel={() => setDeclineModalOpen(false)}
       />
 
