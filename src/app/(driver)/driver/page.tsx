@@ -31,7 +31,8 @@ export default function DriverHomePage() {
   const tracking = useDriverLocation(isOnline);
 
   const [busy, setBusy] = useState(false);
-  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+
+  const declinedIds = useRef<Set<string>>(new Set());  const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
@@ -44,6 +45,7 @@ export default function DriverHomePage() {
   const centered = useRef(false);
 
   const currentOrder = state?.currentOrder ?? null;
+  const filteredAvailable = available.filter(o => !declinedIds.current.has(o.id));
   const selected = available.find((order) => order.id === selectedId) ?? null;
 
   // Показываем модалку при поступлении нового заказа
