@@ -48,6 +48,8 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash"),
   role: userRoleEnum("role"),
   navigator: navigatorEnum("navigator").notNull().default("yandex"),
+  isOnline: boolean("is_online").notNull().default(false),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
