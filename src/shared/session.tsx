@@ -68,7 +68,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           if (getLoginEpoch() !== epoch) break;
           continue;
         }
-        if (getLoginEpoch() === epoch) setUserState(null);
+        // Если сервер вернул 500-ю ошибку, НЕ разлогиниваем пользователя
+        if (err instanceof ApiError && err.status && err.status >= 500) {
+          console.error("Ошибка сервера при проверке сессии:", err);
+          // Оставляем пользователя в текущем состоянии, просто завершаем загрузку
+        } else if (getLoginEpoch() === epoch) {
+          setUserState(null);
+        }
         break;
       }
     }
