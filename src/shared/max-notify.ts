@@ -1,10 +1,3 @@
-import https from "https";
-
-// Создаем агент, который игнорирует проверку SSL (нужно для API MAX)
-const httpsAgent = new https.Agent({
-  rejectUnauthorized: false,
-});
-
 export async function sendMaxNotification(userId: string | number, text: string) {
   const token = process.env.MAX_BOT_TOKEN;
   if (!token) {
@@ -13,13 +6,10 @@ export async function sendMaxNotification(userId: string | number, text: string)
   }
   try {
     console.log(`[MAX Bot] Попытка отправки (user_id: ${userId})...`);
-    
     const response = await fetch(`https://platform-api2.max.ru/messages?user_id=${userId}`, {
       method: "POST",
       headers: { Authorization: token, "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
-      // @ts-ignore
-      agent: httpsAgent, // Передаем агент в Node.js
     });
     
     const responseText = await response.text();
