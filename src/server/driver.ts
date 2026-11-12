@@ -17,7 +17,7 @@ import { addOrderEvent, SEARCH_TIMEOUT_MS } from "./dispatch";
 import { recordAuthDiagnostic } from "./diagnostics";
 
 /** Заказы дальше этого расстояния от водителя ему не предлагаются. */
-export const MAX_PICKUP_DISTANCE_KM = 30;
+export const MAX_PICKUP_DISTANCE_KM = 120;
 
 const ACTIVE_DRIVER_STATUSES: Order["status"][] = ["driver_assigned", "driver_arriving", "driver_waiting", "in_progress"];
 
