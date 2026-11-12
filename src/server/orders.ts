@@ -26,7 +26,6 @@ import { haversineMeters } from "@/core/geo";
 import { ACTIVE_STATUSES, CANCELLABLE_STATUSES, UNPAID_STATUSES, advanceSimulation, releaseDriver } from "./dispatch";
 
 import type { OrderView, OrderSummary } from "@/shared/types";
-import { isUserOnline } from "@/shared/presence";
 
 const PAYMENT_SYNC_INTERVAL_MS = 5_000;
 

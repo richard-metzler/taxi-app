@@ -6,7 +6,6 @@ import { bearingDegrees, lerpLatLng, offsetLatLng, pointAlongPolyline, type LatL
 import { buildRoute } from "./routing";
 import { newId } from "./ids";
 import { sendMaxNotification } from "@/shared/max-notify";
-import { isUserOnline } from "@/shared/presence";
 
 /**
  * ДЕМО-ДИСПЕТЧЕР.
@@ -141,14 +140,11 @@ async function tryAssignDriver(order: Order, now: Date): Promise<Order> {
   const [passenger] = await db.select({ phone: users.phone }).from(users).where(eq(users.id, updated.passengerId));
   if (passenger?.phone && passenger.phone.startsWith("max_")) {
     const maxId = passenger.phone.replace("max_", "");
-    const online = await isUserOnline(updated.passengerId);
-    if (!online) {
-      const vehicleInfo = `${candidate.vehicle.brand} ${candidate.vehicle.model}, ${candidate.vehicle.color}, ${candidate.vehicle.plate}`;
-      void sendMaxNotification(
-        maxId, 
-        `🚖 Водитель найден!\nИмя: ${candidate.driver.name}\nАвто: ${vehicleInfo}`
-      );
-    }
+    const vehicleInfo = `${candidate.vehicle.brand} ${candidate.vehicle.model}, ${candidate.vehicle.color}, ${candidate.vehicle.plate}`;
+      await sendMaxNotification(
+      maxId, 
+      `🚖 Водитель найден!\nИмя: ${candidate.driver.name}\nАвто: ${vehicleInfo}`
+    );
   }
   
   return updated;
