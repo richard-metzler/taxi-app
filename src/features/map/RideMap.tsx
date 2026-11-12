@@ -221,7 +221,7 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
   }, [props.layoutKey]);
 
 
-  // Зеленый маршрут водителя до пассажира
+  // Зеленый маршрут водителя до пассажира (строится по дорогам и обрезается)
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -230,15 +230,34 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
     driverRouteRef.current = null;
 
     if (props.showDriverRoute && props.driver && props.pickup) {
+      // Если передан готовый маршрут, используем его
+      if (props.driverRoute && props.driverRoute.length > 1) {
+        // Обрезаем маршрут: оставляем только часть от текущей позиции водителя до пассажира
+        const fullRoute = props.driverRoute;
+        // Находим ближайшую точку маршрута к водителю
+        let closestIdx = 0;
+        let minDist = Infinity;
+        for (let i = 0; i < fullRoute.length; i++) {
+          const d = Math.abs(fullRoute[i][0] - props.driver.latitude) + Math.abs(fullRoute[i][1] - props.driver.longitude);
+          if (d < minDist) { minDist = d; closestIdx = i; }
+        }
+        
+        const remainingRoute = fullRoute.slice(closestIdx);
+        if (remainingRoute.length > 1) {
+          driverRouteRef.current = L.polyline(remainingRoute, {
+            color: "#10b981", weight: 5, opacity: 0.8, dashArray: "8, 8"
+          }).addTo(map);
+          return;
+        }
+      }
+      
+      // Fallback: прямая линия, если маршрута нет
       driverRouteRef.current = L.polyline(
-        [
-          [props.driver.latitude, props.driver.longitude],
-          [props.pickup.latitude, props.pickup.longitude]
-        ],
-        { color: "#10b981", weight: 5, opacity: 0.8, dashArray: "8, 8" } // Зеленый пунктир
+        [[props.driver.latitude, props.driver.longitude], [props.pickup.latitude, props.pickup.longitude]],
+        { color: "#10b981", weight: 5, opacity: 0.8, dashArray: "8, 8" }
       ).addTo(map);
     }
-  }, [props.showDriverRoute, props.driver, props.pickup]);
+  }, [props.showDriverRoute, props.driver, props.pickup, props.driverRoute]);
 
   return (
     <div

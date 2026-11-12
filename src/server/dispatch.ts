@@ -110,8 +110,20 @@ async function tryAssignDriver(order: Order, now: Date): Promise<Order> {
 
   const pickup = { latitude: order.pickupLat, longitude: order.pickupLng };
   const start = offsetLatLng(pickup, 1200 + Math.random() * 800, Math.random() * 360);
-  const approachSeconds = 45; // Фиксированное время в пути
-  const rideSeconds = Math.max(30, Math.min(90, Math.round(order.durationSeconds / 20)));
+  
+  // Строим реальный маршрут от водителя до пассажира
+  let approachRoute: [number, number][] = [];
+  let approachSeconds = 45;
+  try {
+    const routeData = await buildRoute(start, pickup);
+    if (routeData && routeData.geometry && routeData.geometry.length > 1) {
+      approachRoute = routeData.geometry;
+      approachSeconds = routeData.durationSeconds || 45;
+    }
+  } catch (e) {
+    console.warn("Не удалось построить маршрут до пассажира, используем прямую:", e);
+    approachRoute = [[start.latitude, start.longitude], [pickup.latitude, pickup.longitude]];
+  }
 
   const [updated] = await db
     .update(orders)
@@ -125,7 +137,8 @@ async function tryAssignDriver(order: Order, now: Date): Promise<Order> {
         driverStartLat: start.latitude,
         driverStartLng: start.longitude,
         approachSeconds: approachSeconds,
-        rideSeconds,
+        rideSeconds: Math.max(30, Math.min(90, Math.round(order.durationSeconds / 20))),
+        approachRoute: approachRoute, // Сохраняем маршрут по дорогам
       } as any,
     })
     .where(and(eq(orders.id, order.id), eq(orders.status, "searching"), isNull(orders.driverId)))
@@ -189,10 +202,14 @@ export async function advanceSimulation(order: Order): Promise<Order> {
     const elapsed = (now.getTime() - assignedAtMs - ASSIGNED_TO_ARRIVING_MS) / 1000;
     const progress = elapsed / sim.approachSeconds;
     if (progress >= 1) {
-      await setDriverLocation(driverId, pickup, bearingDegrees(start, pickup));
+      await setDriverLocation(driverId, pickup, 0);
       current = await transition(current, "driver_arriving", { status: "driver_waiting", arrivedAt: now }, "driver_waiting");
     } else {
-      await setDriverLocation(driverId, lerpLatLng(start, pickup, progress), bearingDegrees(start, pickup));
+      // Двигаемся по маршруту (если он есть), иначе по прямой
+      const route = sim.approachRoute || [[start.latitude, start.longitude], [pickup.latitude, pickup.longitude]];
+      const p = pointAlongPolyline(route, progress);
+      const pNext = pointAlongPolyline(route, Math.min(1, progress + 0.02));
+      await setDriverLocation(driverId, p, bearingDegrees(p, pNext));
     }
   }
 

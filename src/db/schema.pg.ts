@@ -173,6 +173,7 @@ export type OrderSimulation = {
   driverStartLng: number;
   approachSeconds: number;
   rideSeconds: number;
+  approachRoute?: [number, number][];
 };
 
 export const orders = pgTable(
