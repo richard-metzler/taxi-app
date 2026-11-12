@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { handleApiError } from "@/core/errors";
+import { sendMaxNotification } from "@/shared/max-notify";
+import { db } from "@/db";
+import { orders, users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { performDriverAction, requireDriver } from "@/server/driver";
 
 /** POST /api/driver/orders/:id/action — depart | arrived | start | complete | decline. */

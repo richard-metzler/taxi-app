@@ -1,7 +1,7 @@
 import "server-only";
-import { and, asc, desc, eq, gt, inArray, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull, notInArray } from "drizzle-orm";
 import { db } from "@/db";
-import { driverLocations, drivers, orders, tariffs, users, vehicles, type Driver, type Order } from "@/db/schema";
+import { declinedOrders, driverLocations, drivers, orders, tariffs, users, vehicles, type Driver, type Order } from "@/db/schema";
 import { AppError, Errors } from "@/core/errors";
 import { DRIVER_TRANSITIONS, canDeclineStatus, isDriverAction, nextDriverAction } from "@/core/driver-flow";
 import { haversineMeters, isValidLatLng, type LatLng } from "@/core/geo";
@@ -166,6 +166,13 @@ export async function listAvailableOrders(driver: Driver): Promise<AvailableOrde
   const location = await loadLocation(driver.id);
   if (!location) return [];
 
+  // Получаем ID заказов, от которых водитель уже отказался
+  const declinedIds = await db
+    .select({ orderId: declinedOrders.orderId })
+    .from(declinedOrders)
+    .where(eq(declinedOrders.driverId, driver.id));
+  const declinedOrderIds = declinedIds.map(d => d.orderId);
+
   const rows = await db
     .select({ order: orders, tariffName: tariffs.name })
     .from(orders)
@@ -176,6 +183,7 @@ export async function listAvailableOrders(driver: Driver): Promise<AvailableOrde
         isNull(orders.driverId),
         eq(orders.tariffId, vehicle.tariffId),
         gt(orders.updatedAt, new Date(Date.now() - SEARCH_TIMEOUT_MS)),
+        declinedOrderIds.length > 0 ? notInArray(orders.id, declinedOrderIds) : undefined,
       ),
     )
     .orderBy(asc(orders.createdAt))

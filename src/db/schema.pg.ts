@@ -36,6 +36,14 @@ export const USER_ROLES = userRoleEnum.enumValues;
 export const ORDER_STATUSES = orderStatusEnum.enumValues;
 export const PAYMENT_STATUSES = paymentStatusEnum.enumValues;
 export const NAVIGATORS = navigatorEnum.enumValues;
+
+export const declinedOrders = pgTable("declined_orders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  driverId: uuid("driver_id").notNull().references(() => drivers.id, { onDelete: "cascade" }),
+  orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type UserRole = (typeof USER_ROLES)[number];
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
