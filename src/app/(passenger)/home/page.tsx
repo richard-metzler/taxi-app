@@ -67,11 +67,12 @@ export default function HomePage() {
     setEstimate(null);
     try {
       const { item } = await api.geocode.reverse(p.latitude, p.longitude);
-      const address = item?.address ?? `${p.latitude.toFixed(5)}, ${p.longitude.toFixed(5)}`;
+      // Если адрес не найден, используем понятную заглушку вместо координат
+      const address = item?.address || "Моё местоположение (уточните адрес)";
       setPickup({ address, latitude: p.latitude, longitude: p.longitude });
       setPickupText(address);
     } catch {
-      const address = `${p.latitude.toFixed(5)}, ${p.longitude.toFixed(5)}`;
+      const address = "Моё местоположение (уточните адрес)";
       setPickup({ address, latitude: p.latitude, longitude: p.longitude });
       setPickupText(address);
     }
@@ -183,7 +184,7 @@ export default function HomePage() {
       </button>
 
       {/* Нижняя панель */}
-      <div className="absolute bottom-0 left-0 right-0 z-[1000] flex flex-col rounded-t-3xl bg-surface pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+      <div className="absolute bottom-0 left-0 right-0 z-[1000] flex flex-col rounded-t-3xl bg-[#F4F6F9] pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
         <div className="flex flex-col gap-4 p-4">
           {/* Поля ввода */}
           {!estimate ? (
