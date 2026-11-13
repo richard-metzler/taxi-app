@@ -151,12 +151,15 @@ export default function DriverHomePage() {
   };
 
   const act = async (action: DriverAction) => {
+    console.log("[LOG] [Client] Вызов act(). Действие:", action, "Заказ:", currentOrder?.id);
     console.log("[Act] Вызов действия:", action, "Заказ:", currentOrder?.id);
     if (!currentOrder) return;
     setBusy(true);
     setActionError(null);
     try {
+      console.log("[LOG] [Client] Отправка api.driver.action для заказа:", currentOrder.id, "Действие:", action);
       await api.driver.action(currentOrder.id, action);
+      console.log("[LOG] [Client] api.driver.action успешно выполнен");
       if (action === "complete") {
         alert("Спасибо за выполненный заказ!");
       }
@@ -327,7 +330,7 @@ export default function DriverHomePage() {
             navigator={user.navigator}
             busy={busy}
             onAction={() => currentOrder.nextAction && void act(currentOrder.nextAction.action)}
-            onDecline={() => setDeclineModalOpen(true)}
+            onDecline={() => { console.log("[LOG] [Client] Клик по Отказаться (текущий заказ)"); setDeclineTargetId(currentOrder?.id || null); setDeclineModalOpen(true); }}
           />
         ) : isOnline ? (
           <OnlinePanel
