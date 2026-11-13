@@ -32,6 +32,7 @@ export default function HomePage() {
   const [flyTo, setFlyTo] = useState<{ point: LatLng; nonce: number } | null>(null);
   const [checkingActive, setCheckingActive] = useState(true);
   const [selectedTariffId, setSelectedTariffId] = useState<string | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   // Восстановление активного заказа
   useEffect(() => {
@@ -183,20 +184,31 @@ export default function HomePage() {
         ◎
       </button>
 
-      {/* Нижняя панель */}
-      <div className="absolute bottom-0 left-0 right-0 z-[1000] flex flex-col rounded-t-3xl bg-[#F4F6F9] pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+      {/* Нижняя панель (поднимается при вводе) */}
+      <div className={`absolute left-0 right-0 z-[1000] flex flex-col rounded-t-3xl bg-[#F4F6F9] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-all duration-200 ${
+        isFocused ? "bottom-[40vh]" : "bottom-0"
+      }`}>
         <div className="flex flex-col gap-4 p-4">
           {/* Поля ввода */}
           {!estimate ? (
-            <div className="flex flex-col gap-3">
+            <div 
+              className="flex flex-col gap-3"
+              onFocus={() => setIsFocused(true)}
+              onBlur={(e) => {
+                // Не скрываем панель, если фокус перешел на другой элемент внутри панели
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setIsFocused(false);
+                }
+              }}
+            >
               <AddressInput
-                label="Откуда"
+                label="Точка посадки"
                 icon="●"
                 placeholder="Адрес отправления"
                 value={pickupText}
                 near={geo.position ?? pickup}
                 onTextChange={(t) => { setPickupText(t); setEstimate(null); }}
-                onSelect={(s) => selectPlace(s, "pickup")}
+                onSelect={(s) => { selectPlace(s, "pickup"); setIsFocused(false); }}
               />
               <AddressInput
                 label="Куда"
@@ -205,7 +217,7 @@ export default function HomePage() {
                 value={destinationText}
                 near={pickup ?? geo.position}
                 onTextChange={(t) => { setDestinationText(t); setEstimate(null); }}
-                onSelect={(s) => selectPlace(s, "destination")}
+                onSelect={(s) => { selectPlace(s, "destination"); setIsFocused(false); }}
               />
               <Button variant="primary" onClick={buildRoute} loading={estimating} disabled={!pickup || !destination}>
                 Построить маршрут
