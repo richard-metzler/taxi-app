@@ -17,7 +17,7 @@ import { sendMaxNotification } from "@/shared/max-notify";
 const SEARCH_DELAY_MS = 6_000;
 export const SEARCH_TIMEOUT_MS = 600_000; // 10 минут
 /** Позиция реального водителя считается актуальной, если обновлялась не позднее этого срока. */
-export const LIVE_LOCATION_MAX_AGE_MS = 90_000;
+export const LIVE_LOCATION_MAX_AGE_MS = 300_000; // 5 минут (было 90 секунд)
 const ASSIGNED_TO_ARRIVING_MS = 4_000;
 const WAITING_MS = 8_000;
 const APPROACH_SECONDS = 45;
