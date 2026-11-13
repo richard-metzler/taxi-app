@@ -93,7 +93,7 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
       if (d.phone && d.phone.startsWith("max_")) {
         const maxId = d.phone.replace("max_", "");
         // Отправляем асинхронно, чтобы не задерживать ответ пассажиру
-        const text = `🔔 Новый заказ!\nОткуда: ${order.pickupAddress}\nКуда: ${order.destinationAddress}\nЦена: ${(quote.price / 100).toFixed(0)} ₽`;
+        const text = `🔔 Новый заказ!\nОткуда: ${order.pickupAddress}\nКуда: ${order.destinationAddress}\nЦена: ${(quote.price / 100).toFixed(0)} ₽\n\nДля принятия заказа нажми Открыть 👇🏻`;
         
         // Кнопки для MAX (формат inline_keyboard)
         const keyboard = {
