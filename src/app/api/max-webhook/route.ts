@@ -43,11 +43,21 @@ export async function POST(req: Request) {
         await acceptOrder(driver, orderId);
         console.log("[LOG] [Webhook] Заказ успешно принят");
         
-        // Отправляем простое сообщение со ссылкой (самый надежный способ для MAX)
-        const link = `${APP_URL}/orders/${orderId}`;
+        // Пробуем формат кнопки link с web_app
+        const keyboard = {
+          buttons: [
+            [{ 
+              type: "link", 
+              text: "🚀 Открыть приложение", 
+              url: `${APP_URL}/orders/${orderId}`
+            }]
+          ]
+        };
+        
         await sendMaxNotification(
           userId, 
-          `✅ Заказ принят!\nОткройте приложение для навигации: ${link}`
+          "✅ Заказ принят! Нажмите кнопку ниже, чтобы открыть приложение.",
+          keyboard
         );
       } catch (e: any) {
         console.error("[LOG] [Webhook] Ошибка принятия:", e.message);
