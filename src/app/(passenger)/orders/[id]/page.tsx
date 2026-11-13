@@ -8,6 +8,7 @@ import { api } from "@/shared/api";
 import RideMap from "@/features/map/RideMap";
 import { DriverCard } from "@/features/driver_tracking/DriverCard";
 import { CollapsibleSheet } from "@/core/widgets/CollapsibleSheet";
+import { BottomNav } from "@/core/widgets/ui";
 
 export default function OrderPage() {
   const params = useParams();
@@ -107,6 +108,12 @@ export default function OrderPage() {
         />
       </div>
 
+      {/* Плашка статуса поверх карты */}
+      <div className="absolute left-4 top-4 z-[1000] flex items-center gap-2 rounded-2xl bg-white/90 px-4 py-2 shadow-lg backdrop-blur-md border border-gray-200">
+        <span className={`h-3 w-3 rounded-full ${isFinal ? 'bg-gray-400' : 'bg-accent animate-pulse'}`} />
+        <span className="text-sm font-bold text-ink">{statusText}</span>
+      </div>
+
       <CollapsibleSheet
         id="order-sheet"
         collapsed={sheetCollapsed}
@@ -114,7 +121,10 @@ export default function OrderPage() {
         title={statusText}
       >
         <div className="flex flex-col gap-4 pb-4">
-          <p className="text-center text-xs text-muted -mt-2 mb-2">Заказ #{order.id.slice(0, 6)}</p>
+          <div className="text-center">
+            <p className="text-sm font-bold text-accent">{statusText}</p>
+            <p className="text-xs text-muted mt-1">Заказ #{order.id.slice(0, 6)}</p>
+          </div>
           
           {order.driver && (
             <div className="rounded-2xl bg-surface-muted p-4 border border-border">
@@ -148,9 +158,7 @@ export default function OrderPage() {
             )}
             
             {isFinal && (
-              <Button variant="primary" onClick={() => { window.location.href = "/home"; }} className="w-full">
-                Новый заказ
-              </Button>
+              <BottomNav />
             )}
           </div>
         </div>
