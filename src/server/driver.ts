@@ -13,6 +13,7 @@ import type {
   DriverVehicleView,
 } from "@/shared/driver-types";
 import { resolveSession } from "./auth";
+import { sendMaxNotification } from "@/shared/max-notify";
 import { addOrderEvent, SEARCH_TIMEOUT_MS } from "./dispatch";
 import { recordAuthDiagnostic } from "./diagnostics";
 
@@ -299,6 +300,19 @@ export async function performDriverAction(driver: Driver, orderId: string, rawAc
     if (!returned) throw new AppError("cannot_decline", "От заказа уже нельзя отказаться", 409);
     await db.update(drivers).set({ isBusy: false }).where(eq(drivers.id, driver.id));
     await addOrderEvent(returned, "driver_declined");
+
+    // Отправляем уведомление пассажиру об отказе
+    try {
+      const [passenger] = await db.select({ phone: users.phone }).from(users).where(eq(users.id, returned.passengerId));
+      if (passenger?.phone && passenger.phone.startsWith("max_")) {
+        const maxId = passenger.phone.replace("max_", "");
+        console.log("[LOG] [Server] Отправка уведомления пассажиру об отказе (ID:", maxId, ")");
+        await sendMaxNotification(maxId, "❌ Водитель отказался от вашего заказа. Ищем другого водителя...");
+      }
+    } catch (e) {
+      console.error("[LOG] [Server] Ошибка уведомления об отказе:", e);
+    }
+
     return { status: returned.status };
   }
 
