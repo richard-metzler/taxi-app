@@ -93,7 +93,19 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
       if (d.phone && d.phone.startsWith("max_")) {
         const maxId = d.phone.replace("max_", "");
         // Отправляем асинхронно, чтобы не задерживать ответ пассажиру
-        sendMaxNotification(maxId, `🔔 Новый заказ!\nОткуда: ${order.pickupAddress}\nКуда: ${order.destinationAddress}\nЦена: ${quote.price} ₽`).catch(console.error);
+        const text = `🔔 Новый заказ!\nОткуда: ${order.pickupAddress}\nКуда: ${order.destinationAddress}\nЦена: ${(quote.price / 100).toFixed(0)} ₽`;
+        
+        // Кнопки для MAX (формат inline_keyboard)
+        const keyboard = {
+          buttons: [
+            [
+              { type: "callback", text: "✅ Принять", payload: `accept_order:${order.id}` },
+              { type: "callback", text: "❌ Отказаться", payload: `decline_order:${order.id}` }
+            ]
+          ]
+        };
+
+        sendMaxNotification(maxId, text, keyboard).catch(console.error);
         // Задержка, чтобы не превысить лимит 2 сообщения в секунду
         await new Promise(r => setTimeout(r, 500));
       }
