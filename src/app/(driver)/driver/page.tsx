@@ -151,6 +151,7 @@ export default function DriverHomePage() {
   };
 
   const act = async (action: DriverAction) => {
+    console.log("[Act] Вызов действия:", action, "Заказ:", currentOrder?.id);
     if (!currentOrder) return;
     setBusy(true);
     setActionError(null);
