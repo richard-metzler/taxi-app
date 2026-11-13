@@ -202,36 +202,32 @@ export default function HomePage() {
             <div className="flex flex-col gap-3 px-4 pb-4">
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted ml-2">Точка посадки</span>
-                <div className="neo-inset flex items-center gap-3 rounded-2xl bg-white p-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-accent">●</div>
-                  <input
-                    type="text"
-                    value={pickupText}
-                    onChange={(e) => setPickupText(e.target.value)}
-                    onFocus={() => setActiveInput("pickup")}
-                    placeholder="Адрес отправления"
-                    className="flex-1 bg-transparent outline-none text-ink"
-                  />
-                </div>
+                <AddressInput
+                  label=""
+                  icon="●"
+                  placeholder="Адрес отправления"
+                  value={pickupText}
+                  near={geo.position ?? pickup}
+                  onTextChange={(t) => { setPickupText(t); setEstimate(null); }}
+                  onSelect={(s) => { selectPlace(s, "pickup"); setActiveInput(null); }}
+                />
               </div>
               
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted ml-2">Куда</span>
-                <div className="neo-inset flex items-center gap-3 rounded-2xl bg-white p-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted/20 text-muted">■</div>
-                  <input
-                    type="text"
-                    value={destinationText}
-                    onChange={(e) => setDestinationText(e.target.value)}
-                    onFocus={() => setActiveInput("destination")}
-                    placeholder="Адрес назначения"
-                    className="flex-1 bg-transparent outline-none text-ink"
-                  />
-                </div>
+                <AddressInput
+                  label=""
+                  icon="■"
+                  placeholder="Адрес назначения"
+                  value={destinationText}
+                  near={pickup ?? geo.position}
+                  onTextChange={(t) => { setDestinationText(t); setEstimate(null); }}
+                  onSelect={(s) => { selectPlace(s, "destination"); setActiveInput(null); }}
+                />
               </div>
             </div>
 
-            {/* Список подсказок */}
+            {/* Список подсказок (рендерится внутри AddressInput) */}
             <div className="flex-1 overflow-y-auto bg-white rounded-t-3xl shadow-lg">
               <button 
                 className="flex w-full items-center gap-3 border-b border-gray-100 p-4 text-left active:bg-gray-50"
@@ -243,9 +239,6 @@ export default function HomePage() {
                   <div className="text-xs text-muted">Определим по GPS</div>
                 </div>
               </button>
-              
-              {/* Здесь должен быть список AddressInput, но для простоты показываем заглушку */}
-              <div className="p-4 text-center text-muted text-sm">Введите адрес для поиска...</div>
             </div>
           </div>
         ) : (
