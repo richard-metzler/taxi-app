@@ -14,15 +14,14 @@ import { useGeolocation } from "@/features/home/useGeolocation";
 import { useDriverDashboard } from "@/features/driver/useDriverDashboard";
 import { useDriverLocation } from "@/features/driver/useDriverLocation";
 import { ActiveOrderPanel, OfflinePanel, OnlinePanel } from "@/features/driver/DriverPanels";
+import { DriverSetup } from "@/features/driver/DriverSetup";
 import { IncomingOrderModal } from "@/features/driver/IncomingOrderModal";
 import { ConfirmModal } from "@/core/widgets/ConfirmModal";
-import { DriverSetup } from "@/features/driver/DriverSetup";
 
 const RideMap = dynamic(() => import("@/features/map/RideMap"), { ssr: false });
 
 const DEFAULT_CENTER: LatLng = { latitude: 56.4846, longitude: 84.9476 };
 
-/** Главный экран водителя: карта, выход на линию, заказы рядом и ведение поездки. */
 export default function DriverHomePage() {
   const { user } = useRequireAuth();
   const { state, available, error, reload } = useDriverDashboard();
@@ -32,61 +31,35 @@ export default function DriverHomePage() {
 
   const [busy, setBusy] = useState(false);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
-
-  // Состояния для отказов
-  const [declineTargetId, setDeclineTargetId] = useState<string | null>(null);
-  const [declineModalOpen, setDeclineModalOpen] = useState(false);
-  const [declinedIds, setDeclinedIds] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    const saved = sessionStorage.getItem("declinedOrders");
-    return new Set(saved ? JSON.parse(saved) : []);
-  });
-
-  const saveDeclined = (id: string) => {
-    setDeclinedIds(prev => {
-      const next = new Set(prev);
-      next.add(id);
-      sessionStorage.setItem("declinedOrders", JSON.stringify(Array.from(next)));
-      return next;
-    });
-  };
-
-  
-        const [actionError, setActionError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
-  const [incomingOrder, setIncomingOrder] = useState<AvailableOrderView | null>(null);
-  const notifiedOrders = useRef<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [flyTo, setFlyTo] = useState<{ point: LatLng; nonce: number } | null>(null);
   const previousOrderId = useRef<string | null>(null);
   const centered = useRef(false);
 
-  const currentOrder = state?.currentOrder ?? null;
-  
-    const selected = available.find((order) => order.id === selectedId) ?? null;
+  const [incomingOrder, setIncomingOrder] = useState<AvailableOrderView | null>(null);
+  const [declineModalOpen, setDeclineModalOpen] = useState(false);
+  const [declineTargetId, setDeclineTargetId] = useState<string | null>(null);
+  const declinedIds = useRef<Set<string>>(new Set());
 
-  // Показываем модалку при поступлении нового заказа
-  useEffect(() => {
-    if (available.length > 0 && !currentOrder && !incomingOrder) {
-      const nextOrder = available.find(o => !notifiedOrders.current.has(o.id));
-      if (nextOrder) {
-        notifiedOrders.current.add(nextOrder.id);
-        setIncomingOrder(nextOrder);
-      }
-    }
-    
-    // Если заказ исчез из списка (его кто-то перехватил), закрываем модалку
-    if (incomingOrder && !available.find(o => o.id === incomingOrder.id)) {
-      setIncomingOrder(null);
-    }
-  }, [available, currentOrder, incomingOrder]);
+  const currentOrder = state?.currentOrder ?? null;
+  const selected = available.find((order) => order.id === selectedId) ?? null;
+  const filteredAvailable = available.filter((o) => !declinedIds.current.has(o.id));
 
   // Новый заказ раскрывает панель; исчезновение заказа объясняется пользователю.
   useEffect(() => {
     const id = currentOrder?.id ?? null;
-    if (id && !previousOrderId.current) setCollapsed(false);
-    if (!id && previousOrderId.current) setNotice("Заказ закрыт: поездка завершена или пассажир отменил заказ.");
+    if (id) {
+      setNotice(null);
+      if (!previousOrderId.current) setCollapsed(false);
+    }
+    if (!id && previousOrderId.current) {
+      setNotice("Заказ закрыт: поездка завершена или пассажир отменил заказ.");
+      const timer = setTimeout(() => setNotice(null), 5000);
+      return () => clearTimeout(timer);
+    }
     previousOrderId.current = id;
   }, [currentOrder?.id]);
 
@@ -98,7 +71,8 @@ export default function DriverHomePage() {
     }
   }, [tracking.position]);
 
-  const fail = (cause: unknown, fallback: string) => setActionError(cause instanceof ApiError ? cause.message : fallback);
+  const fail = (cause: unknown, fallback: string) =>
+    setActionError(cause instanceof ApiError ? cause.message : fallback);
 
   const goOnline = async () => {
     setBusy(true);
@@ -111,7 +85,6 @@ export default function DriverHomePage() {
         return;
       }
       await api.driver.setStatus(true, point);
-      // Принудительно отправляем координаты сразу, чтобы сервер знал, где мы
       await api.driver.sendLocation({ ...point, heading: 0 });
       await reload();
     } catch (cause) {
@@ -124,6 +97,7 @@ export default function DriverHomePage() {
   const goOffline = async () => {
     setBusy(true);
     setActionError(null);
+    setNotice(null);
     try {
       await api.driver.setStatus(false);
       setSelectedId(null);
@@ -142,6 +116,7 @@ export default function DriverHomePage() {
     try {
       await api.driver.accept(orderId);
       setSelectedId(null);
+      setIncomingOrder(null);
     } catch (cause) {
       fail(cause, "Не удалось принять заказ");
     } finally {
@@ -151,18 +126,12 @@ export default function DriverHomePage() {
   };
 
   const act = async (action: DriverAction) => {
-    console.log("[LOG] [Client] Вызов act(). Действие:", action, "Заказ:", currentOrder?.id);
-    console.log("[Act] Вызов действия:", action, "Заказ:", currentOrder?.id);
     if (!currentOrder) return;
     setBusy(true);
     setActionError(null);
+    setNotice(null);
     try {
-      console.log("[LOG] [Client] Отправка api.driver.action для заказа:", currentOrder.id, "Действие:", action);
       await api.driver.action(currentOrder.id, action);
-      console.log("[LOG] [Client] api.driver.action успешно выполнен");
-      if (action === "complete") {
-        alert("Спасибо за выполненный заказ!");
-      }
     } catch (cause) {
       fail(cause, "Не удалось выполнить действие");
     } finally {
@@ -170,6 +139,17 @@ export default function DriverHomePage() {
       await reload();
     }
   };
+
+  // Логика входящего заказа
+  useEffect(() => {
+    if (filteredAvailable.length > 0 && !currentOrder && !incomingOrder) {
+      const nextOrder = filteredAvailable[0];
+      setIncomingOrder(nextOrder);
+    }
+    if (incomingOrder && !filteredAvailable.find((o) => o.id === incomingOrder.id)) {
+      setIncomingOrder(null);
+    }
+  }, [filteredAvailable, currentOrder, incomingOrder]);
 
   if (!user || !state) {
     return (
@@ -191,7 +171,7 @@ export default function DriverHomePage() {
             ⏳
           </div>
           <h1 className="text-2xl font-bold text-ink mb-2">Анкета на модерации</h1>
-          <p className="text-muted mb-6">Мы проверяем ваши документы. Обычно это занимает до 24 часов. Пожалуйста, зайдите позже.</p>
+          <p className="text-muted mb-6">Мы проверяем ваши документы. Обычно это занимает до 24 часов.</p>
         </div>
       </main>
     );
@@ -247,6 +227,7 @@ export default function DriverHomePage() {
         </div>
       ) : null}
 
+      {/* Входящий заказ (модалка) */}
       {incomingOrder && (
         <IncomingOrderModal
           order={incomingOrder}
@@ -255,10 +236,15 @@ export default function DriverHomePage() {
             void accept(incomingOrder.id);
             setIncomingOrder(null);
           }}
-          onDecline={() => setIncomingOrder(null)}
+          onDecline={() => {
+            setDeclineTargetId(incomingOrder.id);
+            setIncomingOrder(null);
+            setDeclineModalOpen(true);
+          }}
         />
       )}
 
+      {/* Модалка подтверждения отказа */}
       <ConfirmModal
         isOpen={declineModalOpen}
         title="Отменить заказ?"
@@ -267,32 +253,22 @@ export default function DriverHomePage() {
         cancelText="Нет"
         isDestructive={true}
         onConfirm={async () => {
-          console.log("[Decline] Подтвержден отказ от заказа:", declineTargetId);
           if (declineTargetId) {
             try {
-              // Прямой вызов API отказа
-              await api.driver.action(declineTargetId, "decline");
-              console.log("[Decline] API отказа успешно выполнен");
-              
-              // Скрываем заказ локально
-              saveDeclined(declineTargetId);
-              
-              // Закрываем модалку
-              setDeclineModalOpen(false);
-              setDeclineTargetId(null);
+              // Если это текущий заказ (уже принятый), вызываем API отказа
+              if (declineTargetId === currentOrder?.id) {
+                await api.driver.action(declineTargetId, "decline");
+              }
+              // В любом случае скрываем заказ локально
+              declinedIds.current.add(declineTargetId);
               setIncomingOrder(null);
-              
-              // Перезагружаем страницу, чтобы обновить список
-              setTimeout(() => window.location.reload(), 200);
+              await reload();
             } catch (e) {
-              console.error("[Decline] Ошибка при отказе:", e);
-              alert("Не удалось отказаться от заказа: " + (e as Error).message);
-              setDeclineModalOpen(false);
+              console.error("Ошибка отказа:", e);
             }
-          } else {
-            console.warn("[Decline] Нет ID заказа для отказа");
-            setDeclineModalOpen(false);
           }
+          setDeclineModalOpen(false);
+          setDeclineTargetId(null);
         }}
         onCancel={() => setDeclineModalOpen(false)}
       />
@@ -330,11 +306,14 @@ export default function DriverHomePage() {
             navigator={user.navigator}
             busy={busy}
             onAction={() => currentOrder.nextAction && void act(currentOrder.nextAction.action)}
-            onDecline={() => { console.log("[LOG] [Client] Клик по Отказаться (текущий заказ)"); setDeclineTargetId(currentOrder?.id || null); setDeclineModalOpen(true); }}
+            onDecline={() => {
+              setDeclineTargetId(currentOrder.id);
+              setDeclineModalOpen(true);
+            }}
           />
         ) : isOnline ? (
           <OnlinePanel
-            available={available}
+            available={filteredAvailable}
             selectedId={selectedId}
             acceptingId={acceptingId}
             busy={busy}
