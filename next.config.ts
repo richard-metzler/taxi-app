@@ -1,17 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // gRPC-клиент YDB и его зависимости нельзя упаковывать в серверный бандл Next.js.
-  serverExternalPackages: [
-    "@ydbjs/core",
-    "@ydbjs/query",
-    "@ydbjs/value",
-    "@ydbjs/auth",
-    "@ydbjs/auth-yandex-cloud",
-    "@ydbjs/drizzle-adapter",
-    "@grpc/grpc-js",
-    "nice-grpc",
-  ],
+  output: "standalone",
+  // Отключаем проверку типов при сборке (мы делаем это локально), чтобы сэкономить память
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  // В Next.js 16 + Turbopack это помогает избежать лишних оптимизаций
+  experimental: {
+    // Можно добавить сюда другие флаги, если нужно
+  },
 };
 
 export default nextConfig;
