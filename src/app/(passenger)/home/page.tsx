@@ -144,8 +144,24 @@ export default function HomePage() {
 
   if (loading || !user || checkingActive) {
     return (
-      <main className="flex min-h-dvh items-center justify-center">
-        <Spinner className="h-8 w-8 text-accent" />
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-surface">
+        {/* Логотип */}
+        <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
+          <div className="flex items-center gap-3">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFA500] shadow-lg">
+              <span className="text-4xl font-black text-black">Р</span>
+            </div>
+            <div className="text-3xl font-black tracking-tight text-ink">
+              ЯДОМ
+            </div>
+          </div>
+          <div className="text-sm font-medium text-muted">Такси Рядом</div>
+        </div>
+        
+        {/* Кружок загрузки (с задержкой появления) */}
+        <div className="animate-in fade-in duration-1000 delay-500">
+          <Spinner className="h-8 w-8 text-accent" />
+        </div>
       </main>
     );
   }
