@@ -14,7 +14,7 @@ import { sendMaxNotification } from "@/shared/max-notify";
  * При подключении реального диспетчера этот модуль заменяется без изменения клиента.
  */
 
-const SEARCH_DELAY_MS = 6_000;
+const SEARCH_DELAY_MS = 600_000; // 10 минут (было 6 секунд)
 export const SEARCH_TIMEOUT_MS = 600_000; // 10 минут
 /** Позиция реального водителя считается актуальной, если обновлялась не позднее этого срока. */
 export const LIVE_LOCATION_MAX_AGE_MS = 300_000; // 5 минут (было 90 секунд)
