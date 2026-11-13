@@ -105,7 +105,7 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
           ]
         };
 
-        sendMaxNotification(maxId, text, keyboard).catch(console.error);
+        sendMaxNotification(maxId, text).catch(console.error);
         // Задержка, чтобы не превысить лимит 2 сообщения в секунду
         await new Promise(r => setTimeout(r, 500));
       }

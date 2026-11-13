@@ -1,6 +1,6 @@
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-export async function sendMaxNotification(userId: string | number, text: string, keyboard?: any) {
+export async function sendMaxNotification(userId: string | number, text: string) {
   console.log(`[LOG] [MAX Bot] Попытка отправки. User ID: ${userId}`);
   
   const token = process.env.MAX_BOT_TOKEN;
@@ -10,22 +10,10 @@ export async function sendMaxNotification(userId: string | number, text: string,
   }
 
   try {
-    const body: any = { text };
-    
-    // Если переданы кнопки, добавляем их в поле attachments (формат MAX)
-    if (keyboard) {
-      body.attachments = [
-        {
-          type: "inline_keyboard",
-          payload: keyboard
-        }
-      ];
-    }
-
     const response = await fetch(`https://platform-api2.max.ru/messages?user_id=${userId}`, {
       method: "POST",
       headers: { Authorization: token, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ text }),
     });
     
     const responseText = await response.text();
