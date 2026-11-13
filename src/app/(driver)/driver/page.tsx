@@ -263,17 +263,33 @@ export default function DriverHomePage() {
         confirmText="Да, отказаться"
         cancelText="Нет"
         isDestructive={true}
-        onConfirm={() => {
+        onConfirm={async () => {
+          console.log("[Decline] Подтвержден отказ от заказа:", declineTargetId);
           if (declineTargetId) {
-            saveDeclined(declineTargetId);
-            if (declineTargetId === currentOrder?.id) {
-              void act("decline");
+            try {
+              // Прямой вызов API отказа
+              await api.driver.action(declineTargetId, "decline");
+              console.log("[Decline] API отказа успешно выполнен");
+              
+              // Скрываем заказ локально
+              saveDeclined(declineTargetId);
+              
+              // Закрываем модалку
+              setDeclineModalOpen(false);
+              setDeclineTargetId(null);
+              setIncomingOrder(null);
+              
+              // Перезагружаем страницу, чтобы обновить список
+              setTimeout(() => window.location.reload(), 200);
+            } catch (e) {
+              console.error("[Decline] Ошибка при отказе:", e);
+              alert("Не удалось отказаться от заказа: " + (e as Error).message);
+              setDeclineModalOpen(false);
             }
+          } else {
+            console.warn("[Decline] Нет ID заказа для отказа");
+            setDeclineModalOpen(false);
           }
-          setDeclineModalOpen(false);
-          setDeclineTargetId(null);
-          // Перезагрузка для очистки серверного состояния
-          setTimeout(() => window.location.reload(), 100);
         }}
         onCancel={() => setDeclineModalOpen(false)}
       />
