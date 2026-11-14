@@ -80,14 +80,18 @@ export default function HomePage() {
     }
   }, []);
 
-  // Первичное определение местоположения
+  // Первичное определение местоположения (при загрузке)
   useEffect(() => {
     if (!user || checkingActive) return;
+    
+    // Запрашиваем GPS один раз при загрузке
     geo.locate().then((p) => {
       if (p) {
         setFlyTo({ point: p, nonce: Date.now() });
         if (!pickup) void applyPickupFromPoint(p);
       }
+    }).catch((err) => {
+      console.error("Ошибка GPS при загрузке:", err);
     });
   }, [user, checkingActive]);
 
@@ -198,9 +202,20 @@ export default function HomePage() {
       <button
         onClick={onLocate}
         className="neo-btn absolute right-4 top-4 z-[1000] flex h-12 w-12 items-center justify-center text-xl"
+        disabled={geo.loading}
       >
-        ◎
+        {geo.loading ? <Spinner className="h-5 w-5 text-accent" /> : "◎"}
       </button>
+
+      {/* Ошибка GPS */}
+      {geo.error && !pickup && (
+        <div className="absolute left-4 right-20 top-20 z-[1000]">
+          <div className="rounded-xl bg-red-50 p-3 text-sm text-red-600 shadow-lg">
+            {geo.error}
+            <button onClick={onLocate} className="ml-2 font-bold underline">Повторить</button>
+          </div>
+        </div>
+      )}
 
       {/* Панель ввода (поднимается вверх) */}
       <div className={`absolute left-0 right-0 z-[1000] flex flex-col transition-all duration-300 ${
