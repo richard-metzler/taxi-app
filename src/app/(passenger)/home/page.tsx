@@ -61,6 +61,16 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
+  const openPrivacySettings = () => {
+    // Пытаемся открыть настройки приватности MAX (ближайший аналог)
+    if (typeof window !== "undefined" && (window as any).WebApp?.BiometricManager?.openSettings) {
+      (window as any).WebApp.BiometricManager.openSettings();
+    } else {
+      // Fallback: показываем инструкцию
+      alert("Зайдите в настройки телефона → Приложения → MAX → Разрешения → Геолокация → Разрешить.");
+    }
+  };
+
   const onLocate = async () => {
     const p = await geo.locate();
     if (p) setFlyTo({ point: p, nonce: Date.now() });
@@ -211,8 +221,13 @@ export default function HomePage() {
       {geo.error && !pickup && (
         <div className="absolute left-4 right-20 top-20 z-[1000]">
           <div className="rounded-xl bg-red-50 p-3 text-sm text-red-600 shadow-lg">
-            {geo.error}
-            <button onClick={onLocate} className="ml-2 font-bold underline">Повторить</button>
+            <p className="mb-2">{geo.error}</p>
+            <div className="flex gap-2">
+              <button onClick={onLocate} className="font-bold underline">Повторить</button>
+              {geo.error.includes("запрещён") && (
+                <button onClick={openPrivacySettings} className="font-bold underline">Настройки</button>
+              )}
+            </div>
           </div>
         </div>
       )}
