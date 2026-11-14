@@ -62,13 +62,12 @@ export default function HomePage() {
   }, []);
 
   const openPrivacySettings = () => {
-    // Пытаемся открыть настройки приватности MAX (ближайший аналог)
-    if (typeof window !== "undefined" && (window as any).WebApp?.BiometricManager?.openSettings) {
-      (window as any).WebApp.BiometricManager.openSettings();
-    } else {
-      // Fallback: показываем инструкцию
-      alert("Зайдите в настройки телефона → Приложения → MAX → Разрешения → Геолокация → Разрешить.");
-    }
+    // В MAX WebView прямого открытия системных настроек нет.
+    // Показываем понятную инструкцию, как включить геолокацию вручную.
+    const msg = "Чтобы включить геолокацию:\n\n1. Откройте настройки телефона\n2. Найдите раздел 'Приложения' (или 'Приложения и уведомления')\n3. Выберите MAX\n4. Перейдите в 'Разрешения' -> 'Местоположение'\n5. Выберите 'Разрешить'\n\nПосле этого вернитесь в приложение и нажмите 'Повторить'.";
+    
+    // Используем встроенный alert (в MAX он работает)
+    alert(msg);
   };
 
   const onLocate = async () => {
@@ -225,7 +224,12 @@ export default function HomePage() {
             <div className="flex gap-2">
               <button onClick={onLocate} className="font-bold underline">Повторить</button>
               {geo.error.includes("запрещён") && (
-                <button onClick={openPrivacySettings} className="font-bold underline">Настройки</button>
+                <button 
+                  onClick={openPrivacySettings} 
+                  className="font-bold underline text-accent active:text-accent/70"
+                >
+                  Настройки
+                </button>
               )}
             </div>
           </div>
