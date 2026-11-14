@@ -61,15 +61,6 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
-  const openPrivacySettings = () => {
-    // В MAX WebView прямого открытия системных настроек нет.
-    // Показываем понятную инструкцию, как включить геолокацию вручную.
-    const msg = "Чтобы включить геолокацию:\n\n1. Откройте настройки телефона\n2. Найдите раздел 'Приложения' (или 'Приложения и уведомления')\n3. Выберите MAX\n4. Перейдите в 'Разрешения' -> 'Местоположение'\n5. Выберите 'Разрешить'\n\nПосле этого вернитесь в приложение и нажмите 'Повторить'.";
-    
-    // Используем встроенный alert (в MAX он работает)
-    alert(msg);
-  };
-
   const onLocate = async () => {
     const p = await geo.locate();
     if (p) setFlyTo({ point: p, nonce: Date.now() });
@@ -221,17 +212,10 @@ export default function HomePage() {
         <div className="absolute left-4 right-20 top-20 z-[1000]">
           <div className="rounded-xl bg-red-50 p-3 text-sm text-red-600 shadow-lg">
             <p className="mb-2">{geo.error}</p>
-            <div className="flex gap-2">
-              <button onClick={onLocate} className="font-bold underline">Повторить</button>
-              {geo.error.includes("запрещён") && (
-                <button 
-                  onClick={openPrivacySettings} 
-                  className="font-bold underline text-accent active:text-accent/70"
-                >
-                  Настройки
-                </button>
-              )}
-            </div>
+            <p className="text-xs text-red-500 mb-2">
+              Если доступ разрешен, но GPS не работает, проверьте настройки телефона (разрешение «Точное местоположение» и ограничения батареи для MAX).
+            </p>
+            <button onClick={onLocate} className="font-bold underline">Повторить</button>
           </div>
         </div>
       )}
