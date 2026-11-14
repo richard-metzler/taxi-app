@@ -207,18 +207,7 @@ export default function HomePage() {
         {geo.loading ? <Spinner className="h-5 w-5 text-accent" /> : "◎"}
       </button>
 
-      {/* Ошибка GPS */}
-      {geo.error && !pickup && (
-        <div className="absolute left-4 right-20 top-20 z-[1000]">
-          <div className="rounded-xl bg-red-50 p-3 text-sm text-red-600 shadow-lg">
-            <p className="mb-2">{geo.error}</p>
-            <p className="text-xs text-red-500 mb-2">
-              Если доступ разрешен, но GPS не работает, проверьте настройки телефона (разрешение «Точное местоположение» и ограничения батареи для MAX).
-            </p>
-            <button onClick={onLocate} className="font-bold underline">Повторить</button>
-          </div>
-        </div>
-      )}
+
 
       {/* Панель ввода (поднимается вверх) */}
       <div className={`absolute left-0 right-0 z-[1000] flex flex-col transition-all duration-300 ${
@@ -278,6 +267,13 @@ export default function HomePage() {
         ) : (
           // Состояние без ввода: нижняя панель
           <div className="flex flex-col gap-4 p-4">
+            {geo.error && !pickup && !estimate && (
+              <div className="rounded-xl bg-orange-50 p-3 text-sm text-orange-700 flex items-center justify-between shadow-sm border border-orange-100">
+                <span>Не удалось определить местоположение</span>
+                <button onClick={onLocate} className="font-bold underline text-orange-800">Повторить</button>
+              </div>
+            )}
+
             {!estimate ? (
               <div 
                 className="flex flex-col gap-3"
