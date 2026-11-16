@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/core/widgets/ui";
+import { BrandMark } from "@/core/widgets/BrandMark";
 import { formatDuration, formatMoney, type TariffQuoteView } from "@/shared/types";
 
 type Props = {
@@ -124,9 +125,7 @@ export function OrderDetailsSheet({ open, onClose, pickupText, destinationText, 
 
       {/* Нижнее действие */}
       <div className="neo m-3 mt-0 flex shrink-0 items-center gap-2 p-2">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FFA000] text-xl font-black text-white">
-          Т
-        </div>
+        <BrandMark />
         <Button variant="primary" className="min-h-14 flex-1 text-lg" onClick={onOrder} loading={ordering} disabled={!tariff}>
           Заказать
         </Button>

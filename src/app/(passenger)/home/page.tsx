@@ -9,6 +9,7 @@ import { formatDuration, formatMoney, type EstimateView, type Place } from "@/sh
 import type { LatLng } from "@/core/geo";
 import { Button, ErrorBanner, Spinner } from "@/core/widgets/ui";
 import { AppLogo } from "@/core/widgets/AppLogo";
+import { BrandMark } from "@/core/widgets/BrandMark";
 import { CollapsibleSheet } from "@/core/widgets/CollapsibleSheet";
 import { buildHomeCollapsedSummary } from "@/core/collapsible";
 import { AddressInput } from "@/features/addresses/AddressInput";
@@ -368,9 +369,7 @@ export default function HomePage() {
         footer={
           sheetCollapsed ? null : (
             <div className="neo pointer-events-auto mx-3 mb-2 flex items-center gap-2 p-2">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FFA000] text-xl font-black text-white">
-                Т
-              </div>
+              <BrandMark />
               <Button
                 variant="primary"
                 className="min-h-14 flex-1 text-lg"
