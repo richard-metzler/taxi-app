@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "@/shared/session";
 import { setSessionToken } from "@/shared/api";
 import { Button, Spinner } from "@/core/widgets/ui";
+import { AppLogo } from "@/core/widgets/AppLogo";
 import { RoleSelect } from "@/features/authentication/RoleSelect";
 
 /** Минимальный интерфейс MAX Bridge: unsafe-данные — только для подсказок в интерфейсе. */
@@ -129,9 +130,7 @@ export default function LandingPage() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-surface p-6">
       <div className="neo-btn p-8 rounded-3xl text-center">
-        <div className="w-20 h-20 bg-[#FFA500] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
-          <span className="text-4xl font-bold text-black">Р</span>
-        </div>
+        <AppLogo className="mx-auto mb-6 h-auto w-48 max-w-full" />
         <h1 className="text-2xl font-bold text-ink mb-2">Давай знакомиться</h1>
         <p className="text-sm text-muted mb-6">Как тебя зовут? Это имя будут видеть водители.</p>
         {idHint && <p className="text-xs text-muted mb-4">MAX ID: {idHint}</p>}

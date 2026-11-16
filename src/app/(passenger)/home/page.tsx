@@ -8,6 +8,7 @@ import { useRequireAuth } from "@/shared/session";
 import { formatDistance, formatDuration, formatMoney, type EstimateView, type Place } from "@/shared/types";
 import type { LatLng } from "@/core/geo";
 import { Button, ErrorBanner, Spinner } from "@/core/widgets/ui";
+import { AppLogo } from "@/core/widgets/AppLogo";
 import { CollapsibleSheet } from "@/core/widgets/CollapsibleSheet";
 import { buildHomeCollapsedSummary } from "@/core/collapsible";
 import { AddressInput } from "@/features/addresses/AddressInput";
@@ -158,15 +159,7 @@ export default function HomePage() {
       <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-surface">
         {/* Логотип */}
         <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
-          <div className="flex items-center gap-3">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFA500] shadow-lg">
-              <span className="text-4xl font-black text-black">Р</span>
-            </div>
-            <div className="text-3xl font-black tracking-tight text-ink">
-              ЯДОМ
-            </div>
-          </div>
-          <div className="text-sm font-medium text-muted">Такси Рядом</div>
+          <AppLogo className="h-auto w-56 max-w-full" />
         </div>
 
         {/* Кружок загрузки (с задержкой появления) */}
