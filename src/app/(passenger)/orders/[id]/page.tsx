@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useOrder } from "@/features/ride_order/useOrder";
 import { Button, Spinner } from "@/core/widgets/ui";
 import { api } from "@/shared/api";
@@ -16,6 +16,7 @@ const RideMap = dynamic(() => import("@/features/map/RideMap"), { ssr: false });
 
 export default function OrderPage() {
   const params = useParams();
+  const router = useRouter();
   const orderId = params.id as string;
   
   const { order, error, forbidden, reload } = useOrder(orderId);
@@ -148,7 +149,16 @@ export default function OrderPage() {
             )}
             
             {isFinal && (
-              <BottomNav />
+              <>
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  onClick={() => router.push("/home")}
+                >
+                  Новый заказ
+                </Button>
+                <BottomNav />
+              </>
             )}
           </div>
         </div>
@@ -179,8 +189,8 @@ export default function OrderPage() {
             </div>
             <h3 className="text-xl font-bold text-ink mb-2">Поездка завершена</h3>
             <p className="text-muted mb-6">Стоимость поездки <span className="text-xl font-bold text-ink">{formatMoney(order.finalPrice ?? order.estimatedPrice ?? 0)}</span></p>
-            <Button variant="primary" className="w-full" onClick={() => { window.location.href = "/home"; }}>
-              На главную
+            <Button variant="primary" className="w-full" onClick={() => router.push("/home")}>
+              Новый заказ
             </Button>
           </div>
         </div>
