@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError, type AddressSuggestion } from "@/shared/api";
 import { useRequireAuth } from "@/shared/session";
 import { formatDistance, formatDuration, formatMoney, type EstimateView, type Place } from "@/shared/types";
