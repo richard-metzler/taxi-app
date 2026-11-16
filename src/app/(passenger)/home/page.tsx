@@ -275,18 +275,25 @@ export default function HomePage() {
             )}
 
             {!estimate ? (
-              <div 
-                className="flex flex-col gap-3"
-                onClick={() => setActiveInput("pickup")}
-              >
-                <div className="neo-inset flex items-center gap-3 rounded-2xl bg-white p-3">
+              <div className="flex flex-col gap-3">
+                {/* Поле "Откуда" — клик открывает ввод */}
+                <div 
+                  className="neo-inset flex items-center gap-3 rounded-2xl bg-white p-3 cursor-pointer"
+                  onClick={() => setActiveInput("pickup")}
+                >
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-accent">●</div>
                   <div className="flex-1 text-ink">{pickupText || "Откуда поедем?"}</div>
                 </div>
-                <div className="neo-inset flex items-center gap-3 rounded-2xl bg-white p-3">
+                
+                {/* Поле "Куда" — клик открывает ввод */}
+                <div 
+                  className="neo-inset flex items-center gap-3 rounded-2xl bg-white p-3 cursor-pointer"
+                  onClick={() => setActiveInput("destination")}
+                >
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted/20 text-muted">■</div>
                   <div className="flex-1 text-ink">{destinationText || "Куда поедем?"}</div>
                 </div>
+                
                 <Button variant="primary" onClick={buildRoute} loading={estimating} disabled={!pickup || !destination}>
                   Построить маршрут
                 </Button>
