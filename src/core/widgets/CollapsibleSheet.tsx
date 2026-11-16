@@ -46,11 +46,22 @@ export function CollapsibleSheet({
   const bodyId = `${id}-body`;
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    // Кнопки шапки (сворачивание) должны получать обычный click — не перехватываем их.
+    if ((event.target as HTMLElement).closest("button, a, input, select, textarea")) return;
     startYRef.current = event.clientY;
+    // Захватываем указатель, чтобы свайп не прервался, если палец ушёл за пределы шапки.
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const finishPointer = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
     if (startYRef.current === null) return;
+    finishPointer(event);
     const action = resolveSheetSwipe(event.clientY - startYRef.current);
     startYRef.current = null;
     if (action === "collapse" && !collapsed) onCollapsedChange(true);
@@ -69,8 +80,9 @@ export function CollapsibleSheet({
         <div
           onPointerDown={onPointerDown}
           onPointerUp={onPointerUp}
-          onPointerCancel={() => {
+          onPointerCancel={(event) => {
             startYRef.current = null;
+            finishPointer(event);
           }}
           className="flex touch-pan-x flex-col gap-1.5 select-none"
         >

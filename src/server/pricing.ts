@@ -8,7 +8,6 @@ import { buildRoute } from "./routing";
 import { ensureSeeded } from "./seed";
 import { calculateFare } from "./fare-calculator";
 import { CITY_ONLY_TARIFFS, MAX_TRIP_STRAIGHT_KM, matchZone, outOfZoneMessage, zoneDisplayName } from "./service-area";
-import { newId } from "./ids";
 
 export { calculateFare };
 
@@ -23,7 +22,7 @@ export type AvailableTariffs = {
 const SUBURBAN_SPEED_KMH = 60;
 
 export async function availableTariffsAt(point: LatLng): Promise<AvailableTariffs> {
-  const zones = await db.select().from(serviceZones).where(eq(serviceZones.isActive, "true" as any));
+  const zones = await db.select().from(serviceZones).where(eq(serviceZones.isActive, true));
   const match = matchZone(point, zones);
   if (match.kind === "outside") {
     throw new AppError("out_of_service_area", outOfZoneMessage(match), 422);
@@ -32,7 +31,7 @@ export async function availableTariffsAt(point: LatLng): Promise<AvailableTariff
     .select({ tariff: tariffs })
     .from(tariffZones)
     .innerJoin(tariffs, eq(tariffs.id, tariffZones.tariffId))
-    .where(and(eq(tariffZones.zoneId, match.zone.id), eq(tariffs.isActive, "true" as any)))
+    .where(and(eq(tariffZones.zoneId, match.zone.id), eq(tariffs.isActive, true)))
     .orderBy(asc(tariffs.sortOrder))) as Array<{ tariff: Tariff }>;
   const suburban = match.kind === "suburban";
   const list = rows.map((r) => r.tariff).filter((t) => !suburban || !CITY_ONLY_TARIFFS.includes(t.id));
@@ -107,7 +106,6 @@ export async function createEstimate(userId: string, input: EstimateInput): Prom
   }));
 
   const expiresAt = new Date(Date.now() + ESTIMATE_TTL_MS);
-  const estimateId = newId();
 
   const [estimate] = await db.insert(fareEstimates).values({
     userId,

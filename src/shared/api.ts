@@ -104,7 +104,8 @@ function getSessionToken(): string | null {
   return memoryToken;
 }
 
-function setSessionToken(token: string | null): void {
+/** Сохранить токен сессии после входа (в т.ч. после входа через MAX). */
+export function setSessionToken(token: string | null): void {
   memoryToken = token;
   tokenLoaded = true;
   if (token) loginEpoch++;
@@ -173,8 +174,6 @@ export type AddressSuggestion = {
   longitude: number;
 };
 
-export type PaymentCreated = { id: string; status: string; amount: number; confirmationUrl: string | null };
-
 export type TransportDiagnostics = {
   bodySession: boolean;
   viaRpc: boolean;
@@ -222,18 +221,20 @@ export const api = {
         setSessionToken(null);
       }
     },
-    /** Перед уходом на сторонний сайт (страница оплаты): токен не должен оставаться в window.name. */
-    prepareExternalNavigation: (): void => {
-      if (typeof window !== "undefined") writeWindowName(null);
-    },
   },
   diagnostics: {
     transport: () => request<TransportDiagnostics>("/api/diagnostics/transport"),
   },
   /** Интерфейс водителя. Все изменения статусов заказа выполняет сервер. */
   driver: {
-    register: (data: { name: string; carModel: string; plate: string; color: string }) =>
-      request<{ ok: true }>("/api/driver/register", { method: "POST", body: data }),
+    register: (data: {
+      name: string;
+      phone?: string;
+      password?: string;
+      vehicle: { brand: string; model: string; color: string; plate: string; class: string };
+      selfieBase64: string;
+      licenseBase64: string;
+    }) => request<{ ok: true }>("/api/driver/register", { method: "POST", body: data }),
     state: () => request<DriverStateView>("/api/driver"),
     setStatus: (online: boolean, position?: { latitude: number; longitude: number }) =>
       request<{ isOnline: boolean }>("/api/driver/status", { method: "POST", body: { online, ...position } }),

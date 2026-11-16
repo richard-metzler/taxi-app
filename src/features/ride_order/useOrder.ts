@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/shared/api";
 import type { OrderView } from "@/shared/types";
 
-const TERMINAL = new Set(["paid", "cancelled"]);
+const TERMINAL = new Set(["completed", "cancelled"]);
 
 /**
  * Подписка на состояние заказа. Опрашивает сервер и обновляет состояние только при изменениях.

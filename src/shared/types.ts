@@ -1,6 +1,6 @@
-import type { OrderStatus, PaymentStatus } from "@/db/schema";
+import type { OrderStatus } from "@/db/schema";
 
-export type { OrderStatus, PaymentStatus };
+export type { OrderStatus };
 
 export type Place = { address: string; latitude: number; longitude: number };
 
@@ -13,15 +13,6 @@ export type DriverView = {
   location: { latitude: number; longitude: number; heading: number } | null;
   distanceToPassengerMeters: number | null;
   etaSeconds: number | null;
-};
-
-export type PaymentView = {
-  id: string;
-  status: PaymentStatus;
-  amount: number;
-  paymentMethod: string | null;
-  confirmationUrl: string | null;
-  failureReason: string | null;
 };
 
 export type OrderView = {
@@ -42,9 +33,7 @@ export type OrderView = {
   canCancel: boolean;
   createdAt: string;
   completedAt: string | null;
-  paidAt: string | null;
   driver: DriverView | null;
-  payment: PaymentView | null;
   simulation?: any;
 };
 
@@ -100,17 +89,7 @@ export const ORDER_STATUS_TEXT: Record<OrderStatus, string> = {
   driver_waiting: "Водитель ожидает",
   in_progress: "Поездка началась",
   completed: "Поездка завершена",
-  
-  
   cancelled: "Заказ отменён",
-  };
-
-export const PAYMENT_STATUS_TEXT: Record<PaymentStatus, string> = {
-  pending: "Ожидает оплаты",
-  waiting_for_capture: "Ожидает подтверждения",
-  succeeded: "Оплачено",
-  canceled: "Платёж отменён",
-  failed: "Ошибка оплаты",
 };
 
 export const NAVIGATOR_TEXT: Record<UserProfile["navigator"], string> = {

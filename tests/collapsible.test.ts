@@ -16,14 +16,13 @@ test("свайп панели: короткое касание игнориру�
 });
 
 test("свёрнутая сводка главного экрана отражает состояние адресов и расчёта", () => {
-  const empty = buildHomeCollapsedSummary({ pickup: null, destination: null, estimate: null, unpaidOrderId: null });
+  const empty = buildHomeCollapsedSummary({ pickup: null, destination: null, estimate: null });
   assert.equal(empty.title, "Куда поедем?");
   assert.equal(empty.badge, null);
 
   const estimated = buildHomeCollapsedSummary({
     pickup: { address: "Площадь Ленина", latitude: 56.4886, longitude: 84.9521 },
     destination: { address: "Вокзал", latitude: 56.461, longitude: 84.968 },
-    unpaidOrderId: null,
     estimate: {
       estimateId: "est-1",
       distanceMeters: 4200,
@@ -59,8 +58,6 @@ test("свёрнутая сводка заказа показывает стат
     canCancel: true,
     createdAt: new Date().toISOString(),
     completedAt: null,
-    paidAt: null,
-    payment: null,
     driver: {
       id: "drv-1",
       name: "Алексей",
@@ -78,9 +75,9 @@ test("свёрнутая сводка заказа показывает стат
 });
 
 test("автораскрытие карточки заказа срабатывает только на статусах, требующих внимания", () => {
-  // assert.equal(shouldAutoExpandOrderSheet(null, "payment_pending"), false);
+  assert.equal(shouldAutoExpandOrderSheet(null, "completed"), false);
   assert.equal(shouldAutoExpandOrderSheet("searching", "driver_assigned"), false);
   assert.equal(shouldAutoExpandOrderSheet("driver_arriving", "driver_waiting"), true);
-  // assert.equal(shouldAutoExpandOrderSheet("in_progress", "payment_pending"), true);
-  // assert.equal(shouldAutoExpandOrderSheet("payment_pending", "payment_pending"), false);
+  assert.equal(shouldAutoExpandOrderSheet("in_progress", "completed"), true);
+  assert.equal(shouldAutoExpandOrderSheet("completed", "completed"), false);
 });

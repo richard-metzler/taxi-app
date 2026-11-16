@@ -2,24 +2,50 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "@/shared/session";
+import { setSessionToken } from "@/shared/api";
 import { Button, Spinner } from "@/core/widgets/ui";
 import { RoleSelect } from "@/features/authentication/RoleSelect";
+
+/** Минимальный интерфейс MAX Bridge: unsafe-данные — только для подсказок в интерфейсе. */
+type MaxWebApp = {
+  initData?: string;
+  initDataUnsafe?: { user?: { id?: number | string; first_name?: string; last_name?: string } };
+};
+function getWebApp(): MaxWebApp | undefined {
+  if (typeof window === "undefined") return undefined;
+  return (window as Window & { WebApp?: MaxWebApp }).WebApp;
+}
 
 export default function LandingPage() {
   const { user, loading } = useSession();
   const [isSwitching, setIsSwitching] = useState(false);
-  
+
   // Состояния для онбординга
   const [name, setName] = useState("");
+  const [nameHint, setNameHint] = useState("");
+  const [idHint, setIdHint] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   // Проверяем, пришли ли мы на страницу для смены роли
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      setIsSwitching(params.get("switch") === "true");
-    }
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const switching = params.get("switch") === "true";
+    void Promise.resolve().then(() => setIsSwitching(switching));
+  }, []);
+
+  // Имя и ID из initDataUnsafe показываем как подсказку; на сервер уйдёт подписанный initData.
+  useEffect(() => {
+    const unsafeUser = getWebApp()?.initDataUnsafe?.user;
+    if (!unsafeUser) return;
+    void Promise.resolve().then(() => {
+      if (unsafeUser.first_name) {
+        setNameHint(String(unsafeUser.first_name));
+        setName((current) => current || String(unsafeUser.first_name));
+      }
+      if (unsafeUser.id !== undefined) setIdHint(String(unsafeUser.id));
+    });
   }, []);
 
   // АВТО-ВХОД: Если пользователь есть и мы не меняем роль — кидаем в его кабинет
@@ -40,20 +66,25 @@ export default function LandingPage() {
     setError("");
 
     try {
-      const maxUserId = (window as any).WebApp?.initDataUnsafe?.user?.id;
-      if (!maxUserId) throw new Error("Не удалось получить ID пользователя MAX");
+      const initData = getWebApp()?.initData;
+      if (!initData) throw new Error("Откройте приложение через MAX, чтобы продолжить");
 
       const res = await fetch("/api/auth/max", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ maxUserId: String(maxUserId), role: "passenger", name: name.trim() }),
+        body: JSON.stringify({ initData, role: "passenger", name: name.trim() }),
       });
 
-      if (!res.ok) throw new Error("Ошибка сохранения. Попробуйте еще раз.");
-      
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error?.message || "Ошибка сохранения. Попробуйте ещё раз.");
+      }
+      // Cookie может быть срезана прокси превью — сессия должна выжить через тело RPC.
+      if (typeof data.token === "string") setSessionToken(data.token);
+
       window.location.href = "/home";
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка сохранения");
       setIsSubmitting(false);
     }
   };
@@ -61,17 +92,22 @@ export default function LandingPage() {
   // Обработка смены роли
   const handleSwitchRole = async (role: "passenger" | "driver") => {
     try {
-      const maxUserId = (window as any).WebApp?.initDataUnsafe?.user?.id;
-      if (maxUserId) {
-        await fetch("/api/auth/max", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ maxUserId: String(maxUserId), role }),
-        });
+      const initData = getWebApp()?.initData;
+      if (!initData) {
+        alert("Не удалось получить данные MAX. Откройте приложение через MAX.");
+        return;
       }
+      const res = await fetch("/api/auth/max", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData, role }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error?.message || "Ошибка смены роли");
+      if (typeof data.token === "string") setSessionToken(data.token);
       window.location.href = role === "passenger" ? "/home" : "/driver";
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -98,24 +134,25 @@ export default function LandingPage() {
         </div>
         <h1 className="text-2xl font-bold text-ink mb-2">Давай знакомиться</h1>
         <p className="text-sm text-muted mb-6">Как тебя зовут? Это имя будут видеть водители.</p>
-        
+        {idHint && <p className="text-xs text-muted mb-4">MAX ID: {idHint}</p>}
+
         <form onSubmit={handleOnboard} className="flex flex-col gap-4">
           {error && <div className="text-red-500 text-sm">{error}</div>}
           <input
             type="text"
-            placeholder="Ваше имя"
+            placeholder={nameHint ? `Например: ${nameHint}` : "Ваше имя"}
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') { e.preventDefault(); handleOnboard(); }
+              if (e.key === "Enter") { e.preventDefault(); handleOnboard(); }
             }}
             className="neo-inset w-full p-3 rounded-xl outline-none text-center text-lg text-ink"
           />
-          <Button 
-            type="button" 
-            onClick={() => handleOnboard()} 
-            variant="primary" 
-            className="w-full touch-manipulation" 
+          <Button
+            type="button"
+            onClick={() => handleOnboard()}
+            variant="primary"
+            className="w-full touch-manipulation"
             loading={isSubmitting}
           >
             Продолжить

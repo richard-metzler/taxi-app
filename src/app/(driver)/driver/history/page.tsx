@@ -28,7 +28,9 @@ export default function DriverHistoryPage() {
   }, []);
 
   useEffect(() => {
-    if (user) void load();
+    if (!user) return;
+    // setState внутри load выполняется в асинхронном колбэке, а не синхронно в эффекте.
+    void Promise.resolve().then(load);
   }, [user, load]);
 
   if (!user) {

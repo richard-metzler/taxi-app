@@ -38,14 +38,14 @@ test("поездка водителя: шаги идут строго по по�
   assert.equal(nextDriverAction("driver_arriving")?.action, "arrived");
   assert.equal(nextDriverAction("driver_waiting")?.action, "start");
   assert.equal(nextDriverAction("in_progress")?.action, "complete");
-  for (const status of ["searching", "payment_pending", "paid", "cancelled"] as const) {
-    // assert.equal(nextDriverAction(status), null, status);
+  for (const status of ["searching", "completed", "cancelled"] as const) {
+    assert.equal(nextDriverAction(status), null, status);
   }
-  assert.equal(DRIVER_TRANSITIONS.complete.to, "payment_pending");
+  assert.equal(DRIVER_TRANSITIONS.complete.to, "completed");
   assert.equal(canDeclineStatus("driver_arriving"), true);
   assert.equal(canDeclineStatus("in_progress"), false);
   assert.equal(isDriverAction("complete"), true);
-  assert.equal(isDriverAction("paid"), false);
+  assert.equal(isDriverAction("completed"), false);
 });
 
 test("навигатор: ссылки для Яндекс Навигатора, 2ГИС и Google Карт", () => {

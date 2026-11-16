@@ -85,10 +85,16 @@ export const DRIVER_NAV: NavItem[] = [
 
 export function BottomNav({ items = PASSENGER_NAV }: { items?: NavItem[] }) {
   const pathname = usePathname();
+  // Детали заказа — часть раздела «Заказ», поэтому подсвечиваем соответствующий пункт.
+  const activePath =
+    pathname.startsWith("/orders/") && items.some((item) => item.href === "/home") ? "/home" : pathname;
+  const matches = (href: string) => activePath === href || (href !== "/" && activePath.startsWith(`${href}/`));
+  // Самый длинный совпавший путь побеждает: на /driver/history подсвечиваются «Поездки», а не «Заказы».
+  const deepestHref = items.filter((item) => matches(item.href)).sort((a, b) => b.href.length - a.href.length)[0]?.href;
   return (
     <nav className="neo safe-bottom mx-auto mb-2 flex w-[calc(100%-1.5rem)] max-w-md items-stretch justify-around px-2 pt-2">
       {items.map((item) => {
-        const active = pathname === item.href;
+        const active = matches(item.href) && item.href === deepestHref;
         return (
           <Link
             key={item.href}

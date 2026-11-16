@@ -42,21 +42,33 @@ export default function DriverHomePage() {
   const [incomingOrder, setIncomingOrder] = useState<AvailableOrderView | null>(null);
   const [declineModalOpen, setDeclineModalOpen] = useState(false);
   const [declineTargetId, setDeclineTargetId] = useState<string | null>(null);
-  const declinedIds = useRef<Set<string>>(new Set());
+  const [declinedIds, setDeclinedIds] = useState<Set<string>>(() => new Set());
 
   const currentOrder = state?.currentOrder ?? null;
+  // Актуальные значения для обработчика размонтирования (эффект с пустыми зависимостями).
+  const isOnlineRef = useRef(isOnline);
+  const currentOrderRef = useRef(currentOrder);
+  useEffect(() => {
+    isOnlineRef.current = isOnline;
+  }, [isOnline]);
+  useEffect(() => {
+    currentOrderRef.current = currentOrder;
+  }, [currentOrder]);
   const selected = available.find((order) => order.id === selectedId) ?? null;
-  const filteredAvailable = available.filter((o) => !declinedIds.current.has(o.id));
+  const filteredAvailable = available.filter((o) => !declinedIds.has(o.id));
 
   // Новый заказ раскрывает панель; исчезновение заказа объясняется пользователю.
   useEffect(() => {
     const id = currentOrder?.id ?? null;
     if (id) {
-      setNotice(null);
-      if (!previousOrderId.current) setCollapsed(false);
+      const isFirstOrder = !previousOrderId.current;
+      void Promise.resolve().then(() => {
+        setNotice(null);
+        if (isFirstOrder) setCollapsed(false);
+      });
     }
     if (!id && previousOrderId.current) {
-      setNotice("Заказ закрыт: поездка завершена или пассажир отменил заказ.");
+      void Promise.resolve().then(() => setNotice("Заказ закрыт: поездка завершена или пассажир отменил заказ."));
       const timer = setTimeout(() => setNotice(null), 5000);
       return () => clearTimeout(timer);
     }
@@ -142,26 +154,31 @@ export default function DriverHomePage() {
 
   // Логика входящего заказа
   useEffect(() => {
-    if (filteredAvailable.length > 0 && !currentOrder && !incomingOrder) {
-      const nextOrder = filteredAvailable[0];
-      setIncomingOrder(nextOrder);
-    }
-    if (incomingOrder && !filteredAvailable.find((o) => o.id === incomingOrder.id)) {
-      setIncomingOrder(null);
-    }
+    void Promise.resolve().then(() => {
+      if (filteredAvailable.length > 0 && !currentOrder && !incomingOrder) {
+        const nextOrder = filteredAvailable[0];
+        setIncomingOrder(nextOrder);
+      }
+      if (incomingOrder && !filteredAvailable.find((o) => o.id === incomingOrder.id)) {
+        setIncomingOrder(null);
+      }
+    });
   }, [filteredAvailable, currentOrder, incomingOrder]);
 
-  // При уходе со страницы (размонтировании) снимаем водителя с линии
+  // При уходе со страницы (размонтировании) снимаем водителя с линии.
+  // Эффект монтируется один раз: переключение isOnline и StrictMode не снимают с линии.
+  // Во время активного заказа сервер всё равно запрещает уход с линии, поэтому запрос не шлём.
   useEffect(() => {
     return () => {
-      if (isOnline) {
-        // Вызываем API без await (fire-and-forget), чтобы не блокировать переход
-        import("@/shared/api").then(({ api }) => {
-          api.driver.setStatus(false).catch(console.error);
-        });
-      }
+      if (!isOnlineRef.current || currentOrderRef.current) return;
+      // Вызываем API без await (fire-and-forget), чтобы не блокировать переход
+      import("@/shared/api")
+        .then(({ api }) => {
+          api.driver.setStatus(false).catch(() => {});
+        })
+        .catch(() => {});
     };
-  }, [isOnline]);
+  }, []);
 
   if (!user || !state) {
     return (
@@ -272,7 +289,7 @@ export default function DriverHomePage() {
                 await api.driver.action(declineTargetId, "decline");
               }
               // В любом случае скрываем заказ локально
-              declinedIds.current.add(declineTargetId);
+              setDeclinedIds((current) => new Set(current).add(declineTargetId));
               setIncomingOrder(null);
               await reload();
             } catch (e) {

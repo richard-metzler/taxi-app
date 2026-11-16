@@ -111,7 +111,7 @@ test("тарифы: оценка выполняется сервером, сум
   }
 });
 
-test("заказ: создание, права доступа, история, отмена, оплата только после завершения", { skip }, async () => {
+test("заказ: создание, права доступа, история, отмена", { skip }, async () => {
   const owner = await login();
   const stranger = await login();
 
@@ -143,10 +143,6 @@ test("заказ: создание, права доступа, история, �
   assert.ok(!strangerHistory.data.items.some((o: { id: string }) => o.id === orderId), "чужой заказ не виден в истории");
   const ownerHistory = await call("/api/orders", { token: owner });
   assert.ok(ownerHistory.data.items.some((o: { id: string }) => o.id === orderId));
-
-  // Оплата незавершённой поездки невозможна (409) либо провайдер не настроен (503)
-  const pay = await call("/api/payments", { method: "POST", token: owner, body: { orderId } });
-  assert.ok([409, 503].includes(pay.status), `ожидался отказ, получено ${pay.status}`);
 
   const cancelled = await call(`/api/orders/${orderId}/cancel`, { method: "POST", token: owner });
   assert.equal(cancelled.status, 200);
@@ -249,7 +245,7 @@ test("rpc: полный вход и работа с сессией только 
 });
 
 test("rpc: доступны только API пассажира, некорректные конверты отклоняются", { skip }, async () => {
-  for (const path of ["/api/payments/webhook", "/api/health", "/api/rpc", "/api/orders/not-a-uuid", "/api/../health"]) {
+  for (const path of ["/api/health", "/api/rpc", "/api/orders/not-a-uuid", "/api/../health"]) {
     const r = await rpc(path, { method: path.endsWith("webhook") || path.endsWith("rpc") ? "POST" : "GET" });
     assert.ok([400, 404].includes(r.status), `${path}: ожидался отказ, получено ${r.status}`);
   }
@@ -445,20 +441,29 @@ test("роли: регистрация водителя проверяет ав�
   assert.equal(state.data.currentOrder, null);
 });
 
-test("роли: вход только в своей роли, чужие разделы закрыты сервером", { skip }, async () => {
+test("роли: смена роли записывается в БД, чужие разделы закрыты сервером", { skip }, async () => {
   const phone = randomPhone();
   assert.equal((await registerDriver(phone)).status, 201);
 
-  const wrongRole = await call("/api/auth/login", { method: "POST", body: { phone, password: TEST_PASSWORD, role: "passenger" } });
-  assert.equal(wrongRole.status, 403);
-  assert.equal(wrongRole.data.error.code, "role_mismatch");
+  // Водитель сменил роль на пассажира — роль сохраняется, водительские разделы закрываются
+  const toPassenger = await call("/api/auth/login", { method: "POST", body: { phone, password: TEST_PASSWORD, role: "passenger" } });
+  assert.equal(toPassenger.status, 200);
+  assert.equal(toPassenger.data.user.role, "passenger");
+  assert.equal((await call("/api/driver", { token: toPassenger.data.token })).status, 403);
+  assert.equal((await call("/api/orders", { token: toPassenger.data.token })).status, 200);
+
   const wrongPassword = await call("/api/auth/login", { method: "POST", body: { phone, password: "Неверный-Пароль-1", role: "passenger" } });
   assert.equal(wrongPassword.status, 401, "роль не раскрывается без верного пароля");
-  const driverLogin = await call("/api/auth/login", { method: "POST", body: { phone, password: TEST_PASSWORD, role: "driver" } });
-  assert.equal(driverLogin.status, 200);
-  assert.equal(driverLogin.data.user.role, "driver");
 
-  // Один номер — одна роль
+  // Пассажир сменил роль на водителя — роль также сохраняется
+  const toDriver = await call("/api/auth/login", { method: "POST", body: { phone, password: TEST_PASSWORD, role: "driver" } });
+  assert.equal(toDriver.status, 200);
+  assert.equal(toDriver.data.user.role, "driver");
+  assert.equal((await call("/api/driver", { token: toDriver.data.token })).status, 200);
+  assert.equal((await call("/api/driver", { token: toDriver.data.token })).data.driver.isOnline, false);
+  assert.equal((await call("/api/orders", { token: toDriver.data.token })).status, 403);
+
+  // Повторная регистрация того же номера запрещена
   const taken = await call("/api/auth/register", { method: "POST", body: registrationBody(phone) });
   assert.equal(taken.status, 409);
   assert.match(taken.data.error.message, /водител/);
@@ -467,7 +472,7 @@ test("роли: вход только в своей роли, чужие раз�
   assert.equal((await registerDriver(passengerPhone)).status, 409);
 
   // Разделы ролей закрыты друг для друга
-  const driver = driverLogin.data.token as string;
+  const driver = toDriver.data.token as string;
   const passenger = await login();
   assert.equal((await call("/api/orders", { token: driver })).status, 403);
   assert.equal((await call("/api/fare/estimate", { method: "POST", token: driver, body: ROUTE })).status, 403);
@@ -540,9 +545,9 @@ test("водитель: заказ проходит весь путь, стат�
     assert.equal(typeof state.data.currentOrder.passenger.phone, "string");
 
     const done = await act("complete");
-    assert.equal(done.data.status, "payment_pending");
+    assert.equal(done.data.status, "completed");
     const final = await call(`/api/orders/${orderId}`, { token: passenger });
-    assert.equal(final.data.order.status, "payment_pending");
+    assert.equal(final.data.order.status, "completed");
     assert.equal(final.data.order.finalPrice, est.data.tariffs.find((t: { id: string }) => t.id === "econom").price);
 
     const history = await call("/api/driver/orders/history", { token: driver });

@@ -2,12 +2,14 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiError, type AddressSuggestion } from "@/shared/api";
 import { useRequireAuth } from "@/shared/session";
 import { formatDistance, formatDuration, formatMoney, type EstimateView, type Place } from "@/shared/types";
 import type { LatLng } from "@/core/geo";
-import { Button, Spinner } from "@/core/widgets/ui";
+import { Button, ErrorBanner, Spinner } from "@/core/widgets/ui";
+import { CollapsibleSheet } from "@/core/widgets/CollapsibleSheet";
+import { buildHomeCollapsedSummary } from "@/core/collapsible";
 import { AddressInput } from "@/features/addresses/AddressInput";
 import { useGeolocation } from "@/features/home/useGeolocation";
 
@@ -32,7 +34,8 @@ export default function HomePage() {
   const [flyTo, setFlyTo] = useState<{ point: LatLng; nonce: number } | null>(null);
   const [checkingActive, setCheckingActive] = useState(true);
   const [selectedTariffId, setSelectedTariffId] = useState<string | null>(null);
-  
+  const [sheetCollapsed, setSheetCollapsed] = useState(false);
+
   // Состояния для фокуса и списка подсказок
   const [activeInput, setActiveInput] = useState<"pickup" | "destination" | null>(null);
 
@@ -54,7 +57,9 @@ export default function HomePage() {
       try {
         const { count } = await api.system.getStatus();
         setAvailableDrivers(count);
-      } catch (e) {}
+      } catch {
+        // Статус необязателен — карта и заказ работают и без него.
+      }
     };
     fetchStatus();
     const interval = setInterval(fetchStatus, 10000);
@@ -83,7 +88,7 @@ export default function HomePage() {
   // Первичное определение местоположения (при загрузке)
   useEffect(() => {
     if (!user || checkingActive) return;
-    
+
     // Запрашиваем GPS один раз при загрузке
     geo.locate().then((p) => {
       if (p) {
@@ -93,6 +98,8 @@ export default function HomePage() {
     }).catch((err) => {
       console.error("Ошибка GPS при загрузке:", err);
     });
+    // geo и pickup намеренно не в зависимостях: иначе смена точки вызвала бы повторный запрос разрешения.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, checkingActive]);
 
   const selectPlace = (s: AddressSuggestion, kind: "pickup" | "destination") => {
@@ -161,7 +168,7 @@ export default function HomePage() {
           </div>
           <div className="text-sm font-medium text-muted">Такси Рядом</div>
         </div>
-        
+
         {/* Кружок загрузки (с задержкой появления) */}
         <div className="animate-in fade-in duration-1000 delay-500">
           <Spinner className="h-8 w-8 text-accent" />
@@ -171,6 +178,8 @@ export default function HomePage() {
   }
 
   const selectedTariff = estimate?.tariffs.find((t) => t.id === selectedTariffId);
+  const collapsedSummary = buildHomeCollapsedSummary({ pickup, destination, estimate });
+  const panelTitle = estimate ? "Маршрут готов" : "Куда поедем?";
 
   return (
     <main className="relative flex h-dvh flex-col overflow-hidden bg-surface">
@@ -207,137 +216,152 @@ export default function HomePage() {
         {geo.loading ? <Spinner className="h-5 w-5 text-accent" /> : "◎"}
       </button>
 
+      {/* Ошибка расчёта или заказа — видна независимо от состояния нижней панели */}
+      {error ? (
+        <div className="absolute left-3 right-3 top-16 z-[1000]">
+          <ErrorBanner message={error} />
+        </div>
+      ) : null}
 
+      {/* Полноэкранный режим ввода адресов */}
+      {activeInput ? (
+        <div className="absolute inset-0 z-[1500] flex h-full flex-col bg-[#F4F6F9]">
+          <div className="flex items-center justify-between p-4 pb-2">
+            <button onClick={() => setActiveInput(null)} className="text-2xl text-ink">←</button>
+            <h2 className="text-lg font-bold text-ink">Куда поедем?</h2>
+            <div className="w-6" />
+          </div>
 
-      {/* Панель ввода (поднимается вверх) */}
-      <div className={`absolute left-0 right-0 z-[1000] flex flex-col transition-all duration-300 ${
-        activeInput ? "top-0 bottom-0 bg-[#F4F6F9]" : "bottom-0 rounded-t-3xl bg-[#F4F6F9] shadow-[0_-10px_40px_rgba(0,0,0,0.1)]"
-      }`}>
-        {activeInput ? (
-          // Состояние ввода: панель на весь экран
-          <div className="flex h-full flex-col bg-[#F4F6F9]">
-            <div className="flex items-center justify-between p-4 pb-2">
-              <button onClick={() => setActiveInput(null)} className="text-2xl text-ink">←</button>
-              <h2 className="text-lg font-bold text-ink">Куда поедем?</h2>
-              <div className="w-6" />
-            </div>
-            
-            <div className="flex flex-col gap-3 px-4 pb-4">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted ml-2">Точка посадки</span>
-                <AddressInput
-                  label=""
-                  icon="●"
-                  placeholder="Адрес отправления"
-                  value={pickupText}
-                  near={geo.position ?? pickup}
-                  onTextChange={(t) => { setPickupText(t); setEstimate(null); }}
-                  onSelect={(s) => { selectPlace(s, "pickup"); setActiveInput(null); }}
-                />
-              </div>
-              
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted ml-2">Куда</span>
-                <AddressInput
-                  label=""
-                  icon="■"
-                  placeholder="Адрес назначения"
-                  value={destinationText}
-                  near={pickup ?? geo.position}
-                  onTextChange={(t) => { setDestinationText(t); setEstimate(null); }}
-                  onSelect={(s) => { selectPlace(s, "destination"); setActiveInput(null); }}
-                />
-              </div>
+          <div className="flex flex-col gap-3 px-4 pb-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted ml-2">Точка посадки</span>
+              <AddressInput
+                label=""
+                icon="●"
+                placeholder="Адрес отправления"
+                value={pickupText}
+                near={geo.position ?? pickup}
+                onTextChange={(t) => { setPickupText(t); setEstimate(null); }}
+                onSelect={(s) => { selectPlace(s, "pickup"); setActiveInput(null); }}
+              />
             </div>
 
-            {/* Список подсказок (рендерится внутри AddressInput) */}
-            <div className="flex-1 overflow-y-auto bg-white rounded-t-3xl shadow-lg">
-              <button 
-                className="flex w-full items-center gap-3 border-b border-gray-100 p-4 text-left active:bg-gray-50"
-                onClick={() => { onLocate(); setActiveInput(null); }}
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500">📍</div>
-                <div>
-                  <div className="font-semibold text-ink">Ваше местоположение</div>
-                  <div className="text-xs text-muted">Определим по GPS</div>
-                </div>
-              </button>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted ml-2">Куда</span>
+              <AddressInput
+                label=""
+                icon="■"
+                placeholder="Адрес назначения"
+                value={destinationText}
+                near={pickup ?? geo.position}
+                onTextChange={(t) => { setDestinationText(t); setEstimate(null); }}
+                onSelect={(s) => { selectPlace(s, "destination"); setActiveInput(null); }}
+              />
             </div>
           </div>
-        ) : (
-          // Состояние без ввода: нижняя панель
-          <div className="flex flex-col gap-4 p-4">
-            {geo.error && !pickup && !estimate && (
-              <div className="rounded-xl bg-orange-50 p-3 text-sm text-orange-700 flex items-center justify-between shadow-sm border border-orange-100">
-                <span>Не удалось определить местоположение</span>
-                <button onClick={onLocate} className="font-bold underline text-orange-800">Повторить</button>
-              </div>
-            )}
 
-            {!estimate ? (
-              <div className="flex flex-col gap-3">
-                {/* Поле "Откуда" — клик открывает ввод */}
-                <div 
-                  className="neo-inset flex items-center gap-3 rounded-2xl bg-white p-3 cursor-pointer"
-                  onClick={() => setActiveInput("pickup")}
-                >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-accent">●</div>
-                  <div className="flex-1 text-ink">{pickupText || "Откуда поедем?"}</div>
-                </div>
-                
-                {/* Поле "Куда" — клик открывает ввод */}
-                <div 
-                  className="neo-inset flex items-center gap-3 rounded-2xl bg-white p-3 cursor-pointer"
-                  onClick={() => setActiveInput("destination")}
-                >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted/20 text-muted">■</div>
-                  <div className="flex-1 text-ink">{destinationText || "Куда поедем?"}</div>
-                </div>
-                
-                <Button variant="primary" onClick={buildRoute} loading={estimating} disabled={!pickup || !destination}>
-                  Построить маршрут
-                </Button>
+          {/* Список подсказок (рендерится внутри AddressInput) */}
+          <div className="flex-1 overflow-y-auto bg-white rounded-t-3xl shadow-lg">
+            <button
+              className="flex w-full items-center gap-3 border-b border-gray-100 p-4 text-left active:bg-gray-50"
+              onClick={() => { onLocate(); setActiveInput(null); }}
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500">📍</div>
+              <div>
+                <div className="font-semibold text-ink">Ваше местоположение</div>
+                <div className="text-xs text-muted">Определим по GPS</div>
               </div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between text-sm text-muted">
-                  <span>{formatDistance(estimate.distanceMeters)} · {formatDuration(estimate.durationSeconds)}</span>
-                </div>
+            </button>
+          </div>
+        </div>
+      ) : null}
 
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                  {estimate.tariffs.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => setSelectedTariffId(t.id)}
-                      className={`flex min-w-[120px] flex-col items-start gap-1 rounded-2xl border p-3 transition-all ${
-                        selectedTariffId === t.id 
-                          ? "border-accent bg-accent/5 shadow-sm" 
-                          : "border-gray-200 bg-white"
-                      }`}
-                    >
-                      <div className="flex items-center gap-1 text-sm font-semibold text-ink">
-                        <span>🚕</span>
-                        {t.name}
-                      </div>
-                      <div className="text-xs text-muted">{formatDuration(t.pickupEtaSeconds)}</div>
-                      <div className="text-lg font-bold text-ink">{formatMoney(t.price)}</div>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex gap-2">
-                  <Button className="flex-1" onClick={() => setEstimate(null)}>
-                    Назад
-                  </Button>
-                  <Button className="flex-[2]" variant="primary" onClick={placeOrder} loading={ordering} disabled={!selectedTariff}>
-                    Заказать {selectedTariff ? `за ${formatMoney(selectedTariff.price)}` : ""}
-                  </Button>
-                </div>
-              </div>
-            )}
+      {/* Сворачиваемая нижняя панель заказа. Содержимое остаётся в DOM при сворачивании. */}
+      <CollapsibleSheet
+        id="home-order-sheet"
+        collapsed={sheetCollapsed}
+        onCollapsedChange={setSheetCollapsed}
+        title={collapsedSummary.title}
+        subtitle={collapsedSummary.subtitle}
+        badge={collapsedSummary.badge}
+        headerExtra={<div className="truncate text-base font-bold text-ink">{panelTitle}</div>}
+      >
+        {geo.error && !pickup && !estimate && (
+          <div className="rounded-xl bg-orange-50 p-3 text-sm text-orange-700 flex items-center justify-between shadow-sm border border-orange-100">
+            <span>Не удалось определить местоположение</span>
+            <button onClick={onLocate} className="font-bold underline text-orange-800">Повторить</button>
           </div>
         )}
-      </div>
+
+        {!estimate ? (
+          <div className="flex flex-col gap-3">
+            <AddressInput
+              label="Откуда"
+              icon="●"
+              placeholder="Адрес отправления"
+              value={pickupText}
+              near={geo.position ?? pickup}
+              onTextChange={(t) => { setPickupText(t); setEstimate(null); }}
+              onSelect={(s) => selectPlace(s, "pickup")}
+            />
+            <AddressInput
+              label="Куда"
+              icon="■"
+              placeholder="Адрес назначения"
+              value={destinationText}
+              near={pickup ?? geo.position}
+              onTextChange={(t) => { setDestinationText(t); setEstimate(null); }}
+              onSelect={(s) => selectPlace(s, "destination")}
+            />
+            <button
+              type="button"
+              onClick={() => setActiveInput("destination")}
+              className="self-start text-xs font-semibold text-accent underline"
+            >
+              Развернуть ввод адресов
+            </button>
+            <Button variant="primary" onClick={buildRoute} loading={estimating} disabled={!pickup || !destination}>
+              Построить маршрут
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between text-sm text-muted">
+              <span>{formatDistance(estimate.distanceMeters)} · {formatDuration(estimate.durationSeconds)}</span>
+            </div>
+
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {estimate.tariffs.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setSelectedTariffId(t.id)}
+                  className={`flex min-w-[120px] flex-col items-start gap-1 rounded-2xl border p-3 transition-all ${
+                    selectedTariffId === t.id
+                      ? "border-accent bg-accent/5 shadow-sm"
+                      : "border-gray-200 bg-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-1 text-sm font-semibold text-ink">
+                    <span>🚕</span>
+                    {t.name}
+                  </div>
+                  <div className="text-xs text-muted">{formatDuration(t.pickupEtaSeconds)}</div>
+                  <div className="text-lg font-bold text-ink">{formatMoney(t.price)}</div>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={() => setEstimate(null)}>
+                Назад
+              </Button>
+              <Button className="flex-[2]" variant="primary" onClick={placeOrder} loading={ordering} disabled={!selectedTariff}>
+                Заказать {selectedTariff ? `за ${formatMoney(selectedTariff.price)}` : ""}
+              </Button>
+            </div>
+          </div>
+        )}
+      </CollapsibleSheet>
     </main>
   );
 }

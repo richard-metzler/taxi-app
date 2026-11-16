@@ -13,13 +13,12 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Рядом",
-  description: "Заказ такси: адрес, стоимость, поиск водителя, поездка, оплата",
+  description: "Заказ такси: адрес, стоимость, поиск водителя, поездка",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   viewportFit: "cover",
   themeColor: "#E9EDF2",
 };
@@ -31,7 +30,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <SessionProvider>
           <OfflineBanner />
           <Script src="https://st.max.ru/js/max-web-app.js" strategy="beforeInteractive" />
-        {children}
+          {children}
         </SessionProvider>
       </body>
     </html>

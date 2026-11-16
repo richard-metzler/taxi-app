@@ -20,6 +20,7 @@ export default function SettingsPage() {
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- имя синхронизируется с загруженным профилем
     if (user) setName(user.name);
   }, [user]);
 
@@ -47,6 +48,19 @@ export default function SettingsPage() {
     }
   };
 
+  // Единая реализация выхода: обычный выход остаётся в разделе роли, смена роли ведёт к выбору.
+  const leave = async (forgetRole: boolean) => {
+    setSigningOut(true);
+    setError(null);
+    try {
+      if (forgetRole) clearStoredRole();
+      await signOut(forgetRole ? { to: "/?switch=true" } : undefined);
+    } catch (cause) {
+      setError(cause instanceof ApiError ? cause.message : "Не удалось выйти");
+      setSigningOut(false);
+    }
+  };
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
       <PageHeader title="Настройки" />
@@ -61,8 +75,6 @@ export default function SettingsPage() {
             Сохранить имя
           </Button>
           {saved ? <div className="text-center text-sm text-success">Сохранено</div> : null}
-        
-        
         </section>
 
         <section className="neo flex flex-col gap-2 p-4">
@@ -83,27 +95,31 @@ export default function SettingsPage() {
               </button>
             ))}
           </div>
-        <div className="mt-6 flex flex-col gap-3 pb-8">
-          <button onClick={() => { if (typeof window !== "undefined") { localStorage.clear(); document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"; window.location.href = "/"; } }} className="neo-btn flex h-14 w-full items-center justify-center text-base font-semibold text-red-500" >
+        </section>
+
+        {/* Управление аккаунтом — отдельная секция, а не часть навигатора */}
+        <section className="neo flex flex-col gap-3 p-4">
+          <div className="text-xs font-semibold text-muted">Аккаунт</div>
+          <button
+            onClick={() => void leave(false)}
+            disabled={signingOut}
+            className="neo-btn flex h-14 w-full items-center justify-center text-base font-semibold text-red-500 disabled:opacity-50"
+          >
             Выйти из аккаунта
           </button>
-          <button onClick={() => { if (typeof window !== "undefined") { window.location.href = "/?switch=true"; } }} className="neo-btn flex h-14 w-full items-center justify-center text-base font-semibold text-ink" >
+          <button
+            onClick={() => void leave(true)}
+            disabled={signingOut}
+            className="neo-btn flex h-14 w-full items-center justify-center text-base font-semibold text-ink disabled:opacity-50"
+          >
             Сменить роль
           </button>
-        </div>
-      </section>
+        </section>
 
         <ErrorBanner message={error} />
-
       </div>
       <div className="sticky bottom-0">
-
-        {/* Кнопки управления аккаунтом */}
-        <div className="flex flex-col gap-3 mt-4">
-
-        </div>
-
-      <BottomNav />
+        <BottomNav />
       </div>
     </main>
   );

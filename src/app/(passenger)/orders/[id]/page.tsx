@@ -1,14 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { useOrder } from "@/features/ride_order/useOrder";
 import { Button, Spinner } from "@/core/widgets/ui";
 import { api } from "@/shared/api";
-import RideMap from "@/features/map/RideMap";
 import { DriverCard } from "@/features/driver_tracking/DriverCard";
 import { CollapsibleSheet } from "@/core/widgets/CollapsibleSheet";
 import { BottomNav } from "@/core/widgets/ui";
+import { formatMoney, ORDER_STATUS_TEXT } from "@/shared/types";
+
+// Leaflet обращается к window, поэтому карту грузим только на клиенте.
+const RideMap = dynamic(() => import("@/features/map/RideMap"), { ssr: false });
 
 export default function OrderPage() {
   const params = useParams();
@@ -21,19 +25,13 @@ export default function OrderPage() {
   const [sheetCollapsed, setSheetCollapsed] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
 
+  // Зависимость — примитив: состояние меняется вместе со статусом заказа.
+  const orderStatus = order?.status;
   useEffect(() => {
-    if (!order) return;
-    
-    if (order.status === "completed") {
-      setShowReceipt(true);
-      return;
+    if (orderStatus === "completed") {
+      void Promise.resolve().then(() => setShowReceipt(true));
     }
-
-    if (order.status === "cancelled") return;
-
-    const interval = setInterval(() => { reload(); }, 3000);
-    return () => clearInterval(interval);
-  }, [order?.status, reload]);
+  }, [orderStatus]);
 
   if (!orderId || orderId === "undefined" || orderId === "null") {
     return (
@@ -60,7 +58,7 @@ export default function OrderPage() {
     );
   }
 
-  const isFinal = ["completed", "cancelled", "payment_failed", "paid"].includes(order.status);
+  const isFinal = ["completed", "cancelled"].includes(order.status);
   const canCancel = ["searching", "driver_assigned", "driver_arriving", "driver_waiting"].includes(order.status);
 
   const handleCancel = async () => {
@@ -81,15 +79,7 @@ export default function OrderPage() {
   const driverRoute = (order.simulation as any)?.approachRoute || null;
   const showDriverRoute = ["driver_assigned", "driver_arriving"].includes(order.status);
 
-  const statusText = 
-    order.status === "searching" ? "Ищем водителя..." :
-    order.status === "driver_assigned" ? "Водитель назначен" :
-    order.status === "driver_arriving" ? "Водитель в пути" :
-    order.status === "driver_waiting" ? "Водитель ожидает вас" :
-    order.status === "in_progress" ? "В поездке" :
-    order.status === "completed" ? "Поездка завершена" :
-    order.status === "cancelled" ? "Заказ отменён" :
-    "";
+  const statusText = ORDER_STATUS_TEXT[order.status];
 
   return (
     <main className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-surface">
@@ -146,7 +136,7 @@ export default function OrderPage() {
           <div className="flex items-center justify-between border-t border-border pt-3">
             <span className="text-muted">Стоимость</span>
             <span className="text-2xl font-bold text-ink">
-              {(order.finalPrice || order.estimatedPrice || 0) / 100} ₽
+              {formatMoney(order.finalPrice ?? order.estimatedPrice ?? 0)}
             </span>
           </div>
 
@@ -188,7 +178,7 @@ export default function OrderPage() {
               ✓
             </div>
             <h3 className="text-xl font-bold text-ink mb-2">Поездка завершена</h3>
-            <p className="text-muted mb-6">С Вас <span className="text-xl font-bold text-ink">{(order.finalPrice || order.estimatedPrice || 0) / 100} ₽</span></p>
+            <p className="text-muted mb-6">Стоимость поездки <span className="text-xl font-bold text-ink">{formatMoney(order.finalPrice ?? order.estimatedPrice ?? 0)}</span></p>
             <Button variant="primary" className="w-full" onClick={() => { window.location.href = "/home"; }}>
               На главную
             </Button>

@@ -73,7 +73,12 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
   const routeRef = useRef<L.Polyline | null>(null);
   const driverRouteRef = useRef<L.Polyline | null>(null);
   const callbacksRef = useRef({ onPickupDragEnd: props.onPickupDragEnd, onMapClick: props.onMapClick });
-  callbacksRef.current = { onPickupDragEnd: props.onPickupDragEnd, onMapClick: props.onMapClick };
+
+  // Актуальные колбэки для обработчиков Leaflet храним в ref, но обновляем его
+  // вне рендера — во избежание чтения/записи ref во время рендера.
+  useEffect(() => {
+    callbacksRef.current = { onPickupDragEnd: props.onPickupDragEnd, onMapClick: props.onMapClick };
+  }, [props.onPickupDragEnd, props.onMapClick]);
 
   const providerConfig = getMapProviderConfig(props.provider);
 
@@ -105,6 +110,7 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
       driverRef.current = null;
       userRef.current = null;
       routeRef.current = null;
+      driverRouteRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

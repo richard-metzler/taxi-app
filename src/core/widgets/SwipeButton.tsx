@@ -34,7 +34,11 @@ export function SwipeButton({ onComplete, text = "Свайп для принят
     }
   };
 
-  const progress = containerRef.current ? (dragX / (containerRef.current.clientWidth - 56)) * 100 : 0;
+  // Отмена жеста (например, системный жест или потеря указателя) — просто сбрасываем ползунок.
+  const handlePointerCancel = () => {
+    isDragging.current = false;
+    setDragX(0);
+  };
 
   return (
     <div
@@ -52,6 +56,7 @@ export function SwipeButton({ onComplete, text = "Свайп для принят
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
         className="absolute left-1 top-1 flex h-12 w-12 cursor-grab active:cursor-grabbing items-center justify-center rounded-xl bg-white shadow-md z-20"
         style={{ transform: `translateX(${dragX}px)` }}
       >

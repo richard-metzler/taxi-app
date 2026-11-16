@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export function ConfirmModal({
   isOpen,
@@ -10,6 +10,7 @@ export function ConfirmModal({
   cancelText = "Нет",
   onConfirm,
   onCancel,
+  onClose,
   isDestructive = false,
 }: {
   isOpen: boolean;
@@ -19,12 +20,29 @@ export function ConfirmModal({
   cancelText?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Закрытие окна; если не передано, используется onCancel. */
+  onClose?: () => void;
   isDestructive?: boolean;
 }) {
-  // Блокируем скролл фона, пока открыто окно
+  const closeRef = useRef(onClose ?? onCancel);
   useEffect(() => {
-    if (isOpen) document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = "auto"; };
+    closeRef.current = onClose ?? onCancel;
+  }, [onCancel, onClose]);
+
+  // Блокируем скролл фона, пока открыто окно, и возвращаем исходное значение стиля.
+  // Escape и кнопка «Нет» закрывают окно, не вызывая сайд-эффект подтверждения.
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeRef.current();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -34,18 +52,18 @@ export function ConfirmModal({
       <div className="neo-btn w-full max-w-sm rounded-[32px] bg-surface p-6 shadow-2xl animate-in zoom-in-95 duration-200">
         <h2 className="mb-2 text-center text-xl font-bold text-ink">{title}</h2>
         <p className="mb-6 text-center text-sm text-muted">{message}</p>
-        
+
         <div className="flex gap-3">
           <button
-            onClick={onCancel}
+            onClick={() => closeRef.current()}
             className="neo-btn flex h-12 flex-1 items-center justify-center rounded-2xl bg-white text-base font-semibold text-ink active:bg-gray-50"
           >
             {cancelText}
           </button>
           <button
             onClick={() => {
+              // Подтверждение закрывает окно само (через onConfirm), отмена не вызывается.
               onConfirm();
-              onCancel(); // Закрываем окно после подтверждения
             }}
             className={`neo-btn flex h-12 flex-1 items-center justify-center rounded-2xl bg-white text-base font-semibold active:bg-gray-50 ${
               isDestructive ? "text-red-500" : "text-accent"

@@ -8,13 +8,9 @@ import type { UserProfile } from "./types";
 
 type Toast = { id: string; title: string; body: string; orderId?: string };
 
-/** Почему показывается экран входа. */
-export type GateReason = "initial" | "expired" | "signed_out";
-
 type SessionContextValue = {
   user: UserProfile | null;
   loading: boolean;
-  gateReason: GateReason;
   /** Завершение входа: экран входа скрывается, пользователь остаётся на той же странице. */
   completeSignIn: (u: UserProfile) => void;
   /** Обновление профиля (имя, навигатор). */
@@ -37,7 +33,6 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [gateReason, setGateReason] = useState<GateReason>("initial");
   const [toasts, setToasts] = useState<Toast[]>([]);
   const sinceRef = useRef<string | null>(null);
   const userRef = useRef<UserProfile | null>(null);
@@ -82,14 +77,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    // setState в refresh происходит после await, вызов идёт через промис-колбэк.
+    void Promise.resolve().then(refresh);
   }, [refresh]);
 
   // Сервер ответил 401: сессия недействительна — экран входа появится на текущей странице.
   useEffect(() => {
     const onUnauthorized = () => {
       if (!userRef.current) return;
-      setGateReason("expired");
       setUserState(null);
     };
     window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
@@ -124,7 +119,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [user, notify]);
 
   const completeSignIn = useCallback((u: UserProfile) => {
-    setGateReason("initial");
     setUserState(u);
     setLoading(false);
   }, []);
@@ -137,7 +131,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       try {
         await api.auth.logout();
       } finally {
-        setGateReason("signed_out");
         setUserState(null);
         // Обычный выход остаётся в разделе своей роли (вход появится на месте страницы, без полной
         // перезагрузки); в корень, к выбору роли, ведёт только явная смена роли.
@@ -148,7 +141,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <SessionContext.Provider value={{ user, loading, gateReason, completeSignIn, setUser, refresh, signOut, notify }}>
+    <SessionContext.Provider value={{ user, loading, completeSignIn, setUser, refresh, signOut, notify }}>
       {children}
       <div className="pointer-events-none fixed top-3 left-0 right-0 z-[3000] flex flex-col items-center gap-2 px-4">
         {toasts.map((t) => (

@@ -1,16 +1,17 @@
 /**
- * Браузерная проверка входа через прокси, который (как прокси окна превью) пересылает
+ * Браузерная проверка MAX-входа через прокси, который (как прокси окна превью) пересылает
  * только тело запроса и базовые заголовки, удаляя Authorization, X-*, Cookie, Origin, Sec-Fetch-*,
  * заголовки навигации Next.js (RSC) и Set-Cookie в ответах.
  *
  * Запуск (Chromium и playwright-core установлены в /tmp/pw):
- *   NODE_PATH=/tmp/pw/node_modules node tests/browser/login-through-proxy.cjs
+ *   MAX_BOT_TOKEN=test-bot-token NODE_PATH=/tmp/pw/node_modules node tests/browser/login-through-proxy.cjs
  * Переменные: TARGET (адрес приложения, по умолчанию http://localhost:3000),
  *             PUBLIC_URL (публичный адрес превью для сценария без прокси),
  *             SCENARIOS (список через запятую).
  */
 const { chromium } = require("playwright-core");
 const http = require("http");
+const { buildMaxMock, maxMockInitScript } = require("./max-mock.cjs");
 
 const TARGET = new URL(process.env.TARGET || "http://localhost:3000");
 const PUBLIC_URL = (process.env.PUBLIC_URL || "").replace(/\/+$/, "");
@@ -21,6 +22,7 @@ const LIBS = "/tmp/libs/root/usr/lib/x86_64-linux-gnu:/tmp/libs/root/lib/x86_64-
 const PROXY_PORT = 4200;
 const HOST_PORT = 4100;
 const PROXY = `http://localhost:${PROXY_PORT}`;
+const TEST_NAME = "Тестовый Пассажир";
 
 /* ---------- Прокси, удаляющий заголовки ---------- */
 const FORWARD = new Set(["user-agent", "accept", "accept-language", "content-type"]);
@@ -61,54 +63,31 @@ const host = http
   .listen(HOST_PORT, "127.0.0.1");
 
 const BLOCK_STORAGE = `for (const n of ["localStorage", "sessionStorage"]) Object.defineProperty(window, n, { configurable: true, get() { throw new DOMException("Access is denied for this document.", "SecurityError"); } });`;
-const randomPhone = () => "+7913" + String(Math.floor(1_000_000 + Math.random() * 8_999_999));
 
 async function bodyText(f) {
   return (await f.textContent("body").catch(() => "")) || "";
 }
 
-const TEST_PASSWORD = "Браузерный-Пароль-2026!";
-
-async function register(f) {
-  await f.waitForSelector("#login-phone", { timeout: 40_000 });
-  const credentials = { phone: randomPhone(), password: TEST_PASSWORD };
-  await f.click('#auth-tab-register');
-  await f.fill("#auth-name", "Вася");
-  await f.fill("#login-phone", credentials.phone);
-  await f.fill("#auth-password", credentials.password);
-  await f.click('button[aria-label="Показать пароль: Пароль"]');
-  if (await f.getAttribute("#auth-password", "type") !== "text") throw new Error("Показ пароля не работает");
-  await f.click('button[aria-label="Скрыть пароль: Пароль"]');
-  if (await f.getAttribute("#auth-password", "type") !== "password") throw new Error("Скрытие пароля не работает");
-  await f.fill("#auth-password-confirm", "Другой-Пароль-123");
-  await f.click('button[type="submit"]:has-text("Зарегистрироваться")');
-  await f.waitForSelector('[role="alert"]:has-text("Пароли не совпадают")');
-  await f.fill("#auth-password-confirm", credentials.password);
-  await f.click('button[type="submit"]:has-text("Зарегистрироваться")');
+/** MAX-онбординг: имя → /api/auth/max → /home. */
+async function onboard(f, mock) {
+  await f.waitForSelector('input[placeholder="Ваше имя"]', { timeout: 40_000 });
+  await f.fill('input[placeholder="Ваше имя"]', TEST_NAME);
+  await f.click('button:has-text("Продолжить")');
   await f.waitForSelector("text=Построить маршрут", { timeout: 25_000 });
-  const text = await bodyText(f);
-  if (/Код из SMS|Получить код|Тестовый режим/.test(text)) throw new Error("На экране остался вход по SMS");
-  const leaked = await f.evaluate((password) => {
+
+  const leaked = await f.evaluate((initData) => {
     let values = window.name;
     try { values += Object.values(localStorage).join(""); } catch {}
     try { values += Object.values(sessionStorage).join(""); } catch {}
-    return values.includes(password);
-  }, credentials.password);
-  if (leaked) throw new Error("Пароль найден в хранилище браузера");
-  return credentials;
-}
-
-async function login(f, credentials) {
-  await f.waitForSelector("#login-phone", { timeout: 20_000 });
-  await f.click("#auth-tab-login");
-  await f.fill("#login-phone", credentials.phone);
-  await f.fill("#auth-password", credentials.password);
-  await f.click('button[type="submit"]:has-text("Войти")');
-  await f.waitForSelector("text=Построить маршрут", { timeout: 25_000 });
+    return values.includes(initData);
+  }, mock.initData);
+  if (leaked) throw new Error("Подписанный initData попал в хранилище браузера");
+  if (/Код из SMS|Получить код|Тестовый режим/.test(await bodyText(f))) {
+    throw new Error("На экране остался вход по SMS");
+  }
 }
 
 async function reload(f) {
-  // Если в этот момент идёт переход (полная загрузка страницы), повторяем после него.
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       await f.evaluate(() => location.reload());
@@ -119,22 +98,21 @@ async function reload(f) {
     }
   }
   await f.waitForLoadState("load").catch(() => undefined);
-  await f.waitForTimeout(4000);
+  await f.waitForTimeout(3000);
 }
 
 const SCENARIOS = {
-  proxy_top: { title: "прокси без заголовков, обычная вкладка", url: `${PROXY}/home` },
-  proxy_iframe: { title: "прокси без заголовков, окно на чужом сайте", url: `${PROXY}/home`, embed: true },
+  proxy_top: { title: "прокси без заголовков, обычная вкладка", url: `${PROXY}/` },
+  proxy_iframe: { title: "прокси без заголовков, окно на чужом сайте", url: `${PROXY}/`, embed: true },
   proxy_iframe_blocked: {
-    title: "прокси без заголовков, окно на чужом сайте, хранилище браузера заблокировано",
-    url: `${PROXY}/home`,
+    title: "прокси без заголовков, окно на чужом сайте, хранилище заблокировано",
+    url: `${PROXY}/`,
     embed: true,
     blockStorage: true,
-
   },
   public_iframe_blocked: {
     title: "публичный адрес без прокси, окно на чужом сайте, хранилище заблокировано",
-    url: `${PUBLIC_URL}/home`,
+    url: `${PUBLIC_URL}/`,
     embed: true,
     blockStorage: true,
     requires: PUBLIC_URL,
@@ -143,6 +121,8 @@ const SCENARIOS = {
 
 async function run(browser, key, s) {
   const ctx = await browser.newContext();
+  const mock = buildMaxMock(77_000_000 + Object.keys(SCENARIOS).indexOf(key) + 1);
+  await ctx.addInitScript(maxMockInitScript(mock));
   if (s.blockStorage) await ctx.addInitScript(BLOCK_STORAGE);
   const page = await ctx.newPage();
   const apiErrors = new Set();
@@ -158,8 +138,10 @@ async function run(browser, key, s) {
       await page.goto(s.url);
     }
     const f = s.embed ? await (await page.waitForSelector("#f")).contentFrame() : page.mainFrame();
-    const credentials = await register(f);
-    steps.push("регистрация с паролем — успешно, SMS нет");
+
+    await onboard(f, mock);
+    steps.push("MAX-онбординг — успешно, сессия живёт без cookie и заголовков");
+
     await f.fill('input[placeholder="Адрес назначения"]', "Красноармейская 120");
     await f.click("#home-order-sheet-toggle");
     if ((await f.getAttribute("#home-order-sheet-toggle", "aria-expanded")) !== "false") {
@@ -172,32 +154,24 @@ async function run(browser, key, s) {
     if ((await f.inputValue('input[placeholder="Адрес назначения"]')) !== "Красноармейская 120") {
       throw new Error("После разворачивания панели потерялся введённый адрес");
     }
-    steps.push("сворачивание и разворачивание панели карты — состояние сохранено");
-    await f.click('a:has-text("История")');
+    steps.push("сворачивание и разворачивание панели — состояние сохранено");
+
+    await f.goto(s.url.replace(/\/$/, "") + "/history");
     await f.waitForSelector("text=История поездок", { timeout: 25_000 });
     steps.push("переход в «Историю» — сессия на месте");
     await reload(f);
-    const afterReload = await bodyText(f);
-    if (afterReload.includes("История поездок") && !afterReload.includes("Номер телефона")) {
-      steps.push("после перезагрузки — сессия на месте");
-    } else {
-      ok = false;
-      steps.push(`после перезагрузки сессия потеряна: «${afterReload.slice(0, 120)}»`);
-    }
-    if (ok) {
-      await f.click('a:has-text("Настройки")');
-      await f.click('button:text-is("Выйти из аккаунта")');
-      // После выхода приложение переходит на главный экран — дожидаемся окончания перехода.
-      await f.waitForURL(/\/home$/, { timeout: 20_000 }).catch(() => undefined);
-      await f.waitForLoadState("load").catch(() => undefined);
-      await f.waitForSelector("#login-phone", { timeout: 20_000 });
-      await reload(f);
-      const afterLogout = await bodyText(f);
-      if (!afterLogout.includes("Номер телефона")) throw new Error("После выхода сессия осталась");
-      steps.push("выход — сессия завершена");
-      await login(f, credentials);
-      steps.push("повторный вход с тем же паролем — успешно");
-    }
+    if (!(await bodyText(f)).includes("История поездок")) throw new Error("после перезагрузки сессия потеряна");
+    steps.push("после перезагрузки — сессия на месте");
+
+    await f.goto(s.url.replace(/\/$/, "") + "/settings");
+    await f.click('button:text-is("Выйти из аккаунта")');
+    await f.waitForSelector('input[placeholder="Ваше имя"]', { timeout: 20_000 });
+    await reload(f);
+    await f.waitForSelector('input[placeholder="Ваше имя"]', { timeout: 20_000 });
+    steps.push("выход — сессия завершена и не восстанавливается после перезагрузки");
+
+    await onboard(f, mock);
+    steps.push("повторный вход через MAX — успешно");
   } catch (e) {
     ok = false;
     steps.push(`ОШИБКА: ${e.message.split("\n")[0]}`);

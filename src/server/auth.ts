@@ -51,6 +51,37 @@ function phoneTakenError(existingRole: User["role"] | null, wanted: AccountRole)
 
 export type SignInResult = { user: User; token: string; expiresAt: Date };
 
+/**
+ * Единая точка смены роли: записываем роль в users и user_roles.
+ * Уход из роли driver снимает водителя с линии, переход в driver создаёт профиль водителя.
+ */
+export async function setUserRole(userId: string, role: AccountRole): Promise<void> {
+  const now = new Date();
+  await db.update(users).set({ role, updatedAt: now }).where(eq(users.id, userId));
+  await db.insert(userRoles).values({ userId, role }).onConflictDoNothing();
+
+  if (role === "driver") {
+    const [driver] = await db.select().from(drivers).where(eq(drivers.userId, userId));
+    if (!driver) {
+      await db.insert(drivers).values({
+        id: newId(),
+        userId,
+        name: "Водитель",
+        photoUrl: null,
+        isOnline: false,
+        isBusy: false,
+        isApproved: false,
+        isSimulated: false,
+        rating: 5,
+        createdAt: now,
+      });
+    }
+  } else {
+    // Пассажир не должен получать MAX-уведомления о новых заказах и оставаться на линии.
+    await db.update(drivers).set({ isOnline: false, isBusy: false }).where(eq(drivers.userId, userId));
+  }
+}
+
 async function issueSession(user: User): Promise<SignInResult> {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
@@ -166,24 +197,8 @@ export async function signInWithPassword(input: { phone: unknown; password: unkn
   if (input.role !== undefined) {
     const targetRole = requestedRole(input.role);
     if (targetRole !== user.role) {
-      // Обновляем роль в базе данных
-      await db.update(users).set({ role: targetRole, updatedAt: new Date() }).where(eq(users.id, user.id));
+      await setUserRole(user.id, targetRole);
       user.role = targetRole;
-      
-      // Если стали водителем — создаем профиль водителя
-      if (targetRole === "driver") {
-        const [driver] = await db.select().from(drivers).where(eq(drivers.userId, user.id));
-        if (!driver) {
-          await db.insert(drivers).values({
-            userId: user.id,
-            name: user.name || "Водитель",
-            isOnline: false,
-            isBusy: false,
-            isSimulated: false,
-            rating: 5,
-          });
-        }
-      }
     }
   }
   await resetAuthAttempts("login", phone);
@@ -196,11 +211,9 @@ export async function signInWithMax(maxUserId: string, role: AccountRole, name?:
 
   let user: User;
   if (existing) {
-    const updates: any = { role, updatedAt: new Date() };
-    if (name) updates.name = name; // Сохраняем имя, если пришло из онбординга
-    
+    const updates: Partial<typeof users.$inferInsert> = { updatedAt: new Date() };
+    if (name) updates.name = name;
     await db.update(users).set(updates).where(eq(users.id, existing.id));
-    existing.role = role;
     if (name) existing.name = name;
     user = existing;
   } else {
@@ -210,27 +223,13 @@ export async function signInWithMax(maxUserId: string, role: AccountRole, name?:
       name: userName,
       passwordHash: null,
       role,
+      navigator: "yandex",
     }).returning();
     user = created;
   }
 
-  // Сохраняем роль в user_roles (если еще не сохранена)
-  await db.insert(userRoles).values({ userId: user.id, role }).onConflictDoNothing();
-
-  // Создаем профиль водителя, если его нет
-  if (role === "driver") {
-    const [driver] = await db.select().from(drivers).where(eq(drivers.userId, user.id));
-    if (!driver) {
-      await db.insert(drivers).values({
-        userId: user.id,
-        name: user.name || "Водитель",
-        isOnline: false,
-        isBusy: false,
-        isSimulated: false,
-        rating: 5,
-      });
-    }
-  }
+  await setUserRole(user.id, role);
+  user.role = role;
 
   return issueSession(user);
 }
@@ -241,10 +240,10 @@ export async function resolveSession(): Promise<{ user: User; source: TokenSourc
   const hashes = candidates.map((candidate) => sha256(candidate.token));
   const sessionRows = await db.select().from(sessions).where(inArray(sessions.tokenHash, hashes));
   const now = new Date();
-  const validSessions = (sessionRows as any[]).filter((s) => new Date(s.expiresAt) > now);
+  const validSessions: (typeof sessions.$inferSelect)[] = sessionRows.filter((s) => new Date(s.expiresAt) > now);
   if (validSessions.length === 0) return null;
   const userIds = validSessions.map((s) => s.userId);
-  const userRows = (await db.select().from(users).where(inArray(users.id, userIds))) as User[];
+  const userRows: User[] = await db.select().from(users).where(inArray(users.id, userIds));
   for (const candidate of candidates) {
     const hash = sha256(candidate.token);
     const session = validSessions.find((s) => s.tokenHash === hash);

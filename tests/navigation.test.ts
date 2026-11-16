@@ -4,7 +4,7 @@ import { safeNextPath } from "../src/core/navigation.ts";
 
 test("возврат после входа: внутренние пути сохраняются", () => {
   assert.equal(safeNextPath("/history"), "/history");
-  assert.equal(safeNextPath("/orders/123?payment=return"), "/orders/123?payment=return");
+  assert.equal(safeNextPath("/orders/123?from=home"), "/orders/123?from=home");
 });
 
 test("возврат после входа: внешние адреса и /login отсекаются", () => {

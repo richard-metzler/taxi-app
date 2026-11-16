@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { Button } from "@/core/widgets/ui";
+import { api } from "@/shared/api";
 
-// Функция для сжатия изображения на клиенте (чтобы не переполнить память сервера)
-const compressImage = async (file: File): Promise<File> => {
+/** Сжатие изображения до data URL, чтобы не переполнить память сервера и конверт RPC. */
+const compressImage = async (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -13,23 +14,13 @@ const compressImage = async (file: File): Promise<File> => {
       img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const MAX_WIDTH = 800; // Сжимаем до 800px по ширине
+        const MAX_WIDTH = 800;
         const scale = MAX_WIDTH / img.width;
         canvas.width = MAX_WIDTH;
-        canvas.height = img.height * scale;
+        canvas.height = Math.round(img.height * scale);
         const ctx = canvas.getContext("2d");
         ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(new File([blob], file.name, { type: "image/jpeg" }));
-            } else {
-              reject(new Error("Ошибка сжатия"));
-            }
-          },
-          "image/jpeg",
-          0.7 // Качество 70%
-        );
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
       };
       img.onerror = reject;
     };
@@ -39,10 +30,14 @@ const compressImage = async (file: File): Promise<File> => {
 
 export function DriverSetup({ onComplete }: { onComplete: () => void }) {
   const [name, setName] = useState("");
-  const [carModel, setCarModel] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
   const [plate, setPlate] = useState("");
   const [color, setColor] = useState("");
-  
+  const [vehicleClass, setVehicleClass] = useState("econom");
+
   const [selfie, setSelfie] = useState<File | null>(null);
   const [licensePhoto, setLicensePhoto] = useState<File | null>(null);
 
@@ -60,42 +55,35 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
     setError("");
 
     try {
-      // 1. Сжимаем фото
-      const compressedSelfie = await compressImage(selfie);
-      const compressedLicense = await compressImage(licensePhoto);
+      const [selfieBase64, licenseBase64] = await Promise.all([
+        compressImage(selfie),
+        compressImage(licensePhoto),
+      ]);
 
-      // 2. Формируем данные
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("carModel", carModel);
-      formData.append("plate", plate);
-      formData.append("color", color);
-      formData.append("selfie", compressedSelfie);
-      formData.append("licensePhoto", compressedLicense);
-
-      // 3. Берем токен сессии (как в api.ts)
-      const token = localStorage.getItem("taxi_passenger_session");
-
-      // 4. Отправляем с правильными заголовками
-      const res = await fetch("/api/driver/register", {
-        method: "POST",
-        headers: {
-          "x-session-token": token || "",
-          "x-taxi-client": "web",
+      // JSON через RPC: сессия уходит в конверте, FormData больше не используется.
+      await api.driver.register({
+        name: name.trim(),
+        phone: phone.trim() || undefined,
+        password: password || undefined,
+        vehicle: {
+          brand: brand.trim(),
+          model: model.trim(),
+          color: color.trim(),
+          plate: plate.trim(),
+          class: vehicleClass,
         },
-        body: formData,
+        selfieBase64,
+        licenseBase64,
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Ошибка отправки");
-
       onComplete();
-    } catch (err: any) {
-      if (err.message.includes('fetch') || err.message.includes('network')) {
-        setError("Сервер не отвечает. Проверьте интернет и попробуйте еще раз.");
-      } else {
-        setError(err.message);
-      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Ошибка отправки";
+      setError(
+        message.includes("fetch") || message.includes("network")
+          ? "Сервер не отвечает. Проверьте интернет и попробуйте ещё раз."
+          : message,
+      );
     } finally {
       setLoading(false);
     }
@@ -105,7 +93,7 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-surface p-6">
       <div className="neo-btn p-6 rounded-3xl">
         <h1 className="text-2xl font-bold text-ink mb-2">Данные водителя</h1>
-        <p className="text-sm text-muted mb-6">Заполните информацию. Она уйдет на модерацию администратору.</p>
+        <p className="text-sm text-muted mb-6">Заполните информацию. Она уйдёт на модерацию администратору.</p>
 
         {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-4 text-sm">{error}</div>}
 
@@ -115,8 +103,20 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
             <input type="text" required placeholder="Например: Сергей" className="neo-inset w-full p-3 rounded-xl outline-none text-ink" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div>
-            <label className="block text-sm font-bold text-ink mb-1">Марка и модель авто</label>
-            <input type="text" required placeholder="Например: Kia Rio" className="neo-inset w-full p-3 rounded-xl outline-none text-ink" value={carModel} onChange={(e) => setCarModel(e.target.value)} />
+            <label className="block text-sm font-bold text-ink mb-1">Телефон (необязательно)</label>
+            <input type="tel" placeholder="+7 XXX XXX-XX-XX" className="neo-inset w-full p-3 rounded-xl outline-none text-ink" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-ink mb-1">Пароль (необязательно)</label>
+            <input type="password" placeholder="Для входа по номеру" className="neo-inset w-full p-3 rounded-xl outline-none text-ink" value={password} onChange={(e) => setPassword(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-ink mb-1">Марка автомобиля</label>
+            <input type="text" required placeholder="Например: Kia" className="neo-inset w-full p-3 rounded-xl outline-none text-ink" value={brand} onChange={(e) => setBrand(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-ink mb-1">Модель автомобиля</label>
+            <input type="text" required placeholder="Например: Rio" className="neo-inset w-full p-3 rounded-xl outline-none text-ink" value={model} onChange={(e) => setModel(e.target.value)} />
           </div>
           <div>
             <label className="block text-sm font-bold text-ink mb-1">Госномер</label>
@@ -126,7 +126,19 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
             <label className="block text-sm font-bold text-ink mb-1">Цвет авто</label>
             <input type="text" required placeholder="Например: Белый" className="neo-inset w-full p-3 rounded-xl outline-none text-ink" value={color} onChange={(e) => setColor(e.target.value)} />
           </div>
-          
+          <div>
+            <label className="block text-sm font-bold text-ink mb-1">Класс автомобиля</label>
+            <select
+              className="neo-inset w-full p-3 rounded-xl outline-none text-ink"
+              value={vehicleClass}
+              onChange={(e) => setVehicleClass(e.target.value)}
+            >
+              <option value="econom">Эконом</option>
+              <option value="comfort">Комфорт</option>
+              <option value="business">Бизнес</option>
+            </select>
+          </div>
+
           <div>
             <label className="block text-sm font-bold text-ink mb-1">Селфи</label>
             <input type="file" accept="image/*" capture="user" required className="w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-accent/10 file:text-accent hover:file:bg-accent/20" onChange={(e) => setSelfie(e.target.files?.[0] || null)} />

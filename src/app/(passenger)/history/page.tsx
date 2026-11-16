@@ -27,7 +27,9 @@ export default function HistoryPage() {
   }, []);
 
   useEffect(() => {
-    if (user) void load();
+    if (!user) return;
+    // setState внутри load выполняется в асинхронном колбэке, а не синхронно в эффекте.
+    void Promise.resolve().then(load);
   }, [user, load]);
 
   if (loading || !user) {

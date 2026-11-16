@@ -32,3 +32,8 @@ export function isHttpsRequest(req: Request): boolean {
   if (req.headers.get("origin")?.startsWith("https://")) return true;
   return publicOrigin(req).startsWith("https://");
 }
+
+/** Признак безопасного соединения для атрибутов cookie (Secure, SameSite=None). */
+export function isSecureRequest(req: Request): boolean {
+  return isHttpsRequest(req);
+}

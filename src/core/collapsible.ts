@@ -5,7 +5,6 @@ export const SWIPE_COLLAPSE_PX = 44;
 const ACTION_REQUIRED_STATUSES: ReadonlySet<OrderStatus> = new Set([
   "driver_waiting",
   "completed",
-  
   "cancelled",
 ]);
 
@@ -15,7 +14,7 @@ export function resolveSheetSwipe(deltaY: number): "collapse" | "expand" | null 
   return deltaY > 0 ? "collapse" : "expand";
 }
 
-/** При переходе к ожиданию водителя, оплате или отмене свёрнутая карточка должна раскрыться. */
+/** При переходе к ожиданию водителя, завершению или отмене свёрнутая карточка должна раскрыться. */
 export function shouldAutoExpandOrderSheet(previous: OrderStatus | null, next: OrderStatus): boolean {
   return previous !== null && previous !== next && ACTION_REQUIRED_STATUSES.has(next);
 }
@@ -25,9 +24,8 @@ export function buildHomeCollapsedSummary(input: {
   pickup: Place | null;
   destination: Place | null;
   estimate: EstimateView | null;
-  unpaidOrderId: string | null;
 }): { title: string; subtitle: string; badge: string | null } {
-  const { pickup, destination, estimate, unpaidOrderId } = input;
+  const { pickup, destination, estimate } = input;
   const selected = estimate?.tariffs[0] ?? null;
   if (estimate && selected) {
     return {
@@ -46,14 +44,14 @@ export function buildHomeCollapsedSummary(input: {
   if (pickup) {
     return {
       title: `Откуда: ${pickup.address}`,
-      subtitle: unpaidOrderId ? "Есть неоплаченная поездка · укажите адрес назначения" : "Разверните панель, чтобы указать адрес назначения",
-      badge: unpaidOrderId ? "К оплате" : null,
+      subtitle: "Разверните панель, чтобы указать адрес назначения",
+      badge: null,
     };
   }
   return {
     title: "Куда поедем?",
-    subtitle: unpaidOrderId ? "Есть неоплаченная поездка · разверните панель" : "Карта открыта полностью · нажмите, чтобы выбрать адреса",
-    badge: unpaidOrderId ? "К оплате" : null,
+    subtitle: "Карта открыта полностью · нажмите, чтобы выбрать адреса",
+    badge: null,
   };
 }
 

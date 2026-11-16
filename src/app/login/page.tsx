@@ -3,7 +3,7 @@ import { safeNextPath } from "@/core/navigation";
 
 /**
  * /login — совместимый адрес. Вход показывается на самих экранах ролей,
- * поэтому здесь только перенаправление на запрошенную страницу (или в корень приложения).
+ * поэтому здесь только перенаправление на запрошенную страницу (или на главный экран).
  */
 export default async function LoginPage({
   searchParams,
@@ -11,5 +11,5 @@ export default async function LoginPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { next } = await searchParams;
-  redirect(safeNextPath(Array.isArray(next) ? next[0] : next, "/"));
+  redirect(safeNextPath(Array.isArray(next) ? next[0] : next, "/home"));
 }

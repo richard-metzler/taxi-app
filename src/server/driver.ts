@@ -13,6 +13,7 @@ import type {
   DriverVehicleView,
 } from "@/shared/driver-types";
 import { resolveSession } from "./auth";
+import { newId } from "./ids";
 import { sendMaxNotification } from "@/shared/max-notify";
 import { addOrderEvent, SEARCH_TIMEOUT_MS } from "./dispatch";
 import { recordAuthDiagnostic } from "./diagnostics";
@@ -62,19 +63,14 @@ async function loadLocation(driverId: string): Promise<LatLng | null> {
   return row ? { latitude: row.latitude, longitude: row.longitude } : null;
 }
 
-/** SELECT + INSERT/UPDATE: UPSERT адаптера YDB для этой таблицы не используется. */
+/** Атомарный upsert позиции в PostgreSQL по первичному ключу водителя. */
 async function upsertLocation(driverId: string, point: LatLng, heading: number): Promise<void> {
-  const values = { latitude: point.latitude, longitude: point.longitude, heading, updatedAt: new Date() };
-  const [existing] = await db.select({ driverId: driverLocations.driverId }).from(driverLocations).where(eq(driverLocations.driverId, driverId));
-  if (existing) {
-    await db.update(driverLocations).set(values).where(eq(driverLocations.driverId, driverId));
-    return;
-  }
-  try {
-    await db.insert(driverLocations).values({ driverId, ...values });
-  } catch {
-    await db.update(driverLocations).set(values).where(eq(driverLocations.driverId, driverId));
-  }
+  const updatedAt = new Date();
+  const values = { latitude: point.latitude, longitude: point.longitude, heading, updatedAt };
+  await db
+    .insert(driverLocations)
+    .values({ driverId, ...values })
+    .onConflictDoUpdate({ target: driverLocations.driverId, set: values });
 }
 
 /** Состояние водителя: профиль, автомобиль и текущий заказ. */
@@ -235,7 +231,7 @@ export async function acceptOrder(driver: Driver, orderId: string): Promise<void
     throw new AppError("too_far", "Пассажир слишком далеко от вас", 409);
   }
 
-  // YDB не поддерживает SELECT FOR UPDATE. Захват проверяется числом обновлённых строк.
+  // Атомарный UPDATE ... RETURNING: заказ сможет захватить только один водитель.
   const busyClaim = await db
     .update(drivers)
     .set({ isBusy: true })
@@ -267,7 +263,7 @@ const ACTION_EVENT: Record<string, string> = {
   depart: "driver_arriving",
   arrived: "driver_waiting",
   start: "in_progress",
-  complete: "payment_pending",
+  complete: "completed",
 };
 
 /**
@@ -298,6 +294,8 @@ export async function performDriverAction(driver: Driver, orderId: string, rawAc
       .where(and(eq(orders.id, order.id), eq(orders.driverId, driver.id), inArray(orders.status, ["driver_assigned", "driver_arriving", "driver_waiting"])))
       .returning();
     if (!returned) throw new AppError("cannot_decline", "От заказа уже нельзя отказаться", 409);
+    // Запоминаем отказ: такой заказ больше не будет предложен этому водителю.
+    await db.insert(declinedOrders).values({ id: newId(), driverId: driver.id, orderId: order.id });
     await db.update(drivers).set({ isBusy: false }).where(eq(drivers.id, driver.id));
     await addOrderEvent(returned, "driver_declined");
 
@@ -306,7 +304,6 @@ export async function performDriverAction(driver: Driver, orderId: string, rawAc
       const [passenger] = await db.select({ phone: users.phone }).from(users).where(eq(users.id, returned.passengerId));
       if (passenger?.phone && passenger.phone.startsWith("max_")) {
         const maxId = passenger.phone.replace("max_", "");
-        console.log("[LOG] [Server] Отправка уведомления пассажиру об отказе (ID:", maxId, ")");
         await sendMaxNotification(maxId, "❌ Водитель отказался от вашего заказа. Ищем другого водителя...");
       }
     } catch (e) {

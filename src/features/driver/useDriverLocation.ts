@@ -21,7 +21,7 @@ export function useDriverLocation(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setError("Геолокация не поддерживается этим устройством");
+      void Promise.resolve().then(() => setError("Геолокация не поддерживается этим устройством"));
       return;
     }
     const send = () => {

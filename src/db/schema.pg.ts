@@ -23,18 +23,10 @@ export const orderStatusEnum = pgEnum("order_status", [
   "completed",
   "cancelled",
 ]);
-export const paymentStatusEnum = pgEnum("payment_status", [
-  "pending",
-  "waiting_for_capture",
-  "succeeded",
-  "canceled",
-  "failed",
-]);
 export const navigatorEnum = pgEnum("navigator_app", ["yandex", "dgis", "google"]);
 
 export const USER_ROLES = userRoleEnum.enumValues;
 export const ORDER_STATUSES = orderStatusEnum.enumValues;
-export const PAYMENT_STATUSES = paymentStatusEnum.enumValues;
 export const NAVIGATORS = navigatorEnum.enumValues;
 
 export const declinedOrders = pgTable("declined_orders", {
@@ -46,7 +38,6 @@ export const declinedOrders = pgTable("declined_orders", {
 
 export type UserRole = (typeof USER_ROLES)[number];
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
-export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 export type NavigatorApp = (typeof NAVIGATORS)[number];
 
 export const users = pgTable("users", {
@@ -206,29 +197,11 @@ export const orders = pgTable(
     arrivedAt: timestamp("arrived_at", { withTimezone: true }),
     startedAt: timestamp("started_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),
-    paidAt: timestamp("paid_at", { withTimezone: true }),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("orders_passenger_idx").on(t.passengerId, t.createdAt)],
 );
-
-export const payments = pgTable("payments", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
-  userId: uuid("user_id").notNull().references(() => users.id),
-  provider: text("provider").notNull().default("yookassa"),
-  providerPaymentId: text("provider_payment_id").unique(),
-  idempotenceKey: text("idempotence_key").notNull().unique(),
-  amount: integer("amount").notNull(),
-  currency: text("currency").notNull().default("RUB"),
-  status: paymentStatusEnum("status").notNull().default("pending"),
-  paymentMethod: text("payment_method"),
-  confirmationUrl: text("confirmation_url"),
-  failureReason: text("failure_reason"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
 
 export const orderEvents = pgTable(
   "order_events",
@@ -274,5 +247,4 @@ export type Order = typeof orders.$inferSelect;
 export type Driver = typeof drivers.$inferSelect;
 export type Vehicle = typeof vehicles.$inferSelect;
 export type DriverLocation = typeof driverLocations.$inferSelect;
-export type Payment = typeof payments.$inferSelect;
 export type FareEstimate = typeof fareEstimates.$inferSelect;

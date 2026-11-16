@@ -31,8 +31,8 @@ import * as driverAction from "../driver/orders/[id]/action/route";
  * Тело: { path: "/api/orders/…?…", method: "GET" | "POST" | "PATCH", body?: {...}, session?: "<токен>" }.
  * Прокси окна превью удаляет заголовки (Authorization, X-*, Origin, Sec-Fetch-*) и cookie,
  * поэтому токен сессии передаётся в теле. Запрос передаётся тем же обработчикам, что и REST-маршруты,
- * — бизнес-логика не дублируется. Доступны только API пассажира из явного списка
- * (webhook ЮKassa и служебные маршруты через этот адрес недоступны).
+ * — бизнес-логика не дублируется. Доступны только маршруты из явного списка
+ * (служебные маршруты через этот адрес недоступны).
  */
 
 type Method = "GET" | "POST" | "PATCH";
@@ -90,7 +90,8 @@ const ROUTES: RouteDef[] = [
   },
 ];
 
-const MAX_ENVELOPE_BYTES = 64 * 1024;
+// Анкета водителя несёт сжатые фото в base64 — конверт должен их вмещать.
+const MAX_ENVELOPE_BYTES = 2 * 1024 * 1024;
 const INTERNAL_BASE = "http://rpc.internal";
 /** Заголовки соединения не переносятся во внутренний запрос. */
 const HOP_BY_HOP = new Set([

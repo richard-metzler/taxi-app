@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, gt, isNull, notInArray } from "drizzle-orm";
 import { db } from "@/db";
-import { driverLocations, drivers, orderEvents, orders, vehicles, users, type Order } from "@/db/schema";
+import { driverLocations, drivers, orderEvents, orders, vehicles, users, type Order, type OrderSimulation } from "@/db/schema";
 import { bearingDegrees, lerpLatLng, offsetLatLng, pointAlongPolyline, type LatLng } from "@/core/geo";
 import { buildRoute } from "./routing";
 import { newId } from "./ids";
@@ -14,13 +14,13 @@ import { sendMaxNotification } from "@/shared/max-notify";
  * При подключении реального диспетчера этот модуль заменяется без изменения клиента.
  */
 
-const SEARCH_DELAY_MS = 600_000; // 10 минут (было 6 секунд)
+/** Пауза перед демо-назначением: за это время живой водитель успевает принять заказ. */
+const SEARCH_DELAY_MS = 3_000; // 3 секунды
 export const SEARCH_TIMEOUT_MS = 600_000; // 10 минут
 /** Позиция реального водителя считается актуальной, если обновлялась не позднее этого срока. */
 export const LIVE_LOCATION_MAX_AGE_MS = 300_000; // 5 минут (было 90 секунд)
 const ASSIGNED_TO_ARRIVING_MS = 4_000;
 const WAITING_MS = 8_000;
-const APPROACH_SECONDS = 45;
 
 const EVENT_TEXTS: Record<string, { title: string; body: string }> = {
   driver_assigned: { title: "Водитель найден", body: "Водитель принял ваш заказ" },
@@ -29,6 +29,7 @@ const EVENT_TEXTS: Record<string, { title: string; body: string }> = {
   in_progress: { title: "Поездка началась", body: "Счастливого пути!" },
   completed: { title: "Поездка завершена", body: "Спасибо за поездку!" },
   cancelled: { title: "Заказ отменён", body: "К сожалению, нет доступных водителей" },
+  passenger_cancelled: { title: "Заказ отменён", body: "Вы отменили заказ" },
   driver_declined: { title: "Водитель отказался", body: "Ищем другого водителя" },
 };
 
@@ -36,8 +37,8 @@ async function addEvent(order: Order, type: string): Promise<void> {
   const text = EVENT_TEXTS[type];
   if (!text) return;
   await db.insert(orderEvents).values({
-      id: newId(),
-      orderId: order.id,
+    id: newId(),
+    orderId: order.id,
     passengerId: order.passengerId,
     type,
     title: text.title,
@@ -138,8 +139,8 @@ async function tryAssignDriver(order: Order, now: Date): Promise<Order> {
         driverStartLng: start.longitude,
         approachSeconds: approachSeconds,
         rideSeconds: Math.max(30, Math.min(90, Math.round(order.durationSeconds / 20))),
-        approachRoute: approachRoute, // Сохраняем маршрут по дорогам
-      } as any,
+        approachRoute, // Сохраняем маршрут по дорогам
+      } satisfies OrderSimulation,
     })
     .where(and(eq(orders.id, order.id), eq(orders.status, "searching"), isNull(orders.driverId)))
     .returning();
@@ -180,6 +181,8 @@ export async function advanceSimulation(order: Order): Promise<Order> {
   let current = order;
 
   if (current.status === "searching") {
+    // Демо-назначение происходит через несколько секунд. При живых водителях
+    // tryAssignDriver не вмешивается и ждёт реального принятия до срока поиска.
     if (now.getTime() - new Date(current.createdAt).getTime() < SEARCH_DELAY_MS) return current;
     current = await tryAssignDriver(current, now);
   }
@@ -225,12 +228,12 @@ export async function advanceSimulation(order: Order): Promise<Order> {
     if (progress >= 1) {
       const dest = { latitude: current.destinationLat, longitude: current.destinationLng };
       await setDriverLocation(driverId, dest, 0);
-      // Завершение: сервер фиксирует итоговую стоимость и переводит заказ к оплате.
+      // Завершение: сервер фиксирует итоговую стоимость и закрывает заказ.
       current = await transition(
         current,
         "in_progress",
         { status: "completed", completedAt: now, finalPrice: current.estimatedPrice },
-        "payment_pending",
+        "completed",
       );
       await db.update(drivers).set({ isBusy: false }).where(eq(drivers.id, driverId));
     } else {
@@ -257,9 +260,6 @@ export const ACTIVE_STATUSES: Order["status"][] = [
   "driver_waiting",
   "in_progress",
 ];
-
-/** Статусы завершённой, но не оплаченной поездки. */
-export const UNPAID_STATUSES: Order["status"][] = ["completed"];
 
 /** Статусы, при которых пассажир может отменить заказ. */
 export const CANCELLABLE_STATUSES: Order["status"][] = [

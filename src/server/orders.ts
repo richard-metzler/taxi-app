@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import "server-only";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -9,7 +8,6 @@ import {
   fareEstimates,
   orderEvents,
   orders,
-  payments,
   tariffs,
   vehicles,
   type Driver,
@@ -23,11 +21,9 @@ import { AppError, Errors } from "@/core/errors";
 import { newId } from "./ids";
 import { sendMaxNotification } from "@/shared/max-notify";
 import { haversineMeters } from "@/core/geo";
-import { ACTIVE_STATUSES, CANCELLABLE_STATUSES, UNPAID_STATUSES, advanceSimulation, releaseDriver } from "./dispatch";
+import { ACTIVE_STATUSES, CANCELLABLE_STATUSES, addOrderEvent, advanceSimulation, releaseDriver } from "./dispatch";
 
 import type { OrderView, OrderSummary } from "@/shared/types";
-
-const PAYMENT_SYNC_INTERVAL_MS = 5_000;
 
 /** Создание заказа на основе серверной оценки. Статус выставляет сервер. */
 export async function createOrder(user: User, estimateId: string, tariffId: string): Promise<Order> {
@@ -57,12 +53,8 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
     .limit(1);
   if (active.length > 0) throw new AppError("active_order_exists", "У вас уже есть активный заказ", 409);
 
-  const orderId = crypto.randomUUID();
-
-
-
   const [order] = await db.insert(orders).values({
-    id: crypto.randomUUID(),
+    id: newId(),
     passengerId: user.id,
     status: "searching",
     pickupAddress: estimate.pickupAddress,
@@ -87,7 +79,9 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
       .from(drivers)
       .innerJoin(vehicles, eq(vehicles.driverId, drivers.id))
       .innerJoin(users, eq(users.id, drivers.userId))
-      .where(and(eq(drivers.isOnline, true), eq(drivers.isBusy, false), eq(vehicles.tariffId, tariffId)));
+      // Уведомления получают только водители с текущей ролью driver:
+      // бывший пассажир, сменивший роль, не должен видеть чужие заказы.
+      .where(and(eq(users.role, "driver"), eq(drivers.isOnline, true), eq(drivers.isBusy, false), eq(vehicles.tariffId, tariffId)));
       
     for (const d of availableDrivers) {
       if (d.phone && d.phone.startsWith("max_")) {
@@ -105,7 +99,7 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
           ]
         };
 
-        sendMaxNotification(maxId, text).catch(console.error);
+        sendMaxNotification(maxId, text, keyboard).catch(console.error);
         // Задержка, чтобы не превысить лимит 2 сообщения в секунду
         await new Promise(r => setTimeout(r, 500));
       }
@@ -125,10 +119,9 @@ async function loadOwnOrder(user: User, orderId: string): Promise<Order> {
   return order;
 }
 
-/** Полное представление заказа для пассажира: водитель, автомобиль, позиция, платёж. */
+/** Полное представление заказа для пассажира: водитель, автомобиль, позиция. */
 export async function getOrderView(user: User, orderId: string): Promise<OrderView> {
-  let order = await loadOwnOrder(user, orderId);
-  order = await advanceSimulation(order);
+  const order = await advanceSimulation(await loadOwnOrder(user, orderId));
 
   const [tariff] = await db.select().from(tariffs).where(eq(tariffs.id, order.tariffId));
 
@@ -170,31 +163,6 @@ export async function getOrderView(user: User, orderId: string): Promise<OrderVi
     }
   }
 
-  let [payment] = await db
-    .select()
-    .from(payments)
-    .where(eq(payments.orderId, order.id))
-    .orderBy(desc(payments.createdAt))
-    .limit(1);
-
-  // Незавершённый платёж сверяем с ЮKassa (не чаще раза в 5 секунд), чтобы статус обновлялся
-  // даже без webhook и без возврата пользователя из платёжного окна.
-  if (
-    payment &&
-    (payment.status === "pending" || payment.status === "waiting_for_capture") &&
-    Date.now() - new Date(payment.updatedAt).getTime() > PAYMENT_SYNC_INTERVAL_MS
-  ) {
-    try {
-      const synced = payment;
-      if (synced.status !== payment.status) {
-        [order] = await db.select().from(orders).where(eq(orders.id, order.id));
-      }
-      payment = synced;
-    } catch (error) {
-      console.warn("[orders] Не удалось сверить платёж с ЮKassa:", (error as Error).message);
-    }
-  }
-
   return {
     id: order.id,
     status: order.status,
@@ -217,46 +185,39 @@ export async function getOrderView(user: User, orderId: string): Promise<OrderVi
     canCancel: CANCELLABLE_STATUSES.includes(order.status),
     createdAt: new Date(order.createdAt).toISOString(),
     completedAt: order.completedAt ? new Date(order.completedAt).toISOString() : null,
-    paidAt: order.paidAt ? new Date(order.paidAt).toISOString() : null,
     driver,
-    payment: null,
     simulation: order.simulation, // <--- Добавили маршрут водителя
   };
 }
 
 /** Отмена заказа пассажиром (только на ранних стадиях). */
 export async function cancelOrder(user: User, orderId: string): Promise<Order> {
-  let order = await loadOwnOrder(user, orderId);
-  order = await advanceSimulation(order);
+  const order = await advanceSimulation(await loadOwnOrder(user, orderId));
   if (!CANCELLABLE_STATUSES.includes(order.status)) {
     throw new AppError("cannot_cancel", "Заказ уже нельзя отменить", 409);
   }
   const [updated] = await db
     .update(orders)
-    .set({ status: "cancelled", cancelReason: "Отменён пассажиром", cancelledAt: new Date(), updatedAt: new Date() })
+    .set({ status: "cancelled", cancelReason: "Заказ отменён пассажиром", cancelledAt: new Date(), updatedAt: new Date() })
     .where(and(eq(orders.id, order.id), inArray(orders.status, CANCELLABLE_STATUSES)))
     .returning();
   if (!updated) throw new AppError("cannot_cancel", "Заказ уже нельзя отменить", 409);
   await releaseDriver(updated.driverId);
-  
+  // Событие попадает в ленту уведомлений пассажира: «Заказ отменён».
+  await addOrderEvent(updated, "passenger_cancelled");
+
   return updated;
 }
 
-/** Активный и неоплаченный заказы пассажира (для восстановления состояния после перезапуска). */
-export async function getActiveOrderIds(user: User): Promise<{ orderId: string | null; unpaidOrderId: string | null }> {
+/** Активный заказ пассажира (для восстановления состояния после перезапуска). */
+export async function getActiveOrderIds(user: User): Promise<{ orderId: string | null }> {
   const [active] = await db
     .select({ id: orders.id })
     .from(orders)
     .where(and(eq(orders.passengerId, user.id), inArray(orders.status, ACTIVE_STATUSES)))
     .orderBy(desc(orders.createdAt))
     .limit(1);
-  const [unpaid] = await db
-    .select({ id: orders.id })
-    .from(orders)
-    .where(and(eq(orders.passengerId, user.id), inArray(orders.status, UNPAID_STATUSES)))
-    .orderBy(desc(orders.createdAt))
-    .limit(1);
-  return { orderId: active?.id ?? null, unpaidOrderId: unpaid?.id ?? null };
+  return { orderId: active?.id ?? null };
 }
 
 /** История заказов пассажира — только собственные. */
