@@ -12,6 +12,7 @@ import { AppLogo } from "@/core/widgets/AppLogo";
 import { CollapsibleSheet } from "@/core/widgets/CollapsibleSheet";
 import { buildHomeCollapsedSummary } from "@/core/collapsible";
 import { AddressInput } from "@/features/addresses/AddressInput";
+import { OrderDetailsSheet } from "@/features/ride_order/OrderDetailsSheet";
 import { useGeolocation } from "@/features/home/useGeolocation";
 
 const RideMap = dynamic(() => import("@/features/map/RideMap"), { ssr: false });
@@ -56,6 +57,7 @@ export default function HomePage() {
   const [sheetCollapsed, setSheetCollapsed] = useState(false);
   const [category, setCategory] = useState("ТАКСИ");
   const [arrivalTime, setArrivalTime] = useState<string | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   // Состояния для фокуса и списка подсказок
   const [activeInput, setActiveInput] = useState<"pickup" | "destination" | null>(null);
@@ -380,8 +382,9 @@ export default function HomePage() {
               </Button>
               <button
                 type="button"
-                aria-label="Настройки заказа"
-                onClick={() => router.push("/settings")}
+                aria-label="Детали заказа"
+                disabled={!estimate}
+                onClick={() => setDetailsOpen(true)}
                 className="neo-btn flex h-12 w-12 shrink-0 items-center justify-center text-ink"
               >
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -477,6 +480,16 @@ export default function HomePage() {
           </div>
         )}
       </CollapsibleSheet>
+
+      <OrderDetailsSheet
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        pickupText={pickupText}
+        destinationText={destinationText}
+        tariff={selectedTariff ?? null}
+        onOrder={placeOrder}
+        ordering={ordering}
+      />
     </main>
   );
 }
