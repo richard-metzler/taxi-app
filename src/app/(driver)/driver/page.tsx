@@ -151,6 +151,18 @@ export default function DriverHomePage() {
     }
   }, [filteredAvailable, currentOrder, incomingOrder]);
 
+  // При уходе со страницы (размонтировании) снимаем водителя с линии
+  useEffect(() => {
+    return () => {
+      if (isOnline) {
+        // Вызываем API без await (fire-and-forget), чтобы не блокировать переход
+        import("@/shared/api").then(({ api }) => {
+          api.driver.setStatus(false).catch(console.error);
+        });
+      }
+    };
+  }, [isOnline]);
+
   if (!user || !state) {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6">
