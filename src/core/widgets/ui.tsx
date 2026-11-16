@@ -73,7 +73,7 @@ type NavItem = { href: string; label: string; icon: string };
 export const PASSENGER_NAV: NavItem[] = [
   { href: "/home", label: "Заказ", icon: "🗺️" },
   { href: "/history", label: "История", icon: "🕓" },
-  { href: "/settings", label: "Настройки", icon: "⚙️" },
+  { href: "/settings", label: "Профиль", icon: "👤" },
 ];
 
 /** Нижнее меню водителя. */

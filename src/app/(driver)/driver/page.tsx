@@ -8,6 +8,7 @@ import { driverStatusText, type AvailableOrderView } from "@/shared/driver-types
 import { formatMoney } from "@/shared/types";
 import type { DriverAction } from "@/core/driver-flow";
 import type { LatLng } from "@/core/geo";
+import { BrandMark } from "@/core/widgets/BrandMark";
 import { CollapsibleSheet } from "@/core/widgets/CollapsibleSheet";
 import { BottomNav, DRIVER_NAV, ErrorBanner, Spinner } from "@/core/widgets/ui";
 import { useGeolocation } from "@/features/home/useGeolocation";
@@ -36,6 +37,7 @@ export default function DriverHomePage() {
   const [collapsed, setCollapsed] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [flyTo, setFlyTo] = useState<{ point: LatLng; nonce: number } | null>(null);
+  const [todayEarnings, setTodayEarnings] = useState(0);
   const previousOrderId = useRef<string | null>(null);
   const centered = useRef(false);
 
@@ -56,6 +58,29 @@ export default function DriverHomePage() {
   }, [currentOrder]);
   const selected = available.find((order) => order.id === selectedId) ?? null;
   const filteredAvailable = available.filter((o) => !declinedIds.has(o.id));
+
+  // Заработок за сегодня — только сумма из уже загруженных поездок, без платежей и выплат.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    void Promise.resolve().then(async () => {
+      try {
+        const { items } = await api.driver.history();
+        if (cancelled) return;
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const total = items
+          .filter((trip) => trip.status === "completed" && new Date(trip.createdAt) >= startOfToday)
+          .reduce((sum, trip) => sum + trip.price, 0);
+        setTodayEarnings(total);
+      } catch {
+        // Плашка заработка необязательна: при ошибке остаётся 0 ₽.
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   // Новый заказ раскрывает панель; исчезновение заказа объясняется пользователю.
   useEffect(() => {
@@ -78,8 +103,9 @@ export default function DriverHomePage() {
   // Первое определение позиции — центрируем карту.
   useEffect(() => {
     if (tracking.position && !centered.current) {
+      const point = tracking.position;
       centered.current = true;
-      setFlyTo({ point: tracking.position, nonce: Date.now() });
+      void Promise.resolve().then(() => setFlyTo({ point, nonce: Date.now() }));
     }
   }, [tracking.position]);
 
@@ -214,7 +240,7 @@ export default function DriverHomePage() {
           subtitle: available.length > 0 ? `Заказов рядом: ${available.length}` : "Ищем заказы рядом",
           badge: available.length > 0 ? String(available.length) : null,
         }
-      : { title: "Вы не на линии", subtitle: "Нажмите, чтобы выйти на линию", badge: null };
+      : { title: "Вы не на линии", subtitle: "Выйдите на линию, чтобы получать заказы", badge: null };
 
   const mapPickup = currentOrder ? currentOrder.pickup : (selected?.pickup ?? null);
   const mapDestination = currentOrder ? currentOrder.destination : (selected?.destination ?? null);
@@ -239,11 +265,38 @@ export default function DriverHomePage() {
         />
       </div>
 
+      {/* Статус/приоритет слева и плашка аватара с заработком справа.
+          Плашка заработка скрывается во время активного заказа. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex items-start justify-between gap-3 p-4">
+        <div
+          className="pointer-events-auto neo flex min-h-12 items-center gap-2.5 rounded-full px-3.5 py-2"
+          aria-label={isOnline ? "На линии" : "Не на линии"}
+        >
+          <span className={`inline-block h-3.5 w-3.5 shrink-0 rounded-full ${isOnline ? "pulse-dot bg-success" : "bg-muted"}`} />
+          <div className="leading-tight">
+            <div className="text-sm font-bold text-ink">{isOnline ? "На линии" : "Не на линии"}</div>
+            <div className="text-[10px] text-muted">
+              {currentOrder ? "Активный заказ" : isOnline ? "Приоритет: высокий" : "Приоритет: обычный"}
+            </div>
+          </div>
+        </div>
+
+        {!currentOrder ? (
+          <div className="pointer-events-auto neo flex min-h-12 items-center gap-2.5 rounded-full px-3 py-2" aria-label="Заработок за сегодня">
+            <BrandMark className="h-9 w-9" />
+            <div className="pr-1 text-right leading-tight">
+              <div className="text-sm font-bold text-ink">{formatMoney(todayEarnings)}</div>
+              <div className="text-[10px] text-muted">за сегодня</div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
       {tracking.position ? (
         <button
           type="button"
           onClick={() => tracking.position && setFlyTo({ point: tracking.position, nonce: Date.now() })}
-          className="neo-btn absolute right-4 top-4 z-[1000] flex h-12 w-12 items-center justify-center text-xl"
+          className="neo-btn absolute right-4 top-[5.5rem] z-[1000] flex h-12 w-12 items-center justify-center text-xl"
           aria-label="Моё местоположение"
         >
           ◎
@@ -251,7 +304,7 @@ export default function DriverHomePage() {
       ) : null}
 
       {error ? (
-        <div className="absolute left-4 right-20 top-4 z-[1000]">
+        <div className="absolute left-4 right-20 top-[5.5rem] z-[1000]">
           <ErrorBanner message={`Нет связи с сервером: ${error}`} />
         </div>
       ) : null}
@@ -314,7 +367,7 @@ export default function DriverHomePage() {
         expandLabel="Развернуть панель водителя"
         maxHeightClass="max-h-[75dvh]"
         headerExtra={
-          <div className="flex items-center gap-2 px-1 text-sm font-bold text-ink">
+          <div className="flex items-center gap-2 text-sm font-bold text-ink">
             {isOnline && !currentOrder ? <span className="pulse-dot inline-block h-3 w-3 rounded-full bg-success" /> : null}
             {currentOrder ? "Текущий заказ" : isOnline ? "На линии" : "Вы не на линии"}
           </div>

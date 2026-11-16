@@ -6,6 +6,7 @@ import { useRequireAuth, useSession } from "@/shared/session";
 import { clearStoredRole } from "@/shared/role";
 import type { DriverStateView } from "@/shared/driver-types";
 import { NAVIGATOR_TEXT, type UserProfile } from "@/shared/types";
+import { BrandMark } from "@/core/widgets/BrandMark";
 import { formatPhone } from "@/core/phone";
 import { BottomNav, Button, DRIVER_NAV, ErrorBanner, PageHeader, Spinner } from "@/core/widgets/ui";
 
@@ -23,16 +24,20 @@ export default function DriverSettingsPage() {
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- имя синхронизируется с загруженным профилем
-    if (user) setName(user.name);
+    if (!user) return;
+    void Promise.resolve().then(() => setName(user.name));
   }, [user]);
 
   useEffect(() => {
     if (!user) return;
-    api.driver
-      .state()
-      .then((state) => setProfile(state.driver))
-      .catch((cause) => setError(cause instanceof ApiError ? cause.message : "Не удалось загрузить профиль"));
+    void Promise.resolve().then(async () => {
+      try {
+        const state = await api.driver.state();
+        setProfile(state.driver);
+      } catch (cause) {
+        setError(cause instanceof ApiError ? cause.message : "Не удалось загрузить профиль");
+      }
+    });
   }, [user]);
 
   if (!user) {
@@ -76,13 +81,21 @@ export default function DriverSettingsPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
-      <PageHeader title="Профиль водителя" />
+      <PageHeader title="Профиль" />
       <div className="flex flex-1 flex-col gap-4 px-3 pb-3">
+        <ErrorBanner message={error} />
+
+        <section className="neo flex items-center gap-4 p-5">
+          <BrandMark className="h-16 w-16 rounded-2xl" />
+          <div className="min-w-0">
+            <div className="truncate text-xl font-bold text-ink">{name || user.name}</div>
+            <div className="mt-0.5 text-sm text-muted">{formatPhone(user.phone)}</div>
+          </div>
+        </section>
+
         <section className="neo flex flex-col gap-3 p-4">
           <label className="text-xs font-semibold text-muted" htmlFor="driver-name">Имя</label>
           <input id="driver-name" className="neo-input px-4 py-3 text-base" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
-          <div className="text-xs font-semibold text-muted">Телефон</div>
-          <div className="neo-inset px-4 py-3 text-base text-muted">{formatPhone(user.phone)}</div>
           <Button variant="primary" loading={saving} disabled={!name.trim() || name.trim() === user.name} onClick={() => save({ name })}>
             Сохранить имя
           </Button>
@@ -92,12 +105,17 @@ export default function DriverSettingsPage() {
         <section className="neo flex flex-col gap-2 p-4">
           <div className="text-xs font-semibold text-muted">Автомобиль</div>
           {vehicle ? (
-            <div className="neo-inset px-4 py-3 text-sm">
-              <div className="font-bold">
-                {vehicle.brand} {vehicle.model}
+            <div className="neo-inset flex items-center gap-3 px-4 py-3">
+              <div className="neo flex h-11 w-11 shrink-0 items-center justify-center text-xl text-accent" aria-hidden="true">
+                🚗
               </div>
-              <div className="text-muted">
-                {vehicle.color.toLowerCase()} · {vehicle.plate} · {vehicle.tariffName}
+              <div className="min-w-0">
+                <div className="truncate font-bold text-ink">
+                  {vehicle.brand} {vehicle.model}
+                </div>
+                <div className="truncate text-xs text-muted">
+                  {vehicle.color.toLowerCase()} · {vehicle.plate} · {vehicle.tariffName}
+                </div>
               </div>
             </div>
           ) : (
@@ -116,10 +134,19 @@ export default function DriverSettingsPage() {
                 key={n}
                 disabled={saving}
                 onClick={() => save({ navigator: n })}
-                className={`${user.navigator === n ? "neo-inset text-accent" : "neo-btn"} flex items-center justify-between px-4 py-3 text-left font-semibold`}
+                className={`flex items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold ${
+                  user.navigator === n ? "neo-inset text-accent" : "neo-btn text-ink"
+                }`}
               >
                 {NAVIGATOR_TEXT[n]}
-                {user.navigator === n ? <span>✓</span> : null}
+                <span
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs ${
+                    user.navigator === n ? "bg-accent text-white" : "text-transparent"
+                  }`}
+                  aria-hidden={user.navigator !== n}
+                >
+                  ✓
+                </span>
               </button>
             ))}
           </div>
@@ -129,22 +156,20 @@ export default function DriverSettingsPage() {
         <section className="neo flex flex-col gap-3 p-4">
           <div className="text-xs font-semibold text-muted">Аккаунт</div>
           <button
-            onClick={() => void leave(false)}
-            disabled={signingOut}
-            className="neo-btn flex h-14 w-full items-center justify-center text-base font-semibold text-red-500 disabled:opacity-50"
-          >
-            Выйти из аккаунта
-          </button>
-          <button
             onClick={() => void leave(true)}
             disabled={signingOut}
             className="neo-btn flex h-14 w-full items-center justify-center text-base font-semibold text-ink disabled:opacity-50"
           >
             Сменить роль (выйти из аккаунта)
           </button>
+          <button
+            onClick={() => void leave(false)}
+            disabled={signingOut}
+            className="neo-btn flex h-14 w-full items-center justify-center text-base font-semibold text-danger disabled:opacity-50"
+          >
+            Выйти из аккаунта
+          </button>
         </section>
-
-        <ErrorBanner message={error} />
       </div>
       <div className="sticky bottom-0">
         <BottomNav items={DRIVER_NAV} />
