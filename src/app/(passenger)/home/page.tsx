@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiError, type AddressSuggestion } from "@/shared/api";
 import { useRequireAuth } from "@/shared/session";
-import { formatDistance, formatDuration, formatMoney, type EstimateView, type Place } from "@/shared/types";
+import { formatDuration, formatMoney, type EstimateView, type Place } from "@/shared/types";
 import type { LatLng } from "@/core/geo";
 import { Button, ErrorBanner, Spinner } from "@/core/widgets/ui";
 import { AppLogo } from "@/core/widgets/AppLogo";
@@ -17,6 +17,24 @@ import { useGeolocation } from "@/features/home/useGeolocation";
 const RideMap = dynamic(() => import("@/features/map/RideMap"), { ssr: false });
 
 const DEFAULT_CENTER: LatLng = { latitude: 56.4846, longitude: 84.9476 };
+
+/** Миниатюрная машина для карточки тарифа. */
+function TariffCar({ tone }: { tone: "yellow" | "silver" | "dark" }) {
+  const color = tone === "yellow" ? "#FFC72C" : tone === "silver" ? "#B9C3CE" : "#263445";
+  return (
+    <svg viewBox="0 0 64 32" className="h-8 w-16 shrink-0" aria-hidden="true">
+      <path
+        d="M5 22h54v-5c0-3-2-5-5-5H43l-6-6H18c-4 0-7 3-8 7l-2 6v3z"
+        fill={color}
+      />
+      <path d="M21 8h15l4 5H18l3-5z" fill="#fff" opacity="0.55" />
+      <circle cx="17" cy="23" r="5" fill="#263445" />
+      <circle cx="17" cy="23" r="2" fill="#c6ccd4" />
+      <circle cx="47" cy="23" r="5" fill="#263445" />
+      <circle cx="47" cy="23" r="2" fill="#c6ccd4" />
+    </svg>
+  );
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -36,9 +54,13 @@ export default function HomePage() {
   const [checkingActive, setCheckingActive] = useState(true);
   const [selectedTariffId, setSelectedTariffId] = useState<string | null>(null);
   const [sheetCollapsed, setSheetCollapsed] = useState(false);
+  const [category, setCategory] = useState("ТАКСИ");
+  const [arrivalTime, setArrivalTime] = useState<string | null>(null);
 
   // Состояния для фокуса и списка подсказок
   const [activeInput, setActiveInput] = useState<"pickup" | "destination" | null>(null);
+
+  const CATEGORIES = ["ВСЕ", "ТРАНСПОРТ", "ТАКСИ", "С ДЕТЬМИ", "ДОСТАВКА"];
 
   // Восстановление активного заказа
   useEffect(() => {
@@ -154,6 +176,38 @@ export default function HomePage() {
     [estimate, pickup, destination],
   );
 
+  // Время прибытия считаем на клиенте, чтобы не ломать гидратацию.
+  useEffect(() => {
+    void Promise.resolve().then(() => {
+      setArrivalTime(
+        estimate
+          ? new Date(Date.now() + estimate.durationSeconds * 1000).toLocaleTimeString("ru-RU", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : null,
+      );
+    });
+  }, [estimate]);
+
+  const visibleTariffs = useMemo(() => {
+    if (!estimate) return [];
+    if (category === "С ДЕТЬМИ") return estimate.tariffs.filter((t) => /дет/i.test(`${t.name} ${t.description}`));
+    if (category === "ДОСТАВКА") return [];
+    return estimate.tariffs;
+  }, [estimate, category]);
+
+  const chooseCategory = (next: string) => {
+    setCategory(next);
+    const list =
+      next === "С ДЕТЬМИ"
+        ? (estimate?.tariffs.filter((t) => /дет/i.test(`${t.name} ${t.description}`)) ?? [])
+        : next === "ДОСТАВКА"
+          ? []
+          : (estimate?.tariffs ?? []);
+    if (list.length && !list.some((t) => t.id === selectedTariffId)) setSelectedTariffId(list[0].id);
+  };
+
   if (loading || !user || checkingActive) {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-surface">
@@ -200,14 +254,49 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Кнопка геолокации */}
-      <button
-        onClick={onLocate}
-        className="neo-btn absolute right-4 top-4 z-[1000] flex h-12 w-12 items-center justify-center text-xl"
-        disabled={geo.loading}
-      >
-        {geo.loading ? <Spinner className="h-5 w-5 text-accent" /> : "◎"}
-      </button>
+      {/* Время прибытия на карте */}
+      {arrivalTime && !activeInput && (
+        <div className="absolute right-4 top-[22%] z-[1000] rounded-full bg-white/95 px-4 py-2 text-sm font-bold text-ink shadow-lg backdrop-blur-md">
+          прибытие в {arrivalTime}
+        </div>
+      )}
+
+      {/* Время подачи у точки посадки */}
+      {estimate && !activeInput && (
+        <div className="absolute left-4 top-[34%] z-[1000] flex flex-col items-center rounded-2xl bg-[#FFA000] px-3 py-2 text-white shadow-lg">
+          <span className="text-2xl font-black leading-none">
+            {Math.max(1, Math.round((estimate.tariffs.find((t) => t.id === selectedTariffId)?.pickupEtaSeconds ?? 300) / 60))}
+          </span>
+          <span className="text-[11px] font-semibold uppercase tracking-wide">мин</span>
+        </div>
+      )}
+
+      {/* Кнопки поверх карты: назад и геолокация */}
+      {!activeInput && (
+        <div
+          className={`pointer-events-none absolute inset-x-0 z-[1000] flex items-center justify-between px-4 transition-all duration-200 ${
+            sheetCollapsed ? "bottom-[14dvh]" : "bottom-[54dvh]"
+          }`}
+        >
+          <button
+            type="button"
+            aria-label="Назад к адресам"
+            onClick={() => { setEstimate(null); setSelectedTariffId(null); setCategory("ТАКСИ"); }}
+            className="neo-btn pointer-events-auto flex h-12 w-12 items-center justify-center text-2xl text-ink"
+          >
+            ←
+          </button>
+          <button
+            type="button"
+            aria-label="Моё местоположение"
+            onClick={onLocate}
+            className="neo-btn pointer-events-auto flex h-12 w-12 items-center justify-center text-xl"
+            disabled={geo.loading}
+          >
+            {geo.loading ? <Spinner className="h-5 w-5 text-accent" /> : "◎"}
+          </button>
+        </div>
+      )}
 
       {/* Ошибка расчёта или заказа — видна независимо от состояния нижней панели */}
       {error ? (
@@ -277,7 +366,38 @@ export default function HomePage() {
         title={collapsedSummary.title}
         subtitle={collapsedSummary.subtitle}
         badge={collapsedSummary.badge}
-        headerExtra={<div className="truncate text-base font-bold text-ink">{panelTitle}</div>}
+        maxHeightClass="max-h-[56dvh]"
+        headerExtra={<div className="truncate text-sm font-bold text-ink">{panelTitle}</div>}
+        footer={
+          sheetCollapsed ? null : (
+            <div className="neo pointer-events-auto mx-3 mb-2 flex items-center gap-2 p-2">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FFA000] text-xl font-black text-white">
+                Т
+              </div>
+              <Button
+                variant="primary"
+                className="min-h-14 flex-1 text-lg"
+                onClick={estimate ? placeOrder : buildRoute}
+                loading={estimate ? ordering : estimating}
+                disabled={estimate ? !selectedTariff : !pickup || !destination}
+              >
+                {estimate ? "Заказать" : "Построить маршрут"}
+              </Button>
+              <button
+                type="button"
+                aria-label="Настройки заказа"
+                onClick={() => router.push("/settings")}
+                className="neo-btn flex h-12 w-12 shrink-0 items-center justify-center text-ink"
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                  <path d="M4 7h10M18 7h2M4 17h2M10 17h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="16" cy="7" r="2.5" stroke="currentColor" strokeWidth="2" />
+                  <circle cx="8" cy="17" r="2.5" stroke="currentColor" strokeWidth="2" />
+                </svg>
+              </button>
+            </div>
+          )
+        }
       >
         {geo.error && !pickup && !estimate && (
           <div className="rounded-xl bg-orange-50 p-3 text-sm text-orange-700 flex items-center justify-between shadow-sm border border-orange-100">
@@ -286,72 +406,79 @@ export default function HomePage() {
           </div>
         )}
 
-        {!estimate ? (
-          <div className="flex flex-col gap-3">
-            <AddressInput
-              label="Откуда"
-              icon="●"
-              placeholder="Адрес отправления"
-              value={pickupText}
-              near={geo.position ?? pickup}
-              onTextChange={(t) => { setPickupText(t); setEstimate(null); }}
-              onSelect={(s) => selectPlace(s, "pickup")}
-            />
-            <AddressInput
-              label="Куда"
-              icon="■"
-              placeholder="Адрес назначения"
-              value={destinationText}
-              near={pickup ?? geo.position}
-              onTextChange={(t) => { setDestinationText(t); setEstimate(null); }}
-              onSelect={(s) => selectPlace(s, "destination")}
-            />
+        {/* Адреса: строка посадки и строка назначения */}
+        <div className="flex flex-col">
+          <button
+            type="button"
+            onClick={() => setActiveInput("pickup")}
+            className="flex items-center gap-3 py-2 text-left"
+          >
+            <span className="text-xl" aria-hidden="true">🚶</span>
+            <span className="min-w-0 flex-1 truncate text-lg font-semibold text-ink">
+              {pickupText || "Адрес отправления"}
+            </span>
+            <span className="shrink-0 rounded-full bg-muted/15 px-3 py-1.5 text-sm font-semibold text-muted">Подъезд</span>
+          </button>
+          <div className="h-px bg-muted/20" />
+          <button
+            type="button"
+            onClick={() => setActiveInput("destination")}
+            className="flex items-center gap-3 py-2 text-left"
+          >
+            <span className="text-xl" aria-hidden="true">🚶</span>
+            <span className="min-w-0 flex-1 truncate text-lg font-semibold text-ink">
+              {destinationText || "Куда едем?"}
+              {estimate ? <span className="font-normal text-muted"> · {formatDuration(estimate.durationSeconds)}</span> : null}
+            </span>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted/15 text-xl font-bold text-muted">+</span>
+          </button>
+        </div>
+
+        {/* Категории тарифов */}
+        <div className="flex gap-4 overflow-x-auto border-b border-muted/15 scrollbar-hide">
+          {CATEGORIES.map((c) => (
             <button
+              key={c}
               type="button"
-              onClick={() => setActiveInput("destination")}
-              className="self-start text-xs font-semibold text-accent underline"
+              onClick={() => chooseCategory(c)}
+              className={`shrink-0 border-b-2 pb-2 text-sm font-bold uppercase tracking-wide transition-colors ${
+                category === c ? "border-accent text-ink" : "border-transparent text-muted/60"
+              }`}
             >
-              Развернуть ввод адресов
+              {c}
             </button>
-            <Button variant="primary" onClick={buildRoute} loading={estimating} disabled={!pickup || !destination}>
-              Построить маршрут
-            </Button>
-          </div>
+          ))}
+        </div>
+
+        {/* Тарифы */}
+        {!estimate ? (
+          <p className="py-4 text-center text-sm text-muted">
+            Укажите адреса и нажмите «Построить маршрут», чтобы увидеть тарифы
+          </p>
+        ) : visibleTariffs.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted">Для этой категории тарифов пока нет предложений</p>
         ) : (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between text-sm text-muted">
-              <span>{formatDistance(estimate.distanceMeters)} · {formatDuration(estimate.durationSeconds)}</span>
-            </div>
-
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {estimate.tariffs.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setSelectedTariffId(t.id)}
-                  className={`flex min-w-[120px] flex-col items-start gap-1 rounded-2xl border p-3 transition-all ${
-                    selectedTariffId === t.id
-                      ? "border-accent bg-accent/5 shadow-sm"
-                      : "border-gray-200 bg-white"
-                  }`}
-                >
-                  <div className="flex items-center gap-1 text-sm font-semibold text-ink">
-                    <span>🚕</span>
-                    {t.name}
-                  </div>
-                  <div className="text-xs text-muted">{formatDuration(t.pickupEtaSeconds)}</div>
-                  <div className="text-lg font-bold text-ink">{formatMoney(t.price)}</div>
-                </button>
-              ))}
-            </div>
-
-            <div className="flex gap-2">
-              <Button className="flex-1" onClick={() => setEstimate(null)}>
-                Назад
-              </Button>
-              <Button className="flex-[2]" variant="primary" onClick={placeOrder} loading={ordering} disabled={!selectedTariff}>
-                Заказать {selectedTariff ? `за ${formatMoney(selectedTariff.price)}` : ""}
-              </Button>
-            </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {visibleTariffs.map((t, index) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setSelectedTariffId(t.id)}
+                className={`flex min-w-[118px] flex-col items-start gap-1 rounded-2xl p-3 text-left transition-all ${
+                  selectedTariffId === t.id ? "neo-inset" : "bg-white/60"
+                }`}
+              >
+                <TariffCar tone={index === 0 ? "yellow" : index === 1 ? "silver" : "dark"} />
+                <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-bold text-success">
+                  {formatDuration(t.pickupEtaSeconds)}
+                </span>
+                <span className="text-sm font-semibold text-ink">{t.name}</span>
+                <span className="text-lg font-bold text-ink">
+                  {selectedTariffId === t.id ? "⚡" : ""}
+                  {formatMoney(t.price)}
+                </span>
+              </button>
+            ))}
           </div>
         )}
       </CollapsibleSheet>
