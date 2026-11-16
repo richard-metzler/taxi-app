@@ -22,7 +22,7 @@ const DEFAULT_CENTER: LatLng = { latitude: 56.4846, longitude: 84.9476 };
 function TariffCar({ tone }: { tone: "yellow" | "silver" | "dark" }) {
   const color = tone === "yellow" ? "#FFC72C" : tone === "silver" ? "#B9C3CE" : "#263445";
   return (
-    <svg viewBox="0 0 64 32" className="h-8 w-16 shrink-0" aria-hidden="true">
+    <svg viewBox="0 0 64 32" className="h-5 w-12 shrink-0" aria-hidden="true">
       <path
         d="M5 22h54v-5c0-3-2-5-5-5H43l-6-6H18c-4 0-7 3-8 7l-2 6v3z"
         fill={color}
@@ -60,7 +60,7 @@ export default function HomePage() {
   // Состояния для фокуса и списка подсказок
   const [activeInput, setActiveInput] = useState<"pickup" | "destination" | null>(null);
 
-  const CATEGORIES = ["ВСЕ", "ТРАНСПОРТ", "ТАКСИ", "С ДЕТЬМИ", "ДОСТАВКА"];
+  const CATEGORIES = ["ТАКСИ", "ДОСТАВКА"];
 
   // Восстановление активного заказа
   useEffect(() => {
@@ -191,21 +191,16 @@ export default function HomePage() {
   }, [estimate]);
 
   const visibleTariffs = useMemo(() => {
-    if (!estimate) return [];
-    if (category === "С ДЕТЬМИ") return estimate.tariffs.filter((t) => /дет/i.test(`${t.name} ${t.description}`));
-    if (category === "ДОСТАВКА") return [];
+    if (!estimate || category === "ДОСТАВКА") return [];
     return estimate.tariffs;
   }, [estimate, category]);
 
   const chooseCategory = (next: string) => {
     setCategory(next);
-    const list =
-      next === "С ДЕТЬМИ"
-        ? (estimate?.tariffs.filter((t) => /дет/i.test(`${t.name} ${t.description}`)) ?? [])
-        : next === "ДОСТАВКА"
-          ? []
-          : (estimate?.tariffs ?? []);
-    if (list.length && !list.some((t) => t.id === selectedTariffId)) setSelectedTariffId(list[0].id);
+    if (next === "ДОСТАВКА") return;
+    if (estimate?.tariffs.length && !estimate.tariffs.some((t) => t.id === selectedTariffId)) {
+      setSelectedTariffId(estimate.tariffs[0].id);
+    }
   };
 
   if (loading || !user || checkingActive) {
@@ -464,7 +459,7 @@ export default function HomePage() {
                 key={t.id}
                 type="button"
                 onClick={() => setSelectedTariffId(t.id)}
-                className={`flex min-w-[118px] flex-col items-start gap-1 rounded-2xl p-3 text-left transition-all ${
+                className={`flex min-w-[118px] flex-col items-start gap-0.5 rounded-2xl p-2.5 text-left transition-all ${
                   selectedTariffId === t.id ? "neo-inset" : "bg-white/60"
                 }`}
               >
