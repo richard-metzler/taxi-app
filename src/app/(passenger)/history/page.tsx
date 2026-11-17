@@ -8,6 +8,7 @@ import { useRequireAuth } from "@/shared/session";
 import { formatMoney, ORDER_STATUS_TEXT, type OrderSummary } from "@/shared/types";
 import { BottomNav, ErrorBanner, Spinner } from "@/core/widgets/ui";
 import { GlassCard, TaxiArt, TuberBackdrop, TuberHeader } from "@/core/widgets/TuberUI";
+import { SplashScreen } from "@/core/widgets/SplashScreen";
 
 type Filter = "all" | "active" | "completed" | "cancelled";
 
@@ -67,12 +68,7 @@ export default function HistoryPage() {
   }, [user, load]);
 
   if (loading || !user) {
-    return (
-      <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#07071A] text-white">
-        <TuberBackdrop />
-        <Spinner className="relative z-10 h-8 w-8 text-[#FFC400]" />
-      </main>
-    );
+    return <SplashScreen />;
   }
 
   const visible = items?.filter((o) => {

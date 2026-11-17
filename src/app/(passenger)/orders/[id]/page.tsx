@@ -4,7 +4,8 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useOrder } from "@/features/ride_order/useOrder";
-import { Button, Spinner } from "@/core/widgets/ui";
+import { Button } from "@/core/widgets/ui";
+import { SplashScreen } from "@/core/widgets/SplashScreen";
 import { api } from "@/shared/api";
 import { formatMoney } from "@/shared/types";
 import { useSession } from "@/shared/session";
@@ -99,7 +100,7 @@ export default function OrderPage() {
     return <main className="flex min-h-dvh items-center justify-center bg-[#07071A]"><p className="text-white">Ошибка: некорректный ID заказа</p></main>;
   }
   if (!order && !error && !forbidden) {
-    return <main className="flex min-h-dvh items-center justify-center bg-[#07071A]"><Spinner className="h-8 w-8 text-[#FFC400]" /></main>;
+    return <SplashScreen />;
   }
   if (forbidden || error || !order) {
     return (

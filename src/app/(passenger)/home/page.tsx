@@ -9,7 +9,7 @@ import { useRequireAuth } from "@/shared/session";
 import { formatDuration, formatMoney, type EstimateView, type Place } from "@/shared/types";
 import type { LatLng } from "@/core/geo";
 import { ErrorBanner, Spinner } from "@/core/widgets/ui";
-import { AppLogo } from "@/core/widgets/AppLogo";
+import { SplashScreen } from "@/core/widgets/SplashScreen";
 import { BrandMark } from "@/core/widgets/BrandMark";
 import { buildHomeCollapsedSummary, resolveSheetSwipe } from "@/core/collapsible";
 import { GlassCard, TuberBackdrop, TuberHeader } from "@/core/widgets/TuberUI";
@@ -237,17 +237,7 @@ export default function HomePage() {
   };
 
   if (loading || !user || checkingActive) {
-    return (
-      <main className="relative flex min-h-dvh flex-col items-center justify-center gap-6 bg-[#07071A] text-white">
-        <TuberBackdrop />
-        <div className="relative z-10 flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
-          <AppLogo className="relative z-10 h-auto w-56 max-w-full" />
-        </div>
-        <div className="relative z-10 animate-in fade-in duration-1000 delay-500">
-          <Spinner className="h-8 w-8 text-[#FFC400]" />
-        </div>
-      </main>
-    );
+    return <SplashScreen />;
   }
 
   const selectedTariff = estimate?.tariffs.find((t) => t.id === selectedTariffId);

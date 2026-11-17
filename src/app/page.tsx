@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "@/shared/session";
 import { setSessionToken } from "@/shared/api";
 import { Spinner } from "@/core/widgets/ui";
+import { SplashScreen } from "@/core/widgets/SplashScreen";
 import { BrandMark } from "@/core/widgets/BrandMark";
 import { GlassCard, TaxiArt, TuberBackdrop } from "@/core/widgets/TuberUI";
 import { RoleSelect } from "@/features/authentication/RoleSelect";
@@ -113,15 +114,9 @@ export default function LandingPage() {
     }
   };
 
-  // Если идет загрузка или мы перенаправляем — показываем спиннер
+  // Пока проверяется сессия — стартовый экран с логотипом.
   if (loading || (user && !isSwitching)) {
-    return (
-      <main className="relative flex min-h-dvh flex-col items-center justify-center gap-5 overflow-hidden bg-[#07071A] text-white">
-        <TuberBackdrop />
-        <BrandMark className="relative z-10 h-16 w-16 drop-shadow-[0_0_20px_rgba(255,196,0,0.4)]" />
-        <Spinner className="relative z-10 h-8 w-8 text-[#FFC400]" />
-      </main>
-    );
+    return <SplashScreen />;
   }
 
   // Экран выбора роли (только если нажали "Сменить роль")

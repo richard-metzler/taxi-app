@@ -11,7 +11,8 @@ import type { DriverAction } from "@/core/driver-flow";
 import type { LatLng } from "@/core/geo";
 import { resolveSheetSwipe } from "@/core/collapsible";
 import { GlassCard, RoundAction, TaxiArt, TuberBackdrop, TuberHeader } from "@/core/widgets/TuberUI";
-import { BottomNav, DRIVER_NAV, ErrorBanner, Spinner } from "@/core/widgets/ui";
+import { BottomNav, DRIVER_NAV, ErrorBanner } from "@/core/widgets/ui";
+import { SplashScreen } from "@/core/widgets/SplashScreen";
 import { useGeolocation } from "@/features/home/useGeolocation";
 import { useDriverDashboard } from "@/features/driver/useDriverDashboard";
 import { useDriverLocation } from "@/features/driver/useDriverLocation";
@@ -227,14 +228,15 @@ export default function DriverHomePage() {
   };
 
   if (!user || !state) {
-    return (
-      <main className="relative flex min-h-dvh flex-col items-center justify-center gap-4 overflow-hidden px-6">
-        <TuberBackdrop />
-        <div className="relative z-10">
-          {error ? <ErrorBanner message={error} onRetry={() => void reload()} /> : <Spinner className="h-8 w-8 text-[#FFC400]" />}
-        </div>
-      </main>
-    );
+    if (error) {
+      return (
+        <main className="relative flex min-h-dvh flex-col items-center justify-center gap-4 overflow-hidden px-6">
+          <TuberBackdrop />
+          <div className="relative z-10 w-full max-w-md"><ErrorBanner message={error} onRetry={() => void reload()} /></div>
+        </main>
+      );
+    }
+    return <SplashScreen />;
   }
 
   if (!state.driver.vehicle) {

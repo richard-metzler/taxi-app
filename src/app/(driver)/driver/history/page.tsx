@@ -8,6 +8,7 @@ import { driverStatusText, type DriverTripView } from "@/shared/driver-types";
 import { formatMoney } from "@/shared/types";
 import { GlassCard, TaxiArt, TuberBackdrop, TuberHeader } from "@/core/widgets/TuberUI";
 import { BottomNav, DRIVER_NAV, ErrorBanner, Spinner } from "@/core/widgets/ui";
+import { SplashScreen } from "@/core/widgets/SplashScreen";
 
 type Period = "today" | "week" | "all";
 
@@ -73,11 +74,7 @@ export default function DriverHistoryPage() {
   }, [user, load]);
 
   if (!user) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-[#07071A]">
-        <Spinner className="h-8 w-8 text-[#FFC400]" />
-      </main>
-    );
+    return <SplashScreen />;
   }
 
   const filtered = (items ?? []).filter((trip) => inPeriod(trip.createdAt, period));

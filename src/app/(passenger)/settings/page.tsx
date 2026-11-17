@@ -7,7 +7,8 @@ import { useRequireAuth, useSession } from "@/shared/session";
 import { clearStoredRole } from "@/shared/role";
 import { NAVIGATOR_TEXT, type UserProfile } from "@/shared/types";
 import { formatPhone } from "@/core/phone";
-import { Button, BottomNav, ErrorBanner, Spinner } from "@/core/widgets/ui";
+import { Button, BottomNav, ErrorBanner } from "@/core/widgets/ui";
+import { SplashScreen } from "@/core/widgets/SplashScreen";
 import { BrandMark } from "@/core/widgets/BrandMark";
 import { GlassCard, TuberBackdrop, TuberHeader } from "@/core/widgets/TuberUI";
 
@@ -81,12 +82,7 @@ export default function SettingsPage() {
   }, [user]);
 
   if (loading || !user) {
-    return (
-      <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#07071A] text-white">
-        <TuberBackdrop />
-        <Spinner className="relative z-10 h-8 w-8 text-[#FFC400]" />
-      </main>
-    );
+    return <SplashScreen />;
   }
 
   const save = async (patch: { name?: string; navigator?: string }) => {

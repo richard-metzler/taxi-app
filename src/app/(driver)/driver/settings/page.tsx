@@ -10,7 +10,8 @@ import { NAVIGATOR_TEXT, type UserProfile } from "@/shared/types";
 import { BrandMark } from "@/core/widgets/BrandMark";
 import { formatPhone } from "@/core/phone";
 import { GlassCard, TaxiArt, TuberBackdrop, TuberHeader } from "@/core/widgets/TuberUI";
-import { BottomNav, Button, DRIVER_NAV, ErrorBanner, Spinner } from "@/core/widgets/ui";
+import { BottomNav, Button, DRIVER_NAV, ErrorBanner } from "@/core/widgets/ui";
+import { SplashScreen } from "@/core/widgets/SplashScreen";
 
 const NAVIGATORS = Object.keys(NAVIGATOR_TEXT) as UserProfile["navigator"][];
 
@@ -67,11 +68,7 @@ export default function DriverSettingsPage() {
   }, [user]);
 
   if (!user) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-[#07071A]">
-        <Spinner className="h-8 w-8 text-[#FFC400]" />
-      </main>
-    );
+    return <SplashScreen />;
   }
 
   const save = async (patch: { name?: string; navigator?: string }) => {
