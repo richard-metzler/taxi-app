@@ -50,7 +50,7 @@ export default function HomePage() {
   const [arrivalTime, setArrivalTime] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  // Состояния для фокуса и списка подсказок
+  // Редактирование адресов: панель вытягивается вверх, без отдельного окна.
   const [activeInput, setActiveInput] = useState<"pickup" | "destination" | null>(null);
 
   const sheetStartYRef = useRef<number | null>(null);
@@ -334,63 +334,13 @@ export default function HomePage() {
         </div>
       ) : null}
 
-      {/* Полноэкранный режим ввода адресов */}
-      {activeInput ? (
-        <div className="absolute inset-0 z-[1500] flex h-full flex-col bg-[#07071A] text-white">
-          <TuberBackdrop />
-          <TuberHeader
-            onBack={() => setActiveInput(null)}
-            onProfile={() => router.push("/settings")}
-            brand="Куда поедем?"
-          />
-
-          <div className="relative z-20 mt-7 flex flex-col gap-4 px-6">
-            <div className="flex flex-col gap-1">
-              <span className="ml-2 text-xs font-semibold text-white/60">Точка посадки</span>
-              <AddressInput
-                label=""
-                icon="●"
-                placeholder="Адрес отправления"
-                value={pickupText}
-                near={geo.position ?? pickup}
-                onTextChange={(t) => { setPickupText(t); setEstimate(null); }}
-                onSelect={(s) => { selectPlace(s, "pickup"); setActiveInput(null); }}
-              />
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <span className="ml-2 text-xs font-semibold text-white/60">Куда</span>
-              <AddressInput
-                label=""
-                icon="■"
-                placeholder="Адрес назначения"
-                value={destinationText}
-                near={pickup ?? geo.position}
-                onTextChange={(t) => { setDestinationText(t); setEstimate(null); }}
-                onSelect={(s) => { selectPlace(s, "destination"); setActiveInput(null); }}
-              />
-            </div>
-          </div>
-
-          {/* Ваше местоположение — ниже поля и его подсказок */}
-          <div className="relative z-0 mt-5 flex-1 overflow-y-auto rounded-t-[28px] border-t border-white/20 bg-white/10 px-5 pt-4 backdrop-blur-2xl">
-            <button
-              className="flex w-full items-center gap-3 border-b border-white/10 p-3 text-left active:bg-white/5"
-              onClick={() => { onLocate(); setActiveInput(null); }}
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10">📍</span>
-              <span>
-                <span className="block font-semibold text-white">Ваше местоположение</span>
-                <span className="block text-xs text-white/55">Определим по GPS</span>
-              </span>
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Нижняя glass-панель заказа. Содержимое остаётся в DOM при сворачивании. */}
-      <div className={`pointer-events-none relative z-[1000] mt-auto flex flex-col ${sheetCollapsed ? "" : "max-h-[62dvh]"}`}>
-        <GlassCard className="pointer-events-auto mx-3 mb-2 flex flex-col overflow-hidden">
+      {/* Нижняя glass-панель заказа. При редактировании адресов вытягивается вверх. */}
+      <div
+        className={`pointer-events-none relative z-[1000] mt-auto flex flex-col transition-[max-height] duration-300 ${
+          activeInput ? "h-[86dvh]" : sheetCollapsed ? "" : "max-h-[62dvh]"
+        }`}
+      >
+        <GlassCard className="pointer-events-auto mx-3 mb-2 flex min-h-0 flex-1 flex-col overflow-hidden">
           <div
             onPointerDown={onSheetPointerDown}
             onPointerUp={onSheetPointerUp}
@@ -421,21 +371,25 @@ export default function HomePage() {
                 </button>
               ) : (
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[17px] font-bold text-white">{panelTitle}</div>
-                  {arrivalTime ? <div className="text-[12px] text-white/55">прибытие в {arrivalTime}</div> : null}
+                  <div className="truncate text-[17px] font-bold text-white">
+                    {activeInput ? "Куда поедем?" : panelTitle}
+                  </div>
+                  {arrivalTime && !activeInput ? (
+                    <div className="text-[12px] text-white/55">прибытие в {arrivalTime}</div>
+                  ) : null}
                 </div>
               )}
 
               <button
                 type="button"
                 id="home-order-sheet-toggle"
-                aria-label={sheetCollapsed ? "Развернуть панель" : "Свернуть панель"}
-                aria-expanded={!sheetCollapsed}
+                aria-label={activeInput ? "Закрыть ввод адресов" : sheetCollapsed ? "Развернуть панель" : "Свернуть панель"}
+                aria-expanded={activeInput ? true : !sheetCollapsed}
                 aria-controls="home-order-sheet-body"
-                onClick={() => setSheetCollapsed(!sheetCollapsed)}
+                onClick={() => (activeInput ? setActiveInput(null) : setSheetCollapsed(!sheetCollapsed))}
                 className="flex shrink-0 items-center gap-1.5 text-[13px] font-semibold text-[#FFC400]"
               >
-                <span>{sheetCollapsed ? "Развернуть" : "Карта"}</span>
+                <span>{activeInput ? "Готово" : sheetCollapsed ? "Развернуть" : "Карта"}</span>
                 <svg
                   className={`h-4 w-4 transition-transform duration-200 ${sheetCollapsed ? "rotate-180" : ""}`}
                   viewBox="0 0 20 20"
@@ -451,7 +405,7 @@ export default function HomePage() {
           <div
             id="home-order-sheet-body"
             hidden={sheetCollapsed}
-            className={sheetCollapsed ? "hidden" : "flex flex-col gap-4 overflow-y-auto px-5 pb-4"}
+            className={sheetCollapsed ? "hidden" : "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-4"}
           >
             {geo.error && !pickup && !estimate && (
               <div className="flex items-center justify-between rounded-2xl border border-[#FFC400]/30 bg-[#FFC400]/10 p-3 text-sm text-[#FFC400]">
@@ -460,6 +414,47 @@ export default function HomePage() {
               </div>
             )}
 
+            {/* Режим ввода адресов — панель вытянулась вверх, всё в одном месте */}
+            {activeInput ? (
+              <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-3">
+                <div className="flex flex-col gap-1">
+                  <span className="ml-2 text-xs font-semibold text-white/60">Точка посадки</span>
+                  <AddressInput
+                    label=""
+                    icon="●"
+                    placeholder="Адрес отправления"
+                    value={pickupText}
+                    near={geo.position ?? pickup}
+                    onTextChange={(t) => { setPickupText(t); setEstimate(null); }}
+                    onSelect={(s) => selectPlace(s, "pickup")}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="ml-2 text-xs font-semibold text-white/60">Куда</span>
+                  <AddressInput
+                    label=""
+                    icon="■"
+                    placeholder="Адрес назначения"
+                    value={destinationText}
+                    near={pickup ?? geo.position}
+                    onTextChange={(t) => { setDestinationText(t); setEstimate(null); }}
+                    onSelect={(s) => selectPlace(s, "destination")}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { onLocate(); setActiveInput(null); }}
+                  className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/5 p-3 text-left active:bg-white/10"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10">📍</span>
+                  <span>
+                    <span className="block font-semibold text-white">Ваше местоположение</span>
+                    <span className="block text-xs text-white/55">Определим по GPS</span>
+                  </span>
+                </button>
+              </div>
+            ) : (
+              <>
             {/* Адреса: жёлтые маркеры А/Б и крупный жирный текст */}
             <div className="relative flex flex-col">
               <span className="absolute bottom-7 left-[6px] top-7 w-px bg-white/25" aria-hidden="true" />
@@ -557,11 +552,13 @@ export default function HomePage() {
                 })}
               </div>
             )}
+              </>
+            )}
           </div>
         </GlassCard>
 
         {/* Нижняя панель действий */}
-        {sheetCollapsed ? null : (
+        {sheetCollapsed || activeInput ? null : (
           <GlassCard className="pointer-events-auto mx-3 mb-3 flex items-center gap-3 p-3">
             <BrandMark className="h-12 w-12 shrink-0" />
             <button
