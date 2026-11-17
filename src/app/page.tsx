@@ -115,7 +115,7 @@ export default function LandingPage() {
   // Если идет загрузка или мы перенаправляем — показываем спиннер
   if (loading || (user && !isSwitching)) {
     return (
-      <main className="flex min-h-dvh items-center justify-center">
+      <main className="flex min-h-dvh items-center justify-center bg-bg">
         <Spinner className="h-8 w-8 text-accent" />
       </main>
     );
@@ -128,7 +128,7 @@ export default function LandingPage() {
 
   // Онбординг (если пользователя нет в базе)
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-surface p-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-bg p-6">
       <div className="neo-btn p-8 rounded-3xl text-center">
         <AppLogo className="mx-auto mb-6 h-auto w-48 max-w-full" />
         <h1 className="text-2xl font-bold text-ink mb-2">Давай знакомиться</h1>
@@ -136,7 +136,7 @@ export default function LandingPage() {
         {idHint && <p className="text-xs text-muted mb-4">MAX ID: {idHint}</p>}
 
         <form onSubmit={handleOnboard} className="flex flex-col gap-4">
-          {error && <div className="text-red-500 text-sm">{error}</div>}
+          {error && <div className="text-danger text-sm">{error}</div>}
           <input
             type="text"
             placeholder={nameHint ? `Например: ${nameHint}` : "Ваше имя"}

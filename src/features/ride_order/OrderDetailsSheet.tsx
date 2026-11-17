@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { Button } from "@/core/widgets/ui";
 import { BrandMark } from "@/core/widgets/BrandMark";
@@ -64,14 +65,16 @@ export function OrderDetailsSheet({ open, onClose, pickupText, destinationText, 
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         {/* Тариф */}
         <section className="flex flex-col items-center rounded-3xl neo px-4 py-6">
-          <svg viewBox="0 0 64 32" className="h-24 w-56" aria-hidden="true">
-            <path d="M5 22h54v-5c0-3-2-5-5-5H43l-6-6H18c-4 0-7 3-8 7l-2 6v3z" fill="#FFC72C" />
-            <path d="M21 8h15l4 5H18l3-5z" fill="#fff" opacity="0.55" />
-            <circle cx="17" cy="23" r="5" fill="#263445" />
-            <circle cx="17" cy="23" r="2" fill="#c6ccd4" />
-            <circle cx="47" cy="23" r="5" fill="#263445" />
-            <circle cx="47" cy="23" r="2" fill="#c6ccd4" />
-          </svg>
+          <Image
+            src="/images/taxi-side.svg"
+            alt=""
+            width={240}
+            height={120}
+            unoptimized
+            className="h-24 w-auto max-w-full drop-shadow-[0_8px_18px_rgba(0,0,0,0.45)]"
+            draggable={false}
+            aria-hidden="true"
+          />
           <h2 className="mt-4 self-start text-2xl font-bold text-ink">{tariff?.name ?? "Тариф"}</h2>
           <p className="mt-1 self-start text-sm text-muted">Для коротких поездок · ♿ 4</p>
           <button

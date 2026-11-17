@@ -220,7 +220,7 @@ export default function DriverHomePage() {
 
   if (!state.driver.isApproved) {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-surface p-6 text-center">
+      <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-bg p-6 text-center">
         <div className="neo-btn p-8 rounded-3xl">
           <div className="w-16 h-16 bg-accent/20 text-accent rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
             ⏳
@@ -272,7 +272,7 @@ export default function DriverHomePage() {
           className="pointer-events-auto neo flex min-h-12 items-center gap-2.5 rounded-full px-3.5 py-2"
           aria-label={isOnline ? "На линии" : "Не на линии"}
         >
-          <span className={`inline-block h-3.5 w-3.5 shrink-0 rounded-full ${isOnline ? "pulse-dot bg-success" : "bg-muted"}`} />
+          <span className={`inline-block h-3.5 w-3.5 shrink-0 rounded-full ${isOnline ? "pulse-dot bg-accent" : "bg-muted"}`} />
           <div className="leading-tight">
             <div className="text-sm font-bold text-ink">{isOnline ? "На линии" : "Не на линии"}</div>
             <div className="text-[10px] text-muted">
@@ -285,7 +285,7 @@ export default function DriverHomePage() {
           <div className="pointer-events-auto neo flex min-h-12 items-center gap-2.5 rounded-full px-3 py-2" aria-label="Заработок за сегодня">
             <BrandMark className="h-9 w-9" />
             <div className="pr-1 text-right leading-tight">
-              <div className="text-sm font-bold text-ink">{formatMoney(todayEarnings)}</div>
+              <div className="text-sm font-bold text-accent">{formatMoney(todayEarnings)}</div>
               <div className="text-[10px] text-muted">за сегодня</div>
             </div>
           </div>
@@ -368,7 +368,7 @@ export default function DriverHomePage() {
         maxHeightClass="max-h-[75dvh]"
         headerExtra={
           <div className="flex items-center gap-2 text-sm font-bold text-ink">
-            {isOnline && !currentOrder ? <span className="pulse-dot inline-block h-3 w-3 rounded-full bg-success" /> : null}
+            {isOnline && !currentOrder ? <span className="pulse-dot inline-block h-3 w-3 rounded-full bg-accent" /> : null}
             {currentOrder ? "Текущий заказ" : isOnline ? "На линии" : "Вы не на линии"}
           </div>
         }

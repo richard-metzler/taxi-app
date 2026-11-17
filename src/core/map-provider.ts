@@ -1,6 +1,7 @@
 import type { UserProfile } from "../shared/types.ts";
 
-export type MapProviderId = UserProfile["navigator"];
+/** Идентификаторы подложек. `dark` — тёмная тема интерфейса, не зависит от навигатора в профиле. */
+export type MapProviderId = UserProfile["navigator"] | "dark";
 
 export type MapProviderConfig = {
   id: MapProviderId;
@@ -9,6 +10,8 @@ export type MapProviderConfig = {
   attribution: string;
   maxZoom: number;
   crs: "EPSG3395" | "EPSG3857";
+  /** Поддомены для шаблона {s} (по умолчанию у Leaflet — abc). */
+  subdomains?: string;
 };
 
 /**
@@ -16,6 +19,7 @@ export type MapProviderConfig = {
  * - yandex: тайлы Яндекс Карт (проекция Меркатора EPSG:3395)
  * - dgis: тайлы 2ГИС (сферический Меркатор EPSG:3857)
  * - google: тайлы Google Карт на русском языке (EPSG:3857)
+ * - dark: CARTO Dark Matter — тёмная подложка для тёмной темы (EPSG:3857)
  */
 export const MAP_PROVIDERS: Record<MapProviderId, MapProviderConfig> = {
   yandex: {
@@ -41,6 +45,15 @@ export const MAP_PROVIDERS: Record<MapProviderId, MapProviderConfig> = {
     attribution: '&copy; <a href="https://maps.google.com" target="_blank" rel="noreferrer">Google Карты</a>',
     maxZoom: 20,
     crs: "EPSG3857",
+  },
+  dark: {
+    id: "dark",
+    name: "Тёмная карта",
+    tileUrl: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+    attribution: "© CARTO",
+    maxZoom: 20,
+    crs: "EPSG3857",
+    subdomains: "abcd",
   },
 };
 

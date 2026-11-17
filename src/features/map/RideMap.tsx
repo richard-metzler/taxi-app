@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import type { LatLng } from "@/core/geo";
 import { getMapProviderConfig, type MapProviderId } from "@/core/map-provider";
-import { useSession } from "@/shared/session";
 
 export type RideMapProps = {
   center: LatLng;
@@ -33,34 +32,43 @@ function makeIcon(html: string, size: number): L.DivIcon {
   return L.divIcon({ html, className: "", iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
 }
 
+// Посадка — жёлтая пульсирующая точка со свечением.
 const pickupIcon = makeIcon(
-  `<div style="width:22px;height:22px;border-radius:50%;background:#426D91;border:4px solid #fff;box-shadow:0 2px 8px rgba(38,52,69,.35)"></div>`,
-  22,
+  `<div class="pulse-dot" style="width:24px;height:24px;border-radius:50%;background:#FFCC00;border:4px solid #0B0D10;box-shadow:0 0 0 6px rgba(255,204,0,.25),0 0 14px rgba(255,204,0,.85)"></div>`,
+  24,
 );
+// Назначение — белый квадрат.
 const destinationIcon = makeIcon(
-  `<div style="width:22px;height:22px;border-radius:6px;background:#263445;border:4px solid #fff;box-shadow:0 2px 8px rgba(38,52,69,.35)"></div>`,
-  22,
+  `<div style="width:20px;height:20px;border-radius:4px;background:#FFFFFF;border:3px solid #0B0D10;box-shadow:0 0 10px rgba(255,255,255,.5)"></div>`,
+  20,
 );
+// Позиция пользователя — зелёная точка (цвет success).
 const userIcon = makeIcon(
-  `<div class="pulse-dot" style="width:16px;height:16px;border-radius:50%;background:#419B78;border:3px solid #fff;box-shadow:0 0 0 6px rgba(65,155,120,.25)"></div>`,
+  `<div class="pulse-dot" style="width:16px;height:16px;border-radius:50%;background:#4ADE80;border:3px solid #0B0D10;box-shadow:0 0 0 6px rgba(74,222,128,.25),0 0 10px rgba(74,222,128,.7)"></div>`,
   16,
 );
 
-function carIcon(heading = 0): L.DivIcon {
-  return makeIcon(
-    `<div style="transform:rotate(${heading}deg);width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#E9EDF2;box-shadow:3px 3px 8px #c6ccd4,-3px -3px 8px #fff;font-size:20px;line-height:1">🚖</div>`,
-    36,
-  );
+// Машина — вид сверху из /images/car-top.svg (жёлтая, со свечением в самом SVG).
+const carIcon = L.icon({
+  iconUrl: "/images/car-top.svg",
+  iconSize: [44, 44],
+  iconAnchor: [22, 22],
+  className: "car-marker",
+});
+
+/** Поворачиваем изображение машины внутри маркера по курсу, не затрагивая позиционирование Leaflet. */
+function applyHeading(marker: L.Marker | null, heading = 0) {
+  const img = marker?.getElement()?.querySelector("img");
+  if (img) img.style.transform = `rotate(${heading}deg)`;
 }
 
 /**
- * Карта поездки. Использует картографический сервис, выбранный в настройках профиля
- * (Яндекс Карты, 2ГИС или Google Карты), и обновляет только изменившиеся слои.
+ * Карта поездки. Подложка всегда тёмная (CARTO Dark Matter, провайдер `dark`),
+ * поэтому не зависит от навигатора в профиле — тот используется только для ссылок в DriverPanels.
+ * Обновляются только изменившиеся слои.
  */
 export default function RideMap(props: RideMapProps) {
-  const { user } = useSession();
-  const activeProvider = props.provider ?? user?.navigator ?? "yandex";
-  return <RideMapCanvas key={activeProvider} {...props} provider={activeProvider} />;
+  return <RideMapCanvas key="dark" {...props} provider="dark" />;
 }
 
 function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
@@ -70,6 +78,7 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
   const destRef = useRef<L.Marker | null>(null);
   const driverRef = useRef<L.Marker | null>(null);
   const userRef = useRef<L.Marker | null>(null);
+  const routeGlowRef = useRef<L.Polyline | null>(null);
   const routeRef = useRef<L.Polyline | null>(null);
   const driverRouteRef = useRef<L.Polyline | null>(null);
   const callbacksRef = useRef({ onPickupDragEnd: props.onPickupDragEnd, onMapClick: props.onMapClick });
@@ -93,10 +102,12 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
       zoomControl: false,
       attributionControl: true,
     });
-    L.tileLayer(providerConfig.tileUrl, {
+    const tileOptions: L.TileLayerOptions = {
       maxZoom: providerConfig.maxZoom,
       attribution: providerConfig.attribution,
-    }).addTo(map);
+    };
+    if (providerConfig.subdomains) tileOptions.subdomains = providerConfig.subdomains;
+    L.tileLayer(providerConfig.tileUrl, tileOptions).addTo(map);
     map.on("click", (e: L.LeafletMouseEvent) => {
       callbacksRef.current.onMapClick?.({ latitude: e.latlng.lat, longitude: e.latlng.lng });
     });
@@ -109,6 +120,7 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
       destRef.current = null;
       driverRef.current = null;
       userRef.current = null;
+      routeGlowRef.current = null;
       routeRef.current = null;
       driverRouteRef.current = null;
     };
@@ -178,21 +190,38 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
     }
     const ll: L.LatLngExpression = [props.driver.latitude, props.driver.longitude];
     if (!driverRef.current) {
-      driverRef.current = L.marker(ll, { icon: carIcon(props.driver.heading), zIndexOffset: 1000 }).addTo(map);
+      driverRef.current = L.marker(ll, { icon: carIcon, zIndexOffset: 1000 }).addTo(map);
     } else {
       driverRef.current.setLatLng(ll);
-      driverRef.current.setIcon(carIcon(props.driver.heading));
+      driverRef.current.setIcon(carIcon);
     }
+    applyHeading(driverRef.current, props.driver.heading);
   }, [props.driver]);
 
-  // Маршрут
+  // Маршрут: два слоя — широкое жёлтое свечение и яркая жёлтая линия поверх него.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    routeGlowRef.current?.remove();
     routeRef.current?.remove();
+    routeGlowRef.current = null;
     routeRef.current = null;
     if (props.route && props.route.length > 1) {
-      routeRef.current = L.polyline(props.route, { color: "#426D91", weight: 5, opacity: 0.85 }).addTo(map);
+      routeGlowRef.current = L.polyline(props.route, {
+        color: "#FFCC00",
+        weight: 11,
+        opacity: 0.35,
+        lineCap: "round",
+        lineJoin: "round",
+        className: "route-glow",
+      }).addTo(map);
+      routeRef.current = L.polyline(props.route, {
+        color: "#FFD84D",
+        weight: 5,
+        opacity: 1,
+        lineCap: "round",
+        lineJoin: "round",
+      }).addTo(map);
     }
   }, [props.route]);
 
@@ -227,7 +256,7 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
   }, [props.layoutKey]);
 
 
-  // Зеленый маршрут водителя до пассажира (строится по дорогам и обрезается)
+  // Жёлтый пунктир маршрута водителя до пассажира (строится по дорогам и обрезается)
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -251,7 +280,7 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
         const remainingRoute = fullRoute.slice(closestIdx);
         if (remainingRoute.length > 1) {
           driverRouteRef.current = L.polyline(remainingRoute, {
-            color: "#10b981", weight: 5, opacity: 0.8, dashArray: "8, 8"
+            color: "#FFCC00", weight: 5, opacity: 0.9, dashArray: "8, 8"
           }).addTo(map);
           return;
         }
@@ -260,7 +289,7 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
       // Fallback: прямая линия, если маршрута нет
       driverRouteRef.current = L.polyline(
         [[props.driver.latitude, props.driver.longitude], [props.pickup.latitude, props.pickup.longitude]],
-        { color: "#10b981", weight: 5, opacity: 0.8, dashArray: "8, 8" }
+        { color: "#FFCC00", weight: 5, opacity: 0.9, dashArray: "8, 8" }
       ).addTo(map);
     }
   }, [props.showDriverRoute, props.driver, props.pickup, props.driverRoute]);

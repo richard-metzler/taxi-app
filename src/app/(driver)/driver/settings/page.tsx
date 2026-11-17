@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/shared/api";
 import { useRequireAuth, useSession } from "@/shared/session";
@@ -106,8 +107,8 @@ export default function DriverSettingsPage() {
           <div className="text-xs font-semibold text-muted">Автомобиль</div>
           {vehicle ? (
             <div className="neo-inset flex items-center gap-3 px-4 py-3">
-              <div className="neo flex h-11 w-11 shrink-0 items-center justify-center text-xl text-accent" aria-hidden="true">
-                🚗
+              <div className="neo flex h-11 w-11 shrink-0 items-center justify-center" aria-hidden="true">
+                <Image src="/images/taxi-side.svg" alt="" width={36} height={36} className="h-8 w-8" draggable={false} />
               </div>
               <div className="min-w-0">
                 <div className="truncate font-bold text-ink">
@@ -141,7 +142,7 @@ export default function DriverSettingsPage() {
                 {NAVIGATOR_TEXT[n]}
                 <span
                   className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs ${
-                    user.navigator === n ? "bg-accent text-white" : "text-transparent"
+                    user.navigator === n ? "bg-accent text-bg" : "text-transparent"
                   }`}
                   aria-hidden={user.navigator !== n}
                 >

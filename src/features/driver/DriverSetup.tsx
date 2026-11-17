@@ -90,41 +90,41 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-surface p-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-bg p-6">
       <div className="neo-btn p-6 rounded-3xl">
         <h1 className="text-2xl font-bold text-ink mb-2">Данные водителя</h1>
         <p className="text-sm text-muted mb-6">Заполните информацию. Она уйдёт на модерацию администратору.</p>
 
-        {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-4 text-sm">{error}</div>}
+        {error && <div className="neo-inset text-danger p-3 rounded-xl mb-4 text-sm" role="alert">{error}</div>}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label className="block text-sm font-bold text-ink mb-1">Ваше имя</label>
-            <input type="text" required placeholder="Например: Сергей" className="neo-inset w-full p-3 rounded-xl outline-none text-ink" value={name} onChange={(e) => setName(e.target.value)} />
+            <input type="text" required placeholder="Например: Сергей" className="neo-inset w-full p-3 rounded-xl outline-none text-ink placeholder:text-muted" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div>
             <label className="block text-sm font-bold text-ink mb-1">Телефон (необязательно)</label>
-            <input type="tel" placeholder="+7 XXX XXX-XX-XX" className="neo-inset w-full p-3 rounded-xl outline-none text-ink" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <input type="tel" placeholder="+7 XXX XXX-XX-XX" className="neo-inset w-full p-3 rounded-xl outline-none text-ink placeholder:text-muted" value={phone} onChange={(e) => setPhone(e.target.value)} />
           </div>
           <div>
             <label className="block text-sm font-bold text-ink mb-1">Пароль (необязательно)</label>
-            <input type="password" placeholder="Для входа по номеру" className="neo-inset w-full p-3 rounded-xl outline-none text-ink" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input type="password" placeholder="Для входа по номеру" className="neo-inset w-full p-3 rounded-xl outline-none text-ink placeholder:text-muted" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           <div>
             <label className="block text-sm font-bold text-ink mb-1">Марка автомобиля</label>
-            <input type="text" required placeholder="Например: Kia" className="neo-inset w-full p-3 rounded-xl outline-none text-ink" value={brand} onChange={(e) => setBrand(e.target.value)} />
+            <input type="text" required placeholder="Например: Kia" className="neo-inset w-full p-3 rounded-xl outline-none text-ink placeholder:text-muted" value={brand} onChange={(e) => setBrand(e.target.value)} />
           </div>
           <div>
             <label className="block text-sm font-bold text-ink mb-1">Модель автомобиля</label>
-            <input type="text" required placeholder="Например: Rio" className="neo-inset w-full p-3 rounded-xl outline-none text-ink" value={model} onChange={(e) => setModel(e.target.value)} />
+            <input type="text" required placeholder="Например: Rio" className="neo-inset w-full p-3 rounded-xl outline-none text-ink placeholder:text-muted" value={model} onChange={(e) => setModel(e.target.value)} />
           </div>
           <div>
             <label className="block text-sm font-bold text-ink mb-1">Госномер</label>
-            <input type="text" required placeholder="Например: А123ВС70" className="neo-inset w-full p-3 rounded-xl outline-none text-ink" value={plate} onChange={(e) => setPlate(e.target.value)} />
+            <input type="text" required placeholder="Например: А123ВС70" className="neo-inset w-full p-3 rounded-xl outline-none text-ink placeholder:text-muted" value={plate} onChange={(e) => setPlate(e.target.value)} />
           </div>
           <div>
             <label className="block text-sm font-bold text-ink mb-1">Цвет авто</label>
-            <input type="text" required placeholder="Например: Белый" className="neo-inset w-full p-3 rounded-xl outline-none text-ink" value={color} onChange={(e) => setColor(e.target.value)} />
+            <input type="text" required placeholder="Например: Белый" className="neo-inset w-full p-3 rounded-xl outline-none text-ink placeholder:text-muted" value={color} onChange={(e) => setColor(e.target.value)} />
           </div>
           <div>
             <label className="block text-sm font-bold text-ink mb-1">Класс автомобиля</label>
@@ -133,9 +133,9 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
               value={vehicleClass}
               onChange={(e) => setVehicleClass(e.target.value)}
             >
-              <option value="econom">Эконом</option>
-              <option value="comfort">Комфорт</option>
-              <option value="business">Бизнес</option>
+              <option value="econom" className="bg-card text-ink">Эконом</option>
+              <option value="comfort" className="bg-card text-ink">Комфорт</option>
+              <option value="business" className="bg-card text-ink">Бизнес</option>
             </select>
           </div>
 

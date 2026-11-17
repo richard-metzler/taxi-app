@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { formatPhone } from "@/core/phone";
 import { buildNavigatorUrl } from "@/core/navigator-links";
 import { Button } from "@/core/widgets/ui";
@@ -19,8 +20,8 @@ export function OfflinePanel({
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center gap-3">
-        <div className="neo-inset flex h-14 w-14 shrink-0 items-center justify-center text-2xl text-accent" aria-hidden="true">
-          🚗
+        <div className="neo-inset flex h-14 w-14 shrink-0 items-center justify-center" aria-hidden="true">
+          <Image src="/images/taxi-side.svg" alt="" width={48} height={48} className="h-10 w-10" draggable={false} />
         </div>
         <div className="min-w-0">
           <div className="text-[10px] font-bold uppercase tracking-wide text-muted">Автомобиль</div>
@@ -90,11 +91,11 @@ export function OnlinePanel({
               <button type="button" className="flex flex-col gap-2.5 text-left" onClick={() => onSelect(selectedId === order.id ? null : order.id)}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="neo-inset rounded-full px-2.5 py-1 text-[11px] font-semibold text-accent">{order.tariffName}</span>
-                  <span className="text-xl font-bold text-ink">{formatMoney(order.price)}</span>
+                  <span className="text-xl font-bold text-accent">{formatMoney(order.price)}</span>
                 </div>
 
                 <div className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-bg">
                     А
                   </span>
                   <div className="min-w-0">
@@ -104,7 +105,7 @@ export function OnlinePanel({
                 </div>
 
                 <div className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success text-[10px] font-bold text-white">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success text-[10px] font-bold text-bg">
                     Б
                   </span>
                   <div className="min-w-0">
@@ -173,7 +174,7 @@ export function ActiveOrderPanel({
         </div>
         <div className="shrink-0 text-right">
           <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">Стоимость</div>
-          <div className="text-xl font-bold text-success">{formatMoney(order.price)}</div>
+          <div className="text-xl font-bold text-accent">{formatMoney(order.price)}</div>
         </div>
       </div>
 
@@ -192,7 +193,7 @@ export function ActiveOrderPanel({
 
       <div className="neo-inset flex flex-col gap-2.5 px-4 py-3.5">
         <div className="flex items-start gap-2.5">
-          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">А</span>
+          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-bg">А</span>
           <div className="min-w-0">
             <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">Подача</div>
             <div className="truncate text-sm font-semibold text-ink">{order.pickup.address}</div>
@@ -200,7 +201,7 @@ export function ActiveOrderPanel({
         </div>
         <div className="ml-2 h-3 w-px bg-border" aria-hidden="true" />
         <div className="flex items-start gap-2.5">
-          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success text-[10px] font-bold text-white">Б</span>
+          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success text-[10px] font-bold text-bg">Б</span>
           <div className="min-w-0">
             <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">Назначение</div>
             <div className="truncate text-sm font-semibold text-ink">{order.destination.address}</div>

@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiError, type AddressSuggestion } from "@/shared/api";
@@ -19,24 +20,6 @@ import { useGeolocation } from "@/features/home/useGeolocation";
 const RideMap = dynamic(() => import("@/features/map/RideMap"), { ssr: false });
 
 const DEFAULT_CENTER: LatLng = { latitude: 56.4846, longitude: 84.9476 };
-
-/** Миниатюрная машина для карточки тарифа. */
-function TariffCar({ tone }: { tone: "yellow" | "silver" | "dark" }) {
-  const color = tone === "yellow" ? "#FFC72C" : tone === "silver" ? "#B9C3CE" : "#263445";
-  return (
-    <svg viewBox="0 0 64 32" className="h-5 w-12 shrink-0" aria-hidden="true">
-      <path
-        d="M5 22h54v-5c0-3-2-5-5-5H43l-6-6H18c-4 0-7 3-8 7l-2 6v3z"
-        fill={color}
-      />
-      <path d="M21 8h15l4 5H18l3-5z" fill="#fff" opacity="0.55" />
-      <circle cx="17" cy="23" r="5" fill="#263445" />
-      <circle cx="17" cy="23" r="2" fill="#c6ccd4" />
-      <circle cx="47" cy="23" r="5" fill="#263445" />
-      <circle cx="47" cy="23" r="2" fill="#c6ccd4" />
-    </svg>
-  );
-}
 
 export default function HomePage() {
   const router = useRouter();
@@ -208,7 +191,7 @@ export default function HomePage() {
 
   if (loading || !user || checkingActive) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-surface">
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-bg">
         {/* Логотип */}
         <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
           <AppLogo className="h-auto w-56 max-w-full" />
@@ -227,7 +210,7 @@ export default function HomePage() {
   const panelTitle = estimate ? "Маршрут готов" : "Куда поедем?";
 
   return (
-    <main className="relative flex h-dvh flex-col overflow-hidden bg-surface">
+    <main className="relative flex h-dvh flex-col overflow-hidden bg-bg">
       {/* Карта */}
       <div className="absolute inset-0">
         <RideMap
@@ -245,23 +228,31 @@ export default function HomePage() {
 
       {/* Плашка свободных машин */}
       {availableDrivers !== null && !activeInput && (
-        <div className="absolute left-4 top-4 z-[1000] flex items-center gap-2 rounded-2xl bg-white/90 px-3 py-2 shadow-lg backdrop-blur-md border border-gray-200">
-          <span className="text-2xl leading-none">🚕</span>
-          <div className={`h-3.5 w-3.5 rounded-full ${availableDrivers > 0 ? "bg-green-500" : "bg-red-500"}`} />
-          {availableDrivers > 0 && <span className="font-bold text-black">{availableDrivers}</span>}
+        <div className="absolute left-4 top-4 z-[1000] flex items-center gap-2 rounded-2xl border border-white/10 bg-[#16191F]/90 px-3 py-2 shadow-lg backdrop-blur-md">
+          <Image
+            src="/images/taxi-side.svg"
+            alt=""
+            width={32}
+            height={20}
+            unoptimized
+            className="h-5 w-auto"
+            draggable={false}
+          />
+          <div className={`h-3.5 w-3.5 rounded-full ${availableDrivers > 0 ? "bg-success" : "bg-danger"}`} />
+          {availableDrivers > 0 && <span className="font-bold text-ink">{availableDrivers}</span>}
         </div>
       )}
 
       {/* Время прибытия на карте */}
       {arrivalTime && !activeInput && (
-        <div className="absolute right-4 top-[22%] z-[1000] rounded-full bg-white/95 px-4 py-2 text-sm font-bold text-ink shadow-lg backdrop-blur-md">
+        <div className="absolute right-4 top-[22%] z-[1000] rounded-full border border-white/10 bg-[#16191F]/90 px-4 py-2 text-sm font-bold text-ink shadow-lg backdrop-blur-md">
           прибытие в {arrivalTime}
         </div>
       )}
 
       {/* Время подачи у точки посадки */}
       {estimate && !activeInput && (
-        <div className="absolute left-4 top-[34%] z-[1000] flex flex-col items-center rounded-2xl bg-[#FFA000] px-3 py-2 text-white shadow-lg">
+        <div className="absolute left-4 top-[34%] z-[1000] flex flex-col items-center rounded-2xl bg-accent px-3 py-2 text-[#1a1200] shadow-lg">
           <span className="text-2xl font-black leading-none">
             {Math.max(1, Math.round((estimate.tariffs.find((t) => t.id === selectedTariffId)?.pickupEtaSeconds ?? 300) / 60))}
           </span>
@@ -305,7 +296,7 @@ export default function HomePage() {
 
       {/* Полноэкранный режим ввода адресов */}
       {activeInput ? (
-        <div className="absolute inset-0 z-[1500] flex h-full flex-col bg-[#F4F6F9]">
+        <div className="absolute inset-0 z-[1500] flex h-full flex-col bg-bg">
           <div className="flex items-center justify-between p-4 pb-2">
             <button onClick={() => setActiveInput(null)} className="text-2xl text-ink">←</button>
             <h2 className="text-lg font-bold text-ink">Куда поедем?</h2>
@@ -341,12 +332,12 @@ export default function HomePage() {
           </div>
 
           {/* Список подсказок (рендерится внутри AddressInput) */}
-          <div className="flex-1 overflow-y-auto bg-white rounded-t-3xl shadow-lg">
+          <div className="neo flex-1 overflow-y-auto rounded-t-3xl">
             <button
-              className="flex w-full items-center gap-3 border-b border-gray-100 p-4 text-left active:bg-gray-50"
+              className="flex w-full items-center gap-3 border-b border-white/10 p-4 text-left active:bg-white/5"
               onClick={() => { onLocate(); setActiveInput(null); }}
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500">📍</div>
+              <div className="neo-inset flex h-8 w-8 items-center justify-center rounded-full text-muted">📍</div>
               <div>
                 <div className="font-semibold text-ink">Ваше местоположение</div>
                 <div className="text-xs text-muted">Определим по GPS</div>
@@ -397,9 +388,9 @@ export default function HomePage() {
         }
       >
         {geo.error && !pickup && !estimate && (
-          <div className="rounded-xl bg-orange-50 p-3 text-sm text-orange-700 flex items-center justify-between shadow-sm border border-orange-100">
+          <div className="flex items-center justify-between rounded-xl border border-accent/30 bg-accent/10 p-3 text-sm text-accent">
             <span>Не удалось определить местоположение</span>
-            <button onClick={onLocate} className="font-bold underline text-orange-800">Повторить</button>
+            <button onClick={onLocate} className="font-bold underline">Повторить</button>
           </div>
         )}
 
@@ -456,22 +447,33 @@ export default function HomePage() {
           <p className="py-4 text-center text-sm text-muted">Для этой категории тарифов пока нет предложений</p>
         ) : (
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {visibleTariffs.map((t, index) => (
+            {visibleTariffs.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => setSelectedTariffId(t.id)}
-                className={`flex min-w-[118px] flex-col items-start gap-0.5 rounded-2xl p-2.5 text-left transition-all ${
-                  selectedTariffId === t.id ? "neo-inset" : "bg-white/60"
+                className={`flex min-w-[118px] flex-col items-start gap-0.5 rounded-2xl border-2 p-2.5 text-left transition-all ${
+                  selectedTariffId === t.id
+                    ? "border-accent bg-[#16191F]"
+                    : "border-transparent bg-[#16191F]/70"
                 }`}
               >
-                <TariffCar tone={index === 0 ? "yellow" : index === 1 ? "silver" : "dark"} />
-                <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-bold text-success">
+                <Image
+                  src="/images/taxi-side.svg"
+                  alt=""
+                  width={64}
+                  height={32}
+                  unoptimized
+                  className={`mb-1 h-7 w-auto shrink-0 ${selectedTariffId === t.id ? "" : "opacity-80"}`}
+                  draggable={false}
+                  aria-hidden="true"
+                />
+                <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-[#1a1200]">
                   {formatDuration(t.pickupEtaSeconds)}
                 </span>
-                <span className="text-sm font-semibold text-ink">{t.name}</span>
+                <span className="mt-0.5 text-sm font-semibold text-ink">{t.name}</span>
                 <span className="text-lg font-bold text-ink">
-                  {selectedTariffId === t.id ? "⚡" : ""}
+                  {selectedTariffId === t.id ? "⚡ " : ""}
                   {formatMoney(t.price)}
                 </span>
               </button>

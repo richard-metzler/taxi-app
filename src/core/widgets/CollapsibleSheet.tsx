@@ -86,7 +86,7 @@ export function CollapsibleSheet({
           }}
           className="flex touch-pan-x flex-col gap-1.5 select-none"
         >
-          <div className="mx-auto h-1.5 w-11 rounded-full bg-muted/35" aria-hidden="true" />
+          <div className="mx-auto h-1.5 w-11 rounded-full bg-white/20" aria-hidden="true" />
           <div className="flex items-center justify-between gap-2">
             {collapsed ? (
               <button

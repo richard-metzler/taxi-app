@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/shared/api";
 import { useRequireAuth } from "@/shared/session";
@@ -95,8 +96,16 @@ export default function HistoryPage() {
 
         {items && items.length === 0 ? (
           <div className="neo mt-2 flex flex-col items-center gap-3 px-6 py-10 text-center">
-            <div className="neo-inset flex h-16 w-16 items-center justify-center rounded-full text-3xl" aria-hidden="true">
-              🚕
+            <div className="neo-inset flex h-16 w-16 items-center justify-center rounded-full" aria-hidden="true">
+              <Image
+                src="/images/taxi-side.svg"
+                alt=""
+                width={80}
+                height={48}
+                unoptimized
+                className="h-8 w-auto"
+                draggable={false}
+              />
             </div>
             <div>
               <div className="text-base font-bold text-ink">Поездок пока нет</div>
@@ -104,7 +113,7 @@ export default function HistoryPage() {
             </div>
             <Link
               href="/home"
-              className="neo-btn-primary mt-2 inline-flex min-h-12 items-center justify-center rounded-2xl px-6 text-base font-semibold text-white"
+              className="neo-btn-primary mt-2 inline-flex min-h-12 items-center justify-center rounded-2xl px-6 text-base font-semibold"
             >
               Заказать такси
             </Link>

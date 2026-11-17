@@ -57,7 +57,7 @@ export function IncomingOrderModal({
         <div className="flex flex-col gap-4 p-5">
           <div className="neo-inset flex flex-col gap-3 px-4 py-3.5">
             <div className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white">
+              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-bg">
                 А
               </span>
               <div className="min-w-0">
@@ -67,7 +67,7 @@ export function IncomingOrderModal({
             </div>
             <div className="ml-2.5 h-4 w-px bg-border" aria-hidden="true" />
             <div className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success text-[11px] font-bold text-white">
+              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success text-[11px] font-bold text-bg">
                 Б
               </span>
               <div className="min-w-0">
@@ -86,7 +86,7 @@ export function IncomingOrderModal({
             </div>
             <div className="shrink-0 text-right">
               <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">Стоимость</div>
-              <div className="text-3xl font-bold text-ink">{formatMoney(order.price)}</div>
+              <div className="text-3xl font-bold text-accent">{formatMoney(order.price)}</div>
             </div>
           </div>
 

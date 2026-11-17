@@ -14,11 +14,12 @@ export default function ErrorBoundary({ error, reset }: { error: Error & { diges
   }, [error]);
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center p-6 text-center bg-surface">
-      <div className="bg-red-50 text-red-600 p-6 rounded-3xl max-w-md w-full shadow-lg border border-red-100">
-        <h2 className="text-xl font-bold mb-2">Произошла ошибка</h2>
-        <p className="text-sm mb-4">{error.message}</p>
-        <Button onClick={() => reset()}>Попробовать снова</Button>
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-bg p-6 text-center">
+      <div className="neo max-w-md w-full rounded-3xl border border-danger/30 p-6">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-danger/15 text-3xl">⚠️</div>
+        <h2 className="mb-2 text-xl font-bold text-ink">Произошла ошибка</h2>
+        <p className="mb-4 text-sm text-muted">{error.message}</p>
+        <Button variant="primary" onClick={() => reset()}>Попробовать снова</Button>
       </div>
     </main>
   );

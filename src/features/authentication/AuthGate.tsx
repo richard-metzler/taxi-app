@@ -21,7 +21,7 @@ export function AuthGate({ children, role }: { children: ReactNode; role: AppRol
   // Пока сессия не загружена (и во время перенаправления) показываем спиннер.
   if (loading || !user || user.role !== role) {
     return (
-      <main className="flex min-h-dvh items-center justify-center">
+      <main className="flex min-h-dvh items-center justify-center bg-bg">
         <Spinner className="h-8 w-8 text-accent" />
       </main>
     );

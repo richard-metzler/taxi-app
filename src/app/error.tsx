@@ -9,7 +9,7 @@ export default function AppError({ error }: { error: Error & { digest?: string }
   }, [error]);
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 bg-bg px-6 text-center">
       <div className="neo flex h-16 w-16 items-center justify-center rounded-2xl text-3xl">⚠️</div>
       <h1 className="text-xl font-bold">Что-то пошло не так</h1>
       <p className="text-muted">

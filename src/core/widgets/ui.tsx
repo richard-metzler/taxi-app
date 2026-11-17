@@ -99,12 +99,14 @@ export function BottomNav({ items = PASSENGER_NAV }: { items?: NavItem[] }) {
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-2 text-xs font-semibold ${
-              active ? "neo-inset text-accent" : "text-muted"
+            aria-current={active ? "page" : undefined}
+            className={`relative flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-2 text-xs font-semibold transition-colors ${
+              active ? "neo-inset text-accent" : "text-muted hover:text-ink"
             }`}
           >
             <span className="text-xl leading-none">{item.icon}</span>
             {item.label}
+            {active ? <span className="absolute bottom-0.5 h-0.5 w-6 rounded-full bg-accent" aria-hidden="true" /> : null}
           </Link>
         );
       })}

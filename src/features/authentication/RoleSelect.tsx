@@ -73,7 +73,7 @@ export function RoleSelect({ onChoose }: { onChoose: (role: AppRole) => void }) 
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-10">
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-bg px-6 py-10">
       <div className="mb-8 flex flex-col items-center justify-center">
         <AppLogo className="h-auto w-56 max-w-full drop-shadow-sm" />
       </div>

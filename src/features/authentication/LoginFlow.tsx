@@ -219,7 +219,7 @@ export function LoginFlow({ role, notice }: Props) {
     : "Войдите по номеру телефона и паролю.";
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-10">
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-bg px-6 py-10">
       <div className="mb-6 flex flex-col items-center justify-center gap-3">
         <AppLogo className="h-auto w-48 max-w-full drop-shadow-sm" />
         <div className="flex items-center gap-2 text-sm">

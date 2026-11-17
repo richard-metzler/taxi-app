@@ -96,7 +96,7 @@ export default function DriverHistoryPage() {
 
         <section className="neo flex flex-col gap-1 p-4">
           <div className="text-xs font-semibold text-muted">Доход за период</div>
-          <div className="text-3xl font-bold text-ink">{formatMoney(income)}</div>
+          <div className="text-3xl font-bold text-accent">{formatMoney(income)}</div>
           <div className="mt-1 text-sm text-muted">
             {filtered.length} {tripWord(filtered.length)}
           </div>
@@ -124,12 +124,12 @@ export default function DriverHistoryPage() {
 
             <div className="neo-inset flex flex-col gap-2 px-3.5 py-3">
               <div className="flex items-start gap-2.5">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">А</span>
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-bg">А</span>
                 <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{trip.pickupAddress}</span>
               </div>
               <div className="ml-2 h-3 w-px bg-border" aria-hidden="true" />
               <div className="flex items-start gap-2.5">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success text-[10px] font-bold text-white">Б</span>
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success text-[10px] font-bold text-bg">Б</span>
                 <span className="min-w-0 flex-1 truncate text-sm text-ink">{trip.destinationAddress}</span>
               </div>
             </div>
@@ -138,7 +138,7 @@ export default function DriverHistoryPage() {
               <div className="min-w-0 truncate text-xs text-muted">
                 {trip.passengerName} · {trip.tariffName}
               </div>
-              <div className="shrink-0 text-lg font-bold text-ink">{formatMoney(trip.price)}</div>
+              <div className="shrink-0 text-lg font-bold text-accent">{formatMoney(trip.price)}</div>
             </div>
           </article>
         ))}

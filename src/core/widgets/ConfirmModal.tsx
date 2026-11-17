@@ -49,14 +49,15 @@ export function ConfirmModal({
 
   return (
     <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="neo-btn w-full max-w-sm rounded-[32px] bg-surface p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+      <div className="neo w-full max-w-sm rounded-[32px] p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="mx-auto mb-4 h-1.5 w-11 rounded-full bg-white/20" aria-hidden="true" />
         <h2 className="mb-2 text-center text-xl font-bold text-ink">{title}</h2>
         <p className="mb-6 text-center text-sm text-muted">{message}</p>
 
         <div className="flex gap-3">
           <button
             onClick={() => closeRef.current()}
-            className="neo-btn flex h-12 flex-1 items-center justify-center rounded-2xl bg-white text-base font-semibold text-ink active:bg-gray-50"
+            className="neo-btn flex h-12 flex-1 items-center justify-center rounded-2xl text-base font-semibold text-ink"
           >
             {cancelText}
           </button>
@@ -65,9 +66,11 @@ export function ConfirmModal({
               // Подтверждение закрывает окно само (через onConfirm), отмена не вызывается.
               onConfirm();
             }}
-            className={`neo-btn flex h-12 flex-1 items-center justify-center rounded-2xl bg-white text-base font-semibold active:bg-gray-50 ${
-              isDestructive ? "text-red-500" : "text-accent"
-            }`}
+            className={
+              isDestructive
+                ? "neo-btn flex h-12 flex-1 items-center justify-center rounded-2xl bg-danger/15 text-base font-semibold text-danger"
+                : "neo-btn-primary flex h-12 flex-1 items-center justify-center rounded-2xl text-base font-semibold"
+            }
           >
             {confirmText}
           </button>

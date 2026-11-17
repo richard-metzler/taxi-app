@@ -13,14 +13,14 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Рядом",
-  description: "Заказ такси: адрес, стоимость, поиск водителя, поездка",
+  description: "Рядом — заказ такси: адрес, расчёт стоимости, поиск водителя и поездка",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#E9EDF2",
+  themeColor: "#0B0D10",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
