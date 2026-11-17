@@ -230,31 +230,36 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
   }, [props.route]);
 
   // Подгонка границ с учётом реальной высоты перекрывающей панели.
+  // Берём все точки маршрута (routeGeometry), чтобы линия целиком помещалась в видимую область.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !props.fitKey) return;
+    if (!map) return;
     const pts: L.LatLngExpression[] = [];
+    if (props.route && props.route.length > 1) {
+      for (const [lat, lng] of props.route) pts.push([lat, lng]);
+    }
     if (props.pickup) pts.push([props.pickup.latitude, props.pickup.longitude]);
     if (props.destination) pts.push([props.destination.latitude, props.destination.longitude]);
     if (props.driver) pts.push([props.driver.latitude, props.driver.longitude]);
+    if (pts.length === 0) return;
     const bottom = (props.focusPaddingBottom ?? 0) + 24;
+    const bounds = L.latLngBounds(pts);
     if (pts.length >= 2) {
-      map.fitBounds(L.latLngBounds(pts), {
+      map.fitBounds(bounds, {
         paddingTopLeft: [24, 24],
         paddingBottomRight: [24, bottom],
         maxZoom: 16,
       });
-    } else if (pts.length === 1) {
-      // Одна точка: центрируем её в видимой части карты выше панели.
-      map.flyToBounds(L.latLngBounds([pts[0], pts[0]]), {
+    } else {
+      // Одна точка: flyToBounds с асимметричным padding сам поставит её выше панели.
+      map.flyToBounds(bounds, {
         paddingTopLeft: [24, 24],
         paddingBottomRight: [24, bottom],
         maxZoom: 15,
         animate: false,
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.fitKey, props.focusPaddingBottom]);
+  }, [props.fitKey, props.focusPaddingBottom, props.route, props.pickup, props.destination, props.driver]);
 
   // Внешняя команда центрирования — тоже в видимую область выше панели.
   useEffect(() => {

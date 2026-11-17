@@ -130,7 +130,8 @@ export default function HomePage() {
       setDestination(place);
       setDestinationText(s.address);
     }
-    setFlyTo({ point: place, nonce: Date.now() });
+    // Центрированием управляет fitBounds по точкам/маршруту с учётом высоты панели,
+    // поэтому отдельный flyTo здесь не нужен — он перебил бы центрирование.
     setActiveInput(null); // Закрываем подсказки
   };
 
