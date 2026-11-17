@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/core/widgets/ui";
+import { useState, type FormEvent } from "react";
+import { GlassCard, TaxiArt, TuberBackdrop, TuberHeader } from "@/core/widgets/TuberUI";
 import { api } from "@/shared/api";
 
 /** Сжатие изображения до data URL, чтобы не переполнить память сервера и конверт RPC. */
@@ -28,6 +28,13 @@ const compressImage = async (file: File): Promise<string> => {
   });
 };
 
+const FIELD =
+  "w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-base text-white outline-none placeholder:text-white/35 focus:border-[#FFC400]/70";
+const LABEL = "mb-1 block text-sm font-bold text-white";
+const FILE_INPUT =
+  "w-full text-sm text-white/70 file:mr-4 file:rounded-xl file:border-0 file:bg-[#FFC400]/15 file:px-4 file:py-2 file:text-sm file:font-bold file:text-[#FFC400] hover:file:bg-[#FFC400]/25";
+
+/** Анкета водителя: тёмная форма, жёлтая CTA и оранжевая 3D-машина. */
 export function DriverSetup({ onComplete }: { onComplete: () => void }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -44,7 +51,7 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!selfie || !licensePhoto) {
       setError("Пожалуйста, прикрепите селфи и фото прав");
@@ -90,68 +97,81 @@ export function DriverSetup({ onComplete }: { onComplete: () => void }) {
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-bg p-6">
-      <div className="neo-btn p-6 rounded-3xl">
-        <h1 className="text-2xl font-bold text-ink mb-2">Данные водителя</h1>
-        <p className="text-sm text-muted mb-6">Заполните информацию. Она уйдёт на модерацию администратору.</p>
+    <main className="relative flex min-h-dvh w-full flex-col overflow-hidden bg-[#07071A] text-white">
+      <TuberBackdrop />
+      <TaxiArt view="front" className="pointer-events-none absolute -bottom-6 left-1/2 z-0 h-52 w-80 -translate-x-1/2 opacity-25" />
 
-        {error && <div className="neo-inset text-danger p-3 rounded-xl mb-4 text-sm" role="alert">{error}</div>}
+      <div className="relative z-10 flex flex-1 flex-col">
+        <TuberHeader onBack={undefined} onProfile={undefined} />
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label className="block text-sm font-bold text-ink mb-1">Ваше имя</label>
-            <input type="text" required placeholder="Например: Сергей" className="neo-inset w-full p-3 rounded-xl outline-none text-ink placeholder:text-muted" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-ink mb-1">Телефон (необязательно)</label>
-            <input type="tel" placeholder="+7 XXX XXX-XX-XX" className="neo-inset w-full p-3 rounded-xl outline-none text-ink placeholder:text-muted" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-ink mb-1">Пароль (необязательно)</label>
-            <input type="password" placeholder="Для входа по номеру" className="neo-inset w-full p-3 rounded-xl outline-none text-ink placeholder:text-muted" value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-ink mb-1">Марка автомобиля</label>
-            <input type="text" required placeholder="Например: Kia" className="neo-inset w-full p-3 rounded-xl outline-none text-ink placeholder:text-muted" value={brand} onChange={(e) => setBrand(e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-ink mb-1">Модель автомобиля</label>
-            <input type="text" required placeholder="Например: Rio" className="neo-inset w-full p-3 rounded-xl outline-none text-ink placeholder:text-muted" value={model} onChange={(e) => setModel(e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-ink mb-1">Госномер</label>
-            <input type="text" required placeholder="Например: А123ВС70" className="neo-inset w-full p-3 rounded-xl outline-none text-ink placeholder:text-muted" value={plate} onChange={(e) => setPlate(e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-ink mb-1">Цвет авто</label>
-            <input type="text" required placeholder="Например: Белый" className="neo-inset w-full p-3 rounded-xl outline-none text-ink placeholder:text-muted" value={color} onChange={(e) => setColor(e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-ink mb-1">Класс автомобиля</label>
-            <select
-              className="neo-inset w-full p-3 rounded-xl outline-none text-ink"
-              value={vehicleClass}
-              onChange={(e) => setVehicleClass(e.target.value)}
-            >
-              <option value="econom" className="bg-card text-ink">Эконом</option>
-              <option value="comfort" className="bg-card text-ink">Комфорт</option>
-              <option value="business" className="bg-card text-ink">Бизнес</option>
-            </select>
-          </div>
+        <div className="flex flex-1 flex-col px-4 pb-6 pt-5">
+          <GlassCard className="p-6">
+            <h1 className="mb-2 text-2xl font-black text-white">Данные водителя</h1>
+            <p className="mb-6 text-sm text-white/70">Заполните информацию. Она уйдёт на модерацию администратору.</p>
 
-          <div>
-            <label className="block text-sm font-bold text-ink mb-1">Селфи</label>
-            <input type="file" accept="image/*" capture="user" required className="w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-accent/10 file:text-accent hover:file:bg-accent/20" onChange={(e) => setSelfie(e.target.files?.[0] || null)} />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-ink mb-1">Фото водительского удостоверения</label>
-            <input type="file" accept="image/*" required className="w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-accent/10 file:text-accent hover:file:bg-accent/20" onChange={(e) => setLicensePhoto(e.target.files?.[0] || null)} />
-          </div>
+            {error && (
+              <div className="mb-4 rounded-2xl border border-red-400/40 bg-red-500/15 p-3 text-sm text-red-300" role="alert">
+                {error}
+              </div>
+            )}
 
-          <Button type="submit" variant="primary" className="mt-2 w-full" loading={loading}>
-            Отправить на модерацию
-          </Button>
-        </form>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div>
+                <label className={LABEL}>Ваше имя</label>
+                <input type="text" required placeholder="Например: Сергей" className={FIELD} value={name} onChange={(e) => setName(e.target.value)} />
+              </div>
+              <div>
+                <label className={LABEL}>Телефон (необязательно)</label>
+                <input type="tel" placeholder="+7 XXX XXX-XX-XX" className={FIELD} value={phone} onChange={(e) => setPhone(e.target.value)} />
+              </div>
+              <div>
+                <label className={LABEL}>Пароль (необязательно)</label>
+                <input type="password" placeholder="Для входа по номеру" className={FIELD} value={password} onChange={(e) => setPassword(e.target.value)} />
+              </div>
+              <div>
+                <label className={LABEL}>Марка автомобиля</label>
+                <input type="text" required placeholder="Например: Kia" className={FIELD} value={brand} onChange={(e) => setBrand(e.target.value)} />
+              </div>
+              <div>
+                <label className={LABEL}>Модель автомобиля</label>
+                <input type="text" required placeholder="Например: Rio" className={FIELD} value={model} onChange={(e) => setModel(e.target.value)} />
+              </div>
+              <div>
+                <label className={LABEL}>Госномер</label>
+                <input type="text" required placeholder="Например: А123ВС70" className={FIELD} value={plate} onChange={(e) => setPlate(e.target.value)} />
+              </div>
+              <div>
+                <label className={LABEL}>Цвет авто</label>
+                <input type="text" required placeholder="Например: Белый" className={FIELD} value={color} onChange={(e) => setColor(e.target.value)} />
+              </div>
+              <div>
+                <label className={LABEL}>Класс автомобиля</label>
+                <select className={FIELD} value={vehicleClass} onChange={(e) => setVehicleClass(e.target.value)}>
+                  <option value="econom" className="bg-[#16191f] text-white">Эконом</option>
+                  <option value="comfort" className="bg-[#16191f] text-white">Комфорт</option>
+                  <option value="business" className="bg-[#16191f] text-white">Бизнес</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={LABEL}>Селфи</label>
+                <input type="file" accept="image/*" capture="user" required className={FILE_INPUT} onChange={(e) => setSelfie(e.target.files?.[0] || null)} />
+              </div>
+              <div>
+                <label className={LABEL}>Фото водительского удостоверения</label>
+                <input type="file" accept="image/*" required className={FILE_INPUT} onChange={(e) => setLicensePhoto(e.target.files?.[0] || null)} />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="mt-2 flex min-h-14 w-full items-center justify-center rounded-2xl bg-[#FFC400] text-base font-extrabold text-[#1a1200] shadow-[0_0_22px_rgba(255,196,0,0.3)] disabled:opacity-50"
+              >
+                {loading ? "Отправляем…" : "Отправить на модерацию"}
+              </button>
+            </form>
+          </GlassCard>
+        </div>
       </div>
     </main>
   );

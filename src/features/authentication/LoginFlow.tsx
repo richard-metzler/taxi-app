@@ -8,12 +8,17 @@ import { clearStoredRole, type AppRole } from "@/shared/role";
 import { normalizePhone } from "@/core/phone";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, passwordPolicyError } from "@/core/password-policy";
 import { DRIVER_CLASSES, validateVehicle, type DriverClassId } from "@/core/vehicle";
-import { AppLogo } from "@/core/widgets/AppLogo";
+import { BrandMark } from "@/core/widgets/BrandMark";
 import { Button, ErrorBanner } from "@/core/widgets/ui";
+import { GlassCard, TaxiArt, TuberBackdrop } from "@/core/widgets/TuberUI";
 
 type Mode = "login" | "register";
 
 type Props = { role: AppRole; notice?: string | null };
+
+/** Поле ввода в стиле эталона: стеклянная ячейка с жёлтым фокусом. */
+const inputClass =
+  "w-full rounded-2xl border border-white/25 bg-white/10 px-4 py-4 text-base text-white outline-none transition placeholder:text-white/45 focus:border-[#FFC400] focus:bg-white/15 disabled:opacity-60";
 
 function PasswordField({
   id,
@@ -33,14 +38,14 @@ function PasswordField({
   const [visible, setVisible] = useState(false);
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-sm font-semibold" htmlFor={id}>{label}</label>
-      <div className="neo-input flex items-center gap-2 px-4">
+      <label className="text-sm font-semibold text-white/85" htmlFor={id}>{label}</label>
+      <div className="flex items-center gap-2 rounded-2xl border border-white/25 bg-white/10 pl-4 backdrop-blur-xl focus-within:border-[#FFC400]">
         <input
           id={id}
           name={id}
           type={visible ? "text" : "password"}
           autoComplete={registration ? "new-password" : "current-password"}
-          className="min-w-0 flex-1 bg-transparent py-4 text-base outline-none"
+          className="min-w-0 flex-1 bg-transparent py-4 text-base text-white outline-none placeholder:text-white/45"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={registration ? "Придумайте пароль" : "Введите пароль"}
@@ -51,7 +56,7 @@ function PasswordField({
         />
         <button
           type="button"
-          className="shrink-0 rounded-lg px-1 py-3 text-xs font-semibold text-accent"
+          className="shrink-0 rounded-xl px-3 py-3 text-xs font-bold text-[#FFC400]"
           aria-label={visible ? `Скрыть пароль: ${label}` : `Показать пароль: ${label}`}
           aria-pressed={visible}
           onClick={() => setVisible((current) => !current)}
@@ -85,13 +90,13 @@ function TextField({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-sm font-semibold" htmlFor={id}>{label}</label>
+      <label className="text-sm font-semibold text-white/85" htmlFor={id}>{label}</label>
       <input
         id={id}
         name={id}
         type="text"
         autoComplete={autoComplete ?? "off"}
-        className="neo-input px-4 py-4 text-base"
+        className={inputClass}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
@@ -219,155 +224,180 @@ export function LoginFlow({ role, notice }: Props) {
     : "Войдите по номеру телефона и паролю.";
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-bg px-6 py-10">
-      <div className="mb-6 flex flex-col items-center justify-center gap-3">
-        <AppLogo className="h-auto w-48 max-w-full drop-shadow-sm" />
-        <div className="flex items-center gap-2 text-sm">
-          <span id="auth-role-badge" className="neo-inset rounded-full px-3 py-1 text-xs font-bold text-accent">
-            {isDriver ? "🚖 Водитель" : "🧍 Пассажир"}
-          </span>
-          <button
-            type="button"
-            id="auth-change-role"
-            onClick={() => { localStorage.setItem("max_auto_login_disabled", "true"); changeRole(); }}
-            disabled={busy}
-            className="text-xs font-semibold text-accent underline underline-offset-4"
-          >
-            Сменить роль
-          </button>
-        </div>
+    <main className="relative flex min-h-dvh w-full flex-col overflow-hidden bg-[#07071A] text-white">
+      <TuberBackdrop />
+
+      {/* Декоративная машина внизу экрана */}
+      <div className="pointer-events-none absolute -bottom-16 left-1/2 z-0 h-56 w-[360px] max-w-[110%] -translate-x-1/2 opacity-70">
+        <TaxiArt view="front" className="h-full w-full" />
       </div>
 
-      {notice ? (
-        <div className="neo-inset mb-5 px-4 py-3 text-sm font-semibold text-accent" role="status">{notice}</div>
-      ) : null}
-
-      <section className="neo flex flex-col gap-5 p-5 sm:p-6" aria-label={registering ? "Регистрация" : "Вход в аккаунт"}>
-        <div className="neo-inset flex gap-1 p-1" role="tablist" aria-label="Способ входа">
-          {(["login", "register"] as const).map((tab) => (
+      <div className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-10">
+        <div className="mb-6 flex flex-col items-center justify-center gap-3">
+          <BrandMark className="h-16 w-16 drop-shadow-[0_10px_22px_rgba(0,0,0,0.5)]" />
+          <span className="text-[36px] font-black leading-none tracking-tight">рядом</span>
+          <div className="flex items-center gap-3 text-sm">
+            <span id="auth-role-badge" className="rounded-full border border-[#FFC400]/50 bg-[#FFC400]/15 px-3 py-1 text-xs font-bold text-[#FFC400]">
+              {isDriver ? "🚖 Водитель" : "🧍 Пассажир"}
+            </span>
             <button
-              key={tab}
-              id={`auth-tab-${tab}`}
               type="button"
-              role="tab"
-              aria-selected={mode === tab}
-              aria-controls="auth-form-panel"
+              id="auth-change-role"
+              onClick={() => { localStorage.setItem("max_auto_login_disabled", "true"); changeRole(); }}
               disabled={busy}
-              onClick={() => switchMode(tab)}
-              className={`min-h-11 flex-1 rounded-xl px-3 py-2 text-sm font-bold transition-shadow ${mode === tab ? "neo-sm text-accent" : "text-muted"}`}
+              className="text-xs font-bold text-[#FFC400] underline underline-offset-4 disabled:opacity-50"
             >
-              {tab === "login" ? "Вход" : "Регистрация"}
+              Сменить роль
             </button>
-          ))}
+          </div>
         </div>
 
-        <div id="auth-form-panel" role="tabpanel" aria-labelledby={`auth-tab-${mode}`}>
-          <h1 className="text-xl font-bold">{heading}</h1>
-          <p className="mt-1 text-sm text-muted">{hint}</p>
+        {notice ? (
+          <div className="mb-5 rounded-2xl border border-[#FFC400]/35 bg-[#FFC400]/10 px-4 py-3 text-sm font-semibold text-[#FFC400]" role="status">{notice}</div>
+        ) : null}
 
-          <form onSubmit={onSubmit} className="mt-5 flex flex-col gap-4" aria-busy={busy}>
-            {registering ? (
-              <TextField
-                id="auth-name"
-                label="Ваше имя"
-                value={name}
-                onChange={setName}
-                placeholder="Как к вам обращаться?"
-                maxLength={60}
-                disabled={busy}
-                autoComplete="given-name"
-              />
-            ) : null}
-
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold" htmlFor="login-phone">Номер телефона</label>
-              <input
-                id="login-phone"
-                name="phone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                className="neo-input px-4 py-4 text-lg"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                placeholder="+7 999 123-45-67"
-                disabled={busy}
-                required
-              />
+        <GlassCard className="p-5 sm:p-6">
+          <div aria-label={registering ? "Регистрация" : "Вход в аккаунт"}>
+            <div className="flex gap-1 rounded-2xl border border-white/20 bg-white/10 p-1" role="tablist" aria-label="Способ входа">
+              {(["login", "register"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  id={`auth-tab-${tab}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === tab}
+                  aria-controls="auth-form-panel"
+                  disabled={busy}
+                  onClick={() => switchMode(tab)}
+                  className={`relative min-h-11 flex-1 rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
+                    mode === tab ? "text-[#FFC400]" : "text-white/55 hover:text-white/85"
+                  }`}
+                >
+                  {tab === "login" ? "Вход" : "Регистрация"}
+                  {mode === tab ? (
+                    <span className="absolute inset-x-4 -bottom-0.5 h-[3px] rounded-full bg-[#FFC400]" aria-hidden="true" />
+                  ) : null}
+                </button>
+              ))}
             </div>
 
-            <PasswordField
-              key={`${mode}-password`}
-              id="auth-password"
-              label="Пароль"
-              value={password}
-              onChange={setPassword}
-              registration={registering}
-              disabled={busy}
-            />
-            {registering ? (
-              <>
-                <p className="-mt-2 text-xs text-muted">От 8 до 128 символов. Используйте пароль, который не применяете на других сайтах.</p>
+            <div id="auth-form-panel" role="tabpanel" aria-labelledby={`auth-tab-${mode}`} className="mt-6">
+              <h1 className="text-2xl font-bold leading-tight">{heading}</h1>
+              <p className="mt-1 text-sm text-white/70">{hint}</p>
+
+              <form onSubmit={onSubmit} className="mt-5 flex flex-col gap-4" aria-busy={busy}>
+                {registering ? (
+                  <TextField
+                    id="auth-name"
+                    label="Ваше имя"
+                    value={name}
+                    onChange={setName}
+                    placeholder="Как к вам обращаться?"
+                    maxLength={60}
+                    disabled={busy}
+                    autoComplete="given-name"
+                  />
+                ) : null}
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-semibold text-white/85" htmlFor="login-phone">Номер телефона</label>
+                  <input
+                    id="login-phone"
+                    name="phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    className={`${inputClass} text-lg`}
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    placeholder="+7 999 123-45-67"
+                    disabled={busy}
+                    required
+                  />
+                </div>
+
                 <PasswordField
-                  id="auth-password-confirm"
-                  label="Повторите пароль"
-                  value={confirmation}
-                  onChange={setConfirmation}
-                  registration
+                  key={`${mode}-password`}
+                  id="auth-password"
+                  label="Пароль"
+                  value={password}
+                  onChange={setPassword}
+                  registration={registering}
                   disabled={busy}
                 />
-                {confirmation && password !== confirmation ? <p className="text-xs text-danger" role="status">Пароли не совпадают</p> : null}
-              </>
-            ) : null}
+                {registering ? (
+                  <>
+                    <p className="-mt-2 text-xs text-white/60">От 8 до 128 символов. Используйте пароль, который не применяете на других сайтах.</p>
+                    <PasswordField
+                      id="auth-password-confirm"
+                      label="Повторите пароль"
+                      value={confirmation}
+                      onChange={setConfirmation}
+                      registration
+                      disabled={busy}
+                    />
+                    {confirmation && password !== confirmation ? <p className="text-xs text-[#FF8A8A]" role="status">Пароли не совпадают</p> : null}
+                  </>
+                ) : null}
 
-            {registering && isDriver ? (
-              <fieldset className="flex flex-col gap-4 border-0 p-0" aria-label="Автомобиль">
-                <legend className="mb-1 text-sm font-bold text-ink">Ваш автомобиль</legend>
-                <div className="grid grid-cols-2 gap-3">
-                  <TextField id="vehicle-brand" label="Марка" value={brand} onChange={setBrand} placeholder="Lada" maxLength={40} disabled={busy} />
-                  <TextField id="vehicle-model" label="Модель" value={model} onChange={setModel} placeholder="Vesta" maxLength={40} disabled={busy} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <TextField id="vehicle-color" label="Цвет" value={color} onChange={setColor} placeholder="Белый" maxLength={30} disabled={busy} />
-                  <TextField id="vehicle-plate" label="Госномер" value={plate} onChange={setPlate} placeholder="А123ВС70" maxLength={12} disabled={busy} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <span className="text-sm font-semibold" id="vehicle-class-label">Класс автомобиля</span>
-                  <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-labelledby="vehicle-class-label">
-                    {DRIVER_CLASSES.map((item) => (
-                      <button
-                        key={item.id}
-                        id={`vehicle-class-${item.id}`}
-                        type="button"
-                        role="radio"
-                        aria-checked={tariffId === item.id}
-                        disabled={busy}
-                        onClick={() => setTariffId(item.id)}
-                        className={`min-h-11 rounded-xl px-2 py-2 text-sm font-bold ${tariffId === item.id ? "neo-inset text-accent" : "neo-btn text-ink"}`}
-                      >
-                        {item.name}
-                      </button>
-                    ))}
+                {registering && isDriver ? (
+                  <fieldset className="flex flex-col gap-4 border-0 p-0" aria-label="Автомобиль">
+                    <legend className="mb-1 text-sm font-bold text-white">Ваш автомобиль</legend>
+                    <div className="grid grid-cols-2 gap-3">
+                      <TextField id="vehicle-brand" label="Марка" value={brand} onChange={setBrand} placeholder="Lada" maxLength={40} disabled={busy} />
+                      <TextField id="vehicle-model" label="Модель" value={model} onChange={setModel} placeholder="Vesta" maxLength={40} disabled={busy} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <TextField id="vehicle-color" label="Цвет" value={color} onChange={setColor} placeholder="Белый" maxLength={30} disabled={busy} />
+                      <TextField id="vehicle-plate" label="Госномер" value={plate} onChange={setPlate} placeholder="А123ВС70" maxLength={12} disabled={busy} />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-semibold text-white/85" id="vehicle-class-label">Класс автомобиля</span>
+                      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-labelledby="vehicle-class-label">
+                        {DRIVER_CLASSES.map((item) => (
+                          <button
+                            key={item.id}
+                            id={`vehicle-class-${item.id}`}
+                            type="button"
+                            role="radio"
+                            aria-checked={tariffId === item.id}
+                            disabled={busy}
+                            onClick={() => setTariffId(item.id)}
+                            className={`min-h-11 rounded-xl border px-2 py-2 text-sm font-bold transition-colors disabled:opacity-50 ${
+                              tariffId === item.id
+                                ? "border-[#FFC400] bg-[#FFC400] text-[#07071A]"
+                                : "border-white/20 bg-white/10 text-white"
+                            }`}
+                          >
+                            {item.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </fieldset>
+                ) : null}
+
+                {error ? (
+                  <div className="[&_.neo-inset]:!rounded-[20px] [&_.neo-inset]:!border [&_.neo-inset]:!border-white/20 [&_.neo-inset]:!bg-white/10 [&_.neo-inset]:!shadow-none [&_.neo-inset]:!backdrop-blur-2xl">
+                    <ErrorBanner message={error} />
                   </div>
-                </div>
-              </fieldset>
-            ) : null}
+                ) : null}
+                <Button type="submit" variant="primary" loading={busy} className="!rounded-2xl">
+                  {registering ? "Зарегистрироваться" : "Войти"}
+                </Button>
+              </form>
+            </div>
 
-            <ErrorBanner message={error} />
-            <Button type="submit" variant="primary" loading={busy}>
-              {registering ? "Зарегистрироваться" : "Войти"}
-            </Button>
-          </form>
-        </div>
-
-        <p className="text-center text-sm text-muted">
-          {registering ? "Уже есть аккаунт?" : "Нет аккаунта?"}{" "}
-          <button type="button" disabled={busy} onClick={() => switchMode(registering ? "login" : "register")} className="font-semibold text-accent underline underline-offset-4">
-            {registering ? "Войти" : "Зарегистрироваться"}
-          </button>
-        </p>
-        {registering ? <p className="text-center text-xs text-muted">Номер телефона используется как логин. SMS-подтверждение не требуется.</p> : null}
-      </section>
+            <p className="mt-6 text-center text-sm text-white/70">
+              {registering ? "Уже есть аккаунт?" : "Нет аккаунта?"}{" "}
+              <button type="button" disabled={busy} onClick={() => switchMode(registering ? "login" : "register")} className="font-bold text-[#FFC400] underline underline-offset-4 disabled:opacity-50">
+                {registering ? "Войти" : "Зарегистрироваться"}
+              </button>
+            </p>
+            {registering ? <p className="mt-2 text-center text-xs text-white/55">Номер телефона используется как логин. SMS-подтверждение не требуется.</p> : null}
+          </div>
+        </GlassCard>
+      </div>
     </main>
   );
 }

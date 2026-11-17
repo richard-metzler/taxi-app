@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { AppLogo } from "@/core/widgets/AppLogo";
+import { BrandMark } from "@/core/widgets/BrandMark";
+import { GlassCard, TaxiArt, TuberBackdrop } from "@/core/widgets/TuberUI";
 import type { AppRole } from "@/shared/role";
 import { setSessionToken } from "@/shared/api";
 
@@ -73,39 +74,60 @@ export function RoleSelect({ onChoose }: { onChoose: (role: AppRole) => void }) 
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-bg px-6 py-10">
-      <div className="mb-8 flex flex-col items-center justify-center">
-        <AppLogo className="h-auto w-56 max-w-full drop-shadow-sm" />
+    <main className="relative flex min-h-dvh w-full flex-col overflow-hidden bg-[#07071A] text-white">
+      <TuberBackdrop />
+
+      {/* Оранжевая машина на фоне, как в эталоне */}
+      <div className="pointer-events-none absolute -bottom-14 left-1/2 z-0 h-56 w-[360px] max-w-[110%] -translate-x-1/2 opacity-90">
+        <TaxiArt view="top" className="h-full w-full" />
       </div>
 
-      <section className="flex flex-col gap-4" aria-label="Выбор роли">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">Кто вы?</h1>
-          <p className="mt-1 text-sm text-muted">
-            {nameHint ? `${nameHint}, выберите роль — в следующий раз приложение откроется сразу.` : "Выберите роль — в следующий раз приложение откроется сразу."}
-          </p>
+      <div className="relative z-10 flex flex-1 flex-col justify-center px-6 py-12">
+        <div className="flex flex-col items-center">
+          <BrandMark className="h-20 w-20 drop-shadow-[0_12px_24px_rgba(0,0,0,0.5)]" />
+          <span className="mt-2 text-[42px] font-black leading-none tracking-tight">рядом</span>
         </div>
-        {OPTIONS.map((option) => (
-          <button
-            key={option.role}
-            id={`role-${option.role}`}
-            type="button"
-            onClick={() => handleSelect(option.role)}
-            disabled={loading !== null}
-            className="neo-btn flex min-h-24 items-center gap-4 px-5 py-4 text-left disabled:opacity-50"
-          >
-            <span className="neo-inset flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl" aria-hidden="true">
-              {option.icon}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-lg font-bold text-ink">{option.title}</span>
-              <span className="block text-sm text-muted">{option.text}</span>
-            </span>
-            <span className="text-xl text-accent" aria-hidden="true">→</span>
-          </button>
-        ))}
-        <p className="text-center text-xs text-muted">Роль можно сменить на экране входа или в настройках.</p>
-      </section>
+
+        <GlassCard className="mt-10 p-6">
+          <span className="inline-flex h-1.5 w-10 rounded-full bg-[#FFC400]" aria-hidden="true" />
+          <div className="mt-4 text-center" aria-label="Выбор роли">
+            <h1 className="text-[28px] font-bold leading-tight">Кто вы?</h1>
+            <p className="mt-2 text-sm leading-snug text-white/70">
+              {nameHint
+                ? `${nameHint}, выберите роль — в следующий раз приложение откроется сразу.`
+                : "Выберите роль — в следующий раз приложение откроется сразу."}
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3">
+            {OPTIONS.map((option) => (
+              <button
+                key={option.role}
+                id={`role-${option.role}`}
+                type="button"
+                onClick={() => handleSelect(option.role)}
+                disabled={loading !== null}
+                className="group flex min-h-24 items-center gap-4 rounded-[22px] border border-white/20 bg-white/10 p-4 text-left backdrop-blur-xl transition disabled:opacity-50"
+              >
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#FFC400]/15 text-3xl" aria-hidden="true">
+                  {option.icon}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-lg font-bold text-white">{option.title}</span>
+                  <span className="block text-sm leading-snug text-white/70">{option.text}</span>
+                </span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FFC400] text-lg font-bold text-[#07071A]" aria-hidden="true">
+                  →
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <p className="mt-5 text-center text-xs text-white/55">
+            Роль можно сменить на экране входа или в настройках.
+          </p>
+        </GlassCard>
+      </div>
     </main>
   );
 }

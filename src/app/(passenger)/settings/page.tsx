@@ -1,19 +1,21 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/shared/api";
 import { useRequireAuth, useSession } from "@/shared/session";
 import { clearStoredRole } from "@/shared/role";
 import { NAVIGATOR_TEXT, type UserProfile } from "@/shared/types";
 import { formatPhone } from "@/core/phone";
-import { Button, BottomNav, ErrorBanner, PageHeader, Spinner } from "@/core/widgets/ui";
+import { Button, BottomNav, ErrorBanner, Spinner } from "@/core/widgets/ui";
 import { BrandMark } from "@/core/widgets/BrandMark";
+import { GlassCard, TuberBackdrop, TuberHeader } from "@/core/widgets/TuberUI";
 
 const NAVIGATORS = Object.keys(NAVIGATOR_TEXT) as UserProfile["navigator"][];
 
 function Chevron() {
   return (
-    <svg viewBox="0 0 20 20" className="h-4 w-4 text-muted" fill="none" aria-hidden="true">
+    <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0 text-white/55" fill="none" aria-hidden="true">
       <path d="M7.5 4.5L13 10L7.5 15.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -21,10 +23,10 @@ function Chevron() {
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="neo overflow-hidden">
-      <h2 className="px-4 pt-3 text-xs font-semibold uppercase tracking-wide text-muted">{title}</h2>
-      <div className="divide-y divide-muted/15 px-4 pb-2">{children}</div>
-    </section>
+    <GlassCard className="overflow-hidden p-5">
+      <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#FFC400]">{title}</h2>
+      <div className="mt-2 divide-y divide-white/15">{children}</div>
+    </GlassCard>
   );
 }
 
@@ -41,20 +43,20 @@ type RowProps = {
 function Row({ icon, label, value, note, trailing, onClick, disabled }: RowProps) {
   const content = (
     <>
-      <span className="neo-inset flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg" aria-hidden="true">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-lg" aria-hidden="true">
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold text-ink">{label}</span>
-        {value ? <span className="block truncate text-xs text-muted">{value}</span> : null}
-        {note ? <span className="mt-0.5 block text-[11px] leading-tight text-muted">{note}</span> : null}
+        <span className="block truncate text-sm font-semibold text-white">{label}</span>
+        {value ? <span className="block truncate text-xs text-white/65">{value}</span> : null}
+        {note ? <span className="mt-0.5 block text-[11px] leading-tight text-white/50">{note}</span> : null}
       </span>
       {trailing ? <span className="shrink-0">{trailing}</span> : null}
     </>
   );
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} disabled={disabled} className="flex w-full items-center gap-3 py-3 text-left disabled:opacity-50">
+      <button type="button" onClick={onClick} disabled={disabled} className="flex w-full items-center gap-3 py-3 text-left transition-opacity disabled:opacity-50">
         {content}
       </button>
     );
@@ -63,6 +65,7 @@ function Row({ icon, label, value, note, trailing, onClick, disabled }: RowProps
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { user, loading } = useRequireAuth();
   const { setUser, signOut } = useSession();
   const [name, setName] = useState("");
@@ -79,8 +82,9 @@ export default function SettingsPage() {
 
   if (loading || !user) {
     return (
-      <main className="flex min-h-dvh items-center justify-center">
-        <Spinner className="h-8 w-8 text-accent" />
+      <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#07071A] text-white">
+        <TuberBackdrop />
+        <Spinner className="relative z-10 h-8 w-8 text-[#FFC400]" />
       </main>
     );
   }
@@ -115,28 +119,34 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-bg">
-      <PageHeader title="Профиль" back="/home" />
+    <main className="relative flex min-h-dvh w-full flex-col bg-[#07071A] text-white">
+      <TuberBackdrop />
 
-      <div className="flex flex-1 flex-col gap-4 px-3 pb-3">
+      <TuberHeader onBack={() => router.push("/home")} onProfile={() => router.push("/settings")} />
+
+      <h1 className="relative z-10 mt-8 px-6 text-[34px] font-bold leading-tight tracking-tight">Профиль</h1>
+
+      <div className="relative z-10 flex flex-1 flex-col gap-4 px-4 pb-4 pt-6">
         {/* Шапка профиля: знак «Р», имя и телефон */}
-        <section className="neo flex items-center gap-4 p-4">
-          <div className="neo-inset flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full">
-            <BrandMark className="h-12 w-12" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-xl font-bold text-ink">{user.name}</div>
-            <div className="mt-0.5 text-sm text-muted">{formatPhone(user.phone)}</div>
-          </div>
-          <span className="neo-inset shrink-0 rounded-full px-3 py-1 text-xs font-semibold text-accent">Пассажир</span>
-        </section>
+        <GlassCard className="flex items-center gap-4 p-5">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#FFC400] ring-2 ring-white/40">
+            <BrandMark className="h-10 w-10" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-xl font-bold text-white">{user.name}</span>
+            <span className="mt-0.5 block text-sm text-white/70">{formatPhone(user.phone)}</span>
+          </span>
+          <span className="shrink-0 rounded-full border border-[#FFC400]/50 bg-[#FFC400]/15 px-3 py-1 text-xs font-semibold text-[#FFC400]">
+            Пассажир
+          </span>
+        </GlassCard>
 
         <Group title="Личные данные">
           <Row icon="✏️" label="Имя" value={user.name} trailing={<Chevron />} onClick={() => setNameOpen((open) => !open)} />
           {nameOpen ? (
             <div className="flex flex-col gap-2 py-3">
               <input
-                className="neo-input px-4 py-3 text-base"
+                className="w-full rounded-2xl border border-white/25 bg-white/10 px-4 py-3 text-base text-white outline-none transition placeholder:text-white/45 focus:border-[#FFC400] focus:bg-white/15"
                 value={name}
                 maxLength={60}
                 aria-label="Имя"
@@ -147,10 +157,11 @@ export default function SettingsPage() {
                 loading={saving}
                 disabled={!name.trim() || name.trim() === user.name}
                 onClick={() => save({ name })}
+                className="!rounded-2xl"
               >
                 Сохранить имя
               </Button>
-              {saved ? <div className="text-center text-sm text-success">Сохранено</div> : null}
+              {saved ? <div className="text-center text-sm font-semibold text-[#7BE8A6]">Сохранено</div> : null}
             </div>
           ) : null}
           <Row icon="📱" label="Телефон" value={formatPhone(user.phone)} />
@@ -158,7 +169,7 @@ export default function SettingsPage() {
         </Group>
 
         <Group title="Карта и навигатор">
-          <div className="py-3 text-xs leading-snug text-muted">
+          <div className="py-3 text-xs leading-snug text-white/60">
             Переключает подложку карты на главном экране и в заказе (Яндекс Карты, 2ГИС или Google Карты) и сохраняется в профиле.
           </div>
           {NAVIGATORS.map((n) => (
@@ -167,16 +178,14 @@ export default function SettingsPage() {
               type="button"
               disabled={saving}
               onClick={() => save({ navigator: n })}
-              className="flex w-full items-center gap-3 py-3 text-left disabled:opacity-50"
+              className="flex w-full items-center gap-3 py-3 text-left transition-opacity disabled:opacity-50"
             >
-              <span className="neo-inset flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg" aria-hidden="true">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-lg" aria-hidden="true">
                 🧭
               </span>
-              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{NAVIGATOR_TEXT[n]}</span>
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">{NAVIGATOR_TEXT[n]}</span>
               {user.navigator === n ? (
-                <span className="text-base font-bold text-accent" aria-label="Выбрано">
-                  ✓
-                </span>
+                <span className="text-lg font-bold text-[#FFC400]" aria-label="Выбрано">✓</span>
               ) : null}
             </button>
           ))}
@@ -186,21 +195,25 @@ export default function SettingsPage() {
         <Group title="Аккаунт">
           <Row icon="🔄" label="Сменить роль" trailing={<Chevron />} onClick={() => void leave(true)} disabled={signingOut} />
           <div className="flex items-center gap-3 py-3">
-            <span className="neo-inset flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg" aria-hidden="true">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-lg" aria-hidden="true">
               🚪
             </span>
             <button
               type="button"
               onClick={() => void leave(false)}
               disabled={signingOut}
-              className="flex-1 text-left text-base font-semibold text-danger disabled:opacity-50"
+              className="flex-1 text-left text-base font-semibold text-[#FF5A5A] transition-opacity disabled:opacity-50"
             >
               Выйти из аккаунта
             </button>
           </div>
         </Group>
 
-        <ErrorBanner message={error} />
+        {error ? (
+          <div className="[&_.neo-inset]:!rounded-[20px] [&_.neo-inset]:!border [&_.neo-inset]:!border-white/20 [&_.neo-inset]:!bg-white/10 [&_.neo-inset]:!shadow-none [&_.neo-inset]:!backdrop-blur-2xl">
+            <ErrorBanner message={error} />
+          </div>
+        ) : null}
       </div>
 
       <div className="sticky bottom-0 z-40">

@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
 import { api, ApiError } from "@/shared/api";
 import { useRequireAuth, useSession } from "@/shared/session";
 import { clearStoredRole } from "@/shared/role";
@@ -9,12 +9,37 @@ import type { DriverStateView } from "@/shared/driver-types";
 import { NAVIGATOR_TEXT, type UserProfile } from "@/shared/types";
 import { BrandMark } from "@/core/widgets/BrandMark";
 import { formatPhone } from "@/core/phone";
-import { BottomNav, Button, DRIVER_NAV, ErrorBanner, PageHeader, Spinner } from "@/core/widgets/ui";
+import { GlassCard, TaxiArt, TuberBackdrop, TuberHeader } from "@/core/widgets/TuberUI";
+import { BottomNav, Button, DRIVER_NAV, ErrorBanner, Spinner } from "@/core/widgets/ui";
 
 const NAVIGATORS = Object.keys(NAVIGATOR_TEXT) as UserProfile["navigator"][];
 
+function Group({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <GlassCard className="overflow-hidden p-5">
+      <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#FFC400]">{title}</h2>
+      <div className="mt-2 divide-y divide-white/15">{children}</div>
+    </GlassCard>
+  );
+}
+
+function Row({ icon, label, value }: { icon: string; label: string; value?: string | null }) {
+  return (
+    <div className="flex items-center gap-3 py-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-lg" aria-hidden="true">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold text-white">{label}</span>
+        {value ? <span className="block truncate text-xs text-white/65">{value}</span> : null}
+      </span>
+    </div>
+  );
+}
+
 /** Профиль водителя: имя, телефон, автомобиль, навигатор и выход. */
 export default function DriverSettingsPage() {
+  const router = useRouter();
   const { user } = useRequireAuth();
   const { setUser, signOut } = useSession();
   const [name, setName] = useState("");
@@ -43,8 +68,8 @@ export default function DriverSettingsPage() {
 
   if (!user) {
     return (
-      <main className="flex min-h-dvh items-center justify-center">
-        <Spinner className="h-8 w-8 text-accent" />
+      <main className="flex min-h-dvh items-center justify-center bg-[#07071A]">
+        <Spinner className="h-8 w-8 text-[#FFC400]" />
       </main>
     );
   }
@@ -81,98 +106,135 @@ export default function DriverSettingsPage() {
   const vehicle = profile?.vehicle;
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
-      <PageHeader title="Профиль" />
-      <div className="flex flex-1 flex-col gap-4 px-3 pb-3">
-        <ErrorBanner message={error} />
+    <main className="relative flex min-h-dvh w-full flex-col bg-[#07071A] text-white">
+      <TuberBackdrop />
 
-        <section className="neo flex items-center gap-4 p-5">
-          <BrandMark className="h-16 w-16 rounded-2xl" />
-          <div className="min-w-0">
-            <div className="truncate text-xl font-bold text-ink">{name || user.name}</div>
-            <div className="mt-0.5 text-sm text-muted">{formatPhone(user.phone)}</div>
+      <TuberHeader onBack={() => router.back()} onProfile={() => router.push("/driver/settings")} />
+
+      <h1 className="relative z-10 mt-8 px-6 text-[34px] font-bold leading-tight tracking-tight">Профиль</h1>
+
+      <div className="relative z-10 flex flex-1 flex-col gap-4 px-4 pb-4 pt-6">
+        {/* Шапка профиля: знак «Р», имя и телефон */}
+        <GlassCard className="flex items-center gap-4 p-5">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#FFC400] ring-2 ring-white/40">
+            <BrandMark className="h-10 w-10" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-xl font-bold text-white">{name || user.name}</span>
+            <span className="mt-0.5 block text-sm text-white/70">{formatPhone(user.phone)}</span>
+          </span>
+          <span className="shrink-0 rounded-full border border-[#FFC400]/50 bg-[#FFC400]/15 px-3 py-1 text-xs font-semibold text-[#FFC400]">
+            Водитель
+          </span>
+        </GlassCard>
+
+        <Group title="Личные данные">
+          <Row icon="✏️" label="Имя" value={name || user.name} />
+          <div className="flex flex-col gap-2 py-3">
+            <input
+              id="driver-name"
+              className="w-full rounded-2xl border border-white/25 bg-white/10 px-4 py-3 text-base text-white outline-none transition placeholder:text-white/45 focus:border-[#FFC400] focus:bg-white/15"
+              value={name}
+              maxLength={60}
+              aria-label="Имя"
+              onChange={(e) => setName(e.target.value)}
+            />
+            <Button
+              variant="primary"
+              loading={saving}
+              disabled={!name.trim() || name.trim() === user.name}
+              onClick={() => void save({ name })}
+              className="!rounded-2xl"
+            >
+              Сохранить имя
+            </Button>
+            {saved ? <div className="text-center text-sm font-semibold text-[#7BE8A6]">Сохранено</div> : null}
           </div>
-        </section>
+          <Row icon="📱" label="Телефон" value={formatPhone(user.phone)} />
+        </Group>
 
-        <section className="neo flex flex-col gap-3 p-4">
-          <label className="text-xs font-semibold text-muted" htmlFor="driver-name">Имя</label>
-          <input id="driver-name" className="neo-input px-4 py-3 text-base" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
-          <Button variant="primary" loading={saving} disabled={!name.trim() || name.trim() === user.name} onClick={() => save({ name })}>
-            Сохранить имя
-          </Button>
-          {saved ? <div className="text-center text-sm text-success">Сохранено</div> : null}
-        </section>
-
-        <section className="neo flex flex-col gap-2 p-4">
-          <div className="text-xs font-semibold text-muted">Автомобиль</div>
+        <Group title="Автомобиль">
           {vehicle ? (
-            <div className="neo-inset flex items-center gap-3 px-4 py-3">
-              <div className="neo flex h-11 w-11 shrink-0 items-center justify-center" aria-hidden="true">
-                <Image src="/images/taxi-side.svg" alt="" width={36} height={36} className="h-8 w-8" draggable={false} />
-              </div>
-              <div className="min-w-0">
-                <div className="truncate font-bold text-ink">
+            <div className="flex items-center gap-3 py-3">
+              <span className="relative h-12 w-16 shrink-0">
+                <TaxiArt view="front" className="absolute inset-0" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-white">
                   {vehicle.brand} {vehicle.model}
-                </div>
-                <div className="truncate text-xs text-muted">
+                </span>
+                <span className="block truncate text-xs text-white/65">
                   {vehicle.color.toLowerCase()} · {vehicle.plate} · {vehicle.tariffName}
-                </div>
-              </div>
+                </span>
+              </span>
             </div>
           ) : (
-            <div className="text-sm text-muted">Загрузка…</div>
+            <div className="py-3 text-sm text-white/65">Загрузка…</div>
           )}
-        </section>
+        </Group>
 
-        <section className="neo flex flex-col gap-2 p-4">
-          <div className="text-xs font-semibold text-muted">Карта и навигатор</div>
-          <div className="text-xs text-muted">
+        {/* Карта и навигатор */}
+        <Group title="Карта и навигатор">
+          <div className="py-3 text-xs leading-snug text-white/60">
             Выбранный навигатор открывается кнопкой «Открыть в навигаторе» в заказе, а его карта показывается на главном экране.
           </div>
-          <div className="mt-1 flex flex-col gap-2">
-            {NAVIGATORS.map((n) => (
-              <button
-                key={n}
-                disabled={saving}
-                onClick={() => save({ navigator: n })}
-                className={`flex items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold ${
-                  user.navigator === n ? "neo-inset text-accent" : "neo-btn text-ink"
-                }`}
-              >
-                {NAVIGATOR_TEXT[n]}
-                <span
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs ${
-                    user.navigator === n ? "bg-accent text-bg" : "text-transparent"
-                  }`}
-                  aria-hidden={user.navigator !== n}
-                >
-                  ✓
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
+          {NAVIGATORS.map((n) => (
+            <button
+              key={n}
+              type="button"
+              disabled={saving}
+              onClick={() => void save({ navigator: n })}
+              className="flex w-full items-center gap-3 py-3 text-left transition-opacity disabled:opacity-50"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-lg" aria-hidden="true">
+                🧭
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">{NAVIGATOR_TEXT[n]}</span>
+              {user.navigator === n ? (
+                <span className="text-lg font-bold text-[#FFC400]" aria-label="Выбрано">✓</span>
+              ) : null}
+            </button>
+          ))}
+        </Group>
 
         {/* Управление аккаунтом — отдельная секция, а не часть навигатора */}
-        <section className="neo flex flex-col gap-3 p-4">
-          <div className="text-xs font-semibold text-muted">Аккаунт</div>
-          <button
-            onClick={() => void leave(true)}
-            disabled={signingOut}
-            className="neo-btn flex h-14 w-full items-center justify-center text-base font-semibold text-ink disabled:opacity-50"
-          >
-            Сменить роль (выйти из аккаунта)
-          </button>
-          <button
-            onClick={() => void leave(false)}
-            disabled={signingOut}
-            className="neo-btn flex h-14 w-full items-center justify-center text-base font-semibold text-danger disabled:opacity-50"
-          >
-            Выйти из аккаунта
-          </button>
-        </section>
+        <Group title="Аккаунт">
+          <div className="flex items-center gap-3 py-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-lg" aria-hidden="true">
+              🔄
+            </span>
+            <button
+              type="button"
+              onClick={() => void leave(true)}
+              disabled={signingOut}
+              className="flex-1 text-left text-base font-semibold text-white transition-opacity disabled:opacity-50"
+            >
+              Сменить роль (выйти из аккаунта)
+            </button>
+          </div>
+          <div className="flex items-center gap-3 py-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-lg" aria-hidden="true">
+              🚪
+            </span>
+            <button
+              type="button"
+              onClick={() => void leave(false)}
+              disabled={signingOut}
+              className="flex-1 text-left text-base font-semibold text-[#FF5A5A] transition-opacity disabled:opacity-50"
+            >
+              Выйти из аккаунта
+            </button>
+          </div>
+        </Group>
+
+        {error ? (
+          <div className="[&_.neo-inset]:!rounded-[20px] [&_.neo-inset]:!border [&_.neo-inset]:!border-white/20 [&_.neo-inset]:!bg-white/10 [&_.neo-inset]:!shadow-none [&_.neo-inset]:!backdrop-blur-2xl">
+            <ErrorBanner message={error} />
+          </div>
+        ) : null}
       </div>
-      <div className="sticky bottom-0">
+
+      <div className="sticky bottom-0 z-40">
         <BottomNav items={DRIVER_NAV} />
       </div>
     </main>

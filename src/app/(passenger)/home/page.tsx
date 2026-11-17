@@ -3,16 +3,16 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { api, ApiError, type AddressSuggestion } from "@/shared/api";
 import { useRequireAuth } from "@/shared/session";
 import { formatDuration, formatMoney, type EstimateView, type Place } from "@/shared/types";
 import type { LatLng } from "@/core/geo";
-import { Button, ErrorBanner, Spinner } from "@/core/widgets/ui";
+import { ErrorBanner, Spinner } from "@/core/widgets/ui";
 import { AppLogo } from "@/core/widgets/AppLogo";
 import { BrandMark } from "@/core/widgets/BrandMark";
-import { CollapsibleSheet } from "@/core/widgets/CollapsibleSheet";
-import { buildHomeCollapsedSummary } from "@/core/collapsible";
+import { buildHomeCollapsedSummary, resolveSheetSwipe } from "@/core/collapsible";
+import { GlassCard, TuberBackdrop, TuberHeader } from "@/core/widgets/TuberUI";
 import { AddressInput } from "@/features/addresses/AddressInput";
 import { OrderDetailsSheet } from "@/features/ride_order/OrderDetailsSheet";
 import { useGeolocation } from "@/features/home/useGeolocation";
@@ -20,6 +20,13 @@ import { useGeolocation } from "@/features/home/useGeolocation";
 const RideMap = dynamic(() => import("@/features/map/RideMap"), { ssr: false });
 
 const DEFAULT_CENTER: LatLng = { latitude: 56.4846, longitude: 84.9476 };
+const CATEGORIES = ["ТАКСИ", "ДОСТАВКА"];
+
+/** Круглая кнопка над картой: тонкая синяя рамка и свечение как в эталоне. */
+const ROUND_GLOW = {
+  border: "1.5px solid #5B8FE8",
+  boxShadow: "0 0 18px rgba(91,143,232,0.55), inset 0 0 12px rgba(91,143,232,0.18)",
+};
 
 export default function HomePage() {
   const router = useRouter();
@@ -46,7 +53,7 @@ export default function HomePage() {
   // Состояния для фокуса и списка подсказок
   const [activeInput, setActiveInput] = useState<"pickup" | "destination" | null>(null);
 
-  const CATEGORIES = ["ТАКСИ", "ДОСТАВКА"];
+  const sheetStartYRef = useRef<number | null>(null);
 
   // Восстановление активного заказа
   useEffect(() => {
@@ -189,17 +196,40 @@ export default function HomePage() {
     }
   };
 
+  // Свайп шапки панели — та же логика, что у общего CollapsibleSheet.
+  const onSheetPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest("button, a, input, select, textarea")) return;
+    sheetStartYRef.current = event.clientY;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const onSheetPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    if (sheetStartYRef.current === null) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    const action = resolveSheetSwipe(event.clientY - sheetStartYRef.current);
+    sheetStartYRef.current = null;
+    if (action === "collapse" && !sheetCollapsed) setSheetCollapsed(true);
+    if (action === "expand" && sheetCollapsed) setSheetCollapsed(false);
+  };
+
+  const onSheetPointerCancel = (event: PointerEvent<HTMLDivElement>) => {
+    sheetStartYRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
   if (loading || !user || checkingActive) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-bg">
-        {/* Логотип */}
-        <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
-          <AppLogo className="h-auto w-56 max-w-full" />
+      <main className="relative flex min-h-dvh flex-col items-center justify-center gap-6 bg-[#07071A] text-white">
+        <TuberBackdrop />
+        <div className="relative z-10 flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
+          <AppLogo className="relative z-10 h-auto w-56 max-w-full" />
         </div>
-
-        {/* Кружок загрузки (с задержкой появления) */}
-        <div className="animate-in fade-in duration-1000 delay-500">
-          <Spinner className="h-8 w-8 text-accent" />
+        <div className="relative z-10 animate-in fade-in duration-1000 delay-500">
+          <Spinner className="h-8 w-8 text-[#FFC400]" />
         </div>
       </main>
     );
@@ -210,7 +240,9 @@ export default function HomePage() {
   const panelTitle = estimate ? "Маршрут готов" : "Куда поедем?";
 
   return (
-    <main className="relative flex h-dvh flex-col overflow-hidden bg-bg">
+    <main className="relative flex h-dvh w-full flex-col overflow-hidden bg-[#07071A] text-white">
+      <TuberBackdrop />
+
       {/* Карта */}
       <div className="absolute inset-0">
         <RideMap
@@ -226,86 +258,95 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Плашка свободных машин */}
+      {/* Тонировка карты под тёмную палитру эталона */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        aria-hidden="true"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(7,7,26,0.94) 0%, rgba(7,7,26,0.45) 22%, rgba(7,7,26,0.18) 48%, rgba(7,7,26,0.72) 100%)",
+        }}
+      />
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[46%]"
+        aria-hidden="true"
+        style={{
+          background: "radial-gradient(ellipse at 50% 100%, rgba(78,143,224,0.55) 0%, rgba(44,93,170,0.32) 45%, rgba(7,7,26,0) 78%)",
+        }}
+      />
+
+      <TuberHeader
+        onBack={() => router.push("/home")}
+        onProfile={() => router.push("/settings")}
+        brand="рядом"
+      />
+
+      {/* Компактная glass-плашка свободных машин */}
       {availableDrivers !== null && !activeInput && (
-        <div className="absolute left-4 top-4 z-[1000] flex items-center gap-2 rounded-2xl border border-white/10 bg-[#16191F]/90 px-3 py-2 shadow-lg backdrop-blur-md">
+        <div className="absolute left-6 top-[100px] z-[1000] flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 backdrop-blur-2xl">
           <Image
-            src="/images/taxi-side.svg"
+            src="/images/taxi-3d-front.svg"
             alt=""
-            width={32}
-            height={20}
+            width={22}
+            height={16}
             unoptimized
-            className="h-5 w-auto"
+            className="h-4 w-auto"
             draggable={false}
           />
-          <div className={`h-3.5 w-3.5 rounded-full ${availableDrivers > 0 ? "bg-success" : "bg-danger"}`} />
-          {availableDrivers > 0 && <span className="font-bold text-ink">{availableDrivers}</span>}
+          <span className={`h-2.5 w-2.5 rounded-full ${availableDrivers > 0 ? "bg-success" : "bg-danger"}`} aria-hidden="true" />
+          {availableDrivers > 0 ? <span className="text-sm font-bold text-white">{availableDrivers}</span> : null}
         </div>
       )}
 
-      {/* Время прибытия на карте */}
-      {arrivalTime && !activeInput && (
-        <div className="absolute right-4 top-[22%] z-[1000] rounded-full border border-white/10 bg-[#16191F]/90 px-4 py-2 text-sm font-bold text-ink shadow-lg backdrop-blur-md">
-          прибытие в {arrivalTime}
-        </div>
-      )}
-
-      {/* Время подачи у точки посадки */}
-      {estimate && !activeInput && (
-        <div className="absolute left-4 top-[34%] z-[1000] flex flex-col items-center rounded-2xl bg-accent px-3 py-2 text-[#1a1200] shadow-lg">
-          <span className="text-2xl font-black leading-none">
-            {Math.max(1, Math.round((estimate.tariffs.find((t) => t.id === selectedTariffId)?.pickupEtaSeconds ?? 300) / 60))}
-          </span>
-          <span className="text-[11px] font-semibold uppercase tracking-wide">мин</span>
-        </div>
-      )}
-
-      {/* Кнопки поверх карты: назад и геолокация */}
+      {/* Кнопки поверх карты: назад к адресам и геолокация */}
       {!activeInput && (
         <div
-          className={`pointer-events-none absolute inset-x-0 z-[1000] flex items-center justify-between px-4 transition-all duration-200 ${
-            sheetCollapsed ? "bottom-[14dvh]" : "bottom-[54dvh]"
+          className={`pointer-events-none absolute inset-x-0 z-[1000] flex items-center justify-between px-6 transition-all duration-200 ${
+            sheetCollapsed ? "bottom-[16dvh]" : "bottom-[62dvh]"
           }`}
         >
           <button
             type="button"
             aria-label="Назад к адресам"
             onClick={() => { setEstimate(null); setSelectedTariffId(null); setCategory("ТАКСИ"); }}
-            className="neo-btn pointer-events-auto flex h-12 w-12 items-center justify-center text-2xl text-ink"
+            className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-xl text-white backdrop-blur-2xl"
+            style={ROUND_GLOW}
           >
-            ←
+            ‹
           </button>
           <button
             type="button"
             aria-label="Моё местоположение"
             onClick={onLocate}
-            className="neo-btn pointer-events-auto flex h-12 w-12 items-center justify-center text-xl"
+            className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-xl text-white backdrop-blur-2xl"
+            style={ROUND_GLOW}
             disabled={geo.loading}
           >
-            {geo.loading ? <Spinner className="h-5 w-5 text-accent" /> : "◎"}
+            {geo.loading ? <Spinner className="h-5 w-5 text-[#FFC400]" /> : "◎"}
           </button>
         </div>
       )}
 
       {/* Ошибка расчёта или заказа — видна независимо от состояния нижней панели */}
       {error ? (
-        <div className="absolute left-3 right-3 top-16 z-[1000]">
+        <div className="absolute left-4 right-4 top-[148px] z-[1000]">
           <ErrorBanner message={error} />
         </div>
       ) : null}
 
       {/* Полноэкранный режим ввода адресов */}
       {activeInput ? (
-        <div className="absolute inset-0 z-[1500] flex h-full flex-col bg-bg">
-          <div className="flex items-center justify-between p-4 pb-2">
-            <button onClick={() => setActiveInput(null)} className="text-2xl text-ink">←</button>
-            <h2 className="text-lg font-bold text-ink">Куда поедем?</h2>
-            <div className="w-6" />
-          </div>
+        <div className="absolute inset-0 z-[1500] flex h-full flex-col bg-[#07071A] text-white">
+          <TuberBackdrop />
+          <TuberHeader
+            onBack={() => setActiveInput(null)}
+            onProfile={() => router.push("/settings")}
+            brand="Куда поедем?"
+          />
 
-          <div className="flex flex-col gap-3 px-4 pb-4">
+          <div className="relative z-10 mt-7 flex flex-col gap-4 px-6">
             <div className="flex flex-col gap-1">
-              <span className="text-xs text-muted ml-2">Точка посадки</span>
+              <span className="ml-2 text-xs font-semibold text-white/60">Точка посадки</span>
               <AddressInput
                 label=""
                 icon="●"
@@ -318,7 +359,7 @@ export default function HomePage() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-xs text-muted ml-2">Куда</span>
+              <span className="ml-2 text-xs font-semibold text-white/60">Куда</span>
               <AddressInput
                 label=""
                 icon="■"
@@ -332,155 +373,223 @@ export default function HomePage() {
           </div>
 
           {/* Список подсказок (рендерится внутри AddressInput) */}
-          <div className="neo flex-1 overflow-y-auto rounded-t-3xl">
+          <div className="relative z-10 mt-5 flex-1 overflow-y-auto rounded-t-[28px] border-t border-white/20 bg-white/10 px-5 pt-4 backdrop-blur-2xl">
             <button
-              className="flex w-full items-center gap-3 border-b border-white/10 p-4 text-left active:bg-white/5"
+              className="flex w-full items-center gap-3 border-b border-white/10 p-3 text-left active:bg-white/5"
               onClick={() => { onLocate(); setActiveInput(null); }}
             >
-              <div className="neo-inset flex h-8 w-8 items-center justify-center rounded-full text-muted">📍</div>
-              <div>
-                <div className="font-semibold text-ink">Ваше местоположение</div>
-                <div className="text-xs text-muted">Определим по GPS</div>
-              </div>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10">📍</span>
+              <span>
+                <span className="block font-semibold text-white">Ваше местоположение</span>
+                <span className="block text-xs text-white/55">Определим по GPS</span>
+              </span>
             </button>
           </div>
         </div>
       ) : null}
 
-      {/* Сворачиваемая нижняя панель заказа. Содержимое остаётся в DOM при сворачивании. */}
-      <CollapsibleSheet
-        id="home-order-sheet"
-        collapsed={sheetCollapsed}
-        onCollapsedChange={setSheetCollapsed}
-        title={collapsedSummary.title}
-        subtitle={collapsedSummary.subtitle}
-        badge={collapsedSummary.badge}
-        maxHeightClass="max-h-[56dvh]"
-        headerExtra={<div className="truncate text-sm font-bold text-ink">{panelTitle}</div>}
-        footer={
-          sheetCollapsed ? null : (
-            <div className="neo pointer-events-auto mx-3 mb-2 flex items-center gap-2 p-2">
-              <BrandMark />
-              <Button
-                variant="primary"
-                className="min-h-14 flex-1 text-lg"
-                onClick={estimate ? placeOrder : buildRoute}
-                loading={estimate ? ordering : estimating}
-                disabled={estimate ? !selectedTariff : !pickup || !destination}
-              >
-                {estimate ? "Заказать" : "Построить маршрут"}
-              </Button>
+      {/* Нижняя glass-панель заказа. Содержимое остаётся в DOM при сворачивании. */}
+      <div className={`pointer-events-none relative z-[1000] mt-auto flex flex-col ${sheetCollapsed ? "" : "max-h-[62dvh]"}`}>
+        <GlassCard className="pointer-events-auto mx-3 mb-2 flex flex-col overflow-hidden">
+          <div
+            onPointerDown={onSheetPointerDown}
+            onPointerUp={onSheetPointerUp}
+            onPointerCancel={onSheetPointerCancel}
+            className="flex touch-pan-x flex-col gap-2 px-5 pt-3 select-none"
+          >
+            <div className="mx-auto h-1.5 w-11 rounded-full bg-white/25" aria-hidden="true" />
+            <div className="flex items-center justify-between gap-3 pb-1">
+              {sheetCollapsed ? (
+                <button
+                  type="button"
+                  aria-expanded={false}
+                  aria-controls="home-order-sheet-body"
+                  onClick={() => setSheetCollapsed(false)}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                >
+                  {collapsedSummary.badge ? (
+                    <span className="shrink-0 rounded-full bg-[#FFC400] px-2.5 py-1 text-xs font-bold text-[#07071A]">
+                      {collapsedSummary.badge}
+                    </span>
+                  ) : null}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[15px] font-bold text-white">{collapsedSummary.title}</span>
+                    {collapsedSummary.subtitle ? (
+                      <span className="block truncate text-xs text-white/55">{collapsedSummary.subtitle}</span>
+                    ) : null}
+                  </span>
+                </button>
+              ) : (
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[17px] font-bold text-white">{panelTitle}</div>
+                  {arrivalTime ? <div className="text-[12px] text-white/55">прибытие в {arrivalTime}</div> : null}
+                </div>
+              )}
+
               <button
                 type="button"
-                aria-label="Детали заказа"
-                disabled={!estimate}
-                onClick={() => setDetailsOpen(true)}
-                className="neo-btn flex h-12 w-12 shrink-0 items-center justify-center text-ink"
+                id="home-order-sheet-toggle"
+                aria-label={sheetCollapsed ? "Развернуть панель" : "Свернуть панель"}
+                aria-expanded={!sheetCollapsed}
+                aria-controls="home-order-sheet-body"
+                onClick={() => setSheetCollapsed(!sheetCollapsed)}
+                className="flex shrink-0 items-center gap-1.5 text-[13px] font-semibold text-[#FFC400]"
               >
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
-                  <path d="M4 7h10M18 7h2M4 17h2M10 17h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  <circle cx="16" cy="7" r="2.5" stroke="currentColor" strokeWidth="2" />
-                  <circle cx="8" cy="17" r="2.5" stroke="currentColor" strokeWidth="2" />
+                <span>{sheetCollapsed ? "Развернуть" : "Карта"}</span>
+                <svg
+                  className={`h-4 w-4 transition-transform duration-200 ${sheetCollapsed ? "rotate-180" : ""}`}
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
             </div>
-          )
-        }
-      >
-        {geo.error && !pickup && !estimate && (
-          <div className="flex items-center justify-between rounded-xl border border-accent/30 bg-accent/10 p-3 text-sm text-accent">
-            <span>Не удалось определить местоположение</span>
-            <button onClick={onLocate} className="font-bold underline">Повторить</button>
           </div>
-        )}
 
-        {/* Адреса: строка посадки и строка назначения */}
-        <div className="flex flex-col">
-          <button
-            type="button"
-            onClick={() => setActiveInput("pickup")}
-            className="flex items-center gap-3 py-2 text-left"
+          <div
+            id="home-order-sheet-body"
+            hidden={sheetCollapsed}
+            className={sheetCollapsed ? "hidden" : "flex flex-col gap-4 overflow-y-auto px-5 pb-4"}
           >
-            <span className="text-xl" aria-hidden="true">🚶</span>
-            <span className="min-w-0 flex-1 truncate text-lg font-semibold text-ink">
-              {pickupText || "Адрес отправления"}
-            </span>
-            <span className="shrink-0 rounded-full bg-muted/15 px-3 py-1.5 text-sm font-semibold text-muted">Подъезд</span>
-          </button>
-          <div className="h-px bg-muted/20" />
-          <button
-            type="button"
-            onClick={() => setActiveInput("destination")}
-            className="flex items-center gap-3 py-2 text-left"
-          >
-            <span className="text-xl" aria-hidden="true">🚶</span>
-            <span className="min-w-0 flex-1 truncate text-lg font-semibold text-ink">
-              {destinationText || "Куда едем?"}
-              {estimate ? <span className="font-normal text-muted"> · {formatDuration(estimate.durationSeconds)}</span> : null}
-            </span>
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted/15 text-xl font-bold text-muted">+</span>
-          </button>
-        </div>
+            {geo.error && !pickup && !estimate && (
+              <div className="flex items-center justify-between rounded-2xl border border-[#FFC400]/30 bg-[#FFC400]/10 p-3 text-sm text-[#FFC400]">
+                <span>Не удалось определить местоположение</span>
+                <button onClick={onLocate} className="font-bold underline">Повторить</button>
+              </div>
+            )}
 
-        {/* Категории тарифов */}
-        <div className="flex gap-4 overflow-x-auto border-b border-muted/15 scrollbar-hide">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => chooseCategory(c)}
-              className={`shrink-0 border-b-2 pb-2 text-sm font-bold uppercase tracking-wide transition-colors ${
-                category === c ? "border-accent text-ink" : "border-transparent text-muted/60"
-              }`}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
-
-        {/* Тарифы */}
-        {!estimate ? (
-          <p className="py-4 text-center text-sm text-muted">
-            Укажите адреса и нажмите «Построить маршрут», чтобы увидеть тарифы
-          </p>
-        ) : visibleTariffs.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted">Для этой категории тарифов пока нет предложений</p>
-        ) : (
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {visibleTariffs.map((t) => (
+            {/* Адреса: жёлтые маркеры А/Б и крупный жирный текст */}
+            <div className="relative flex flex-col">
+              <span className="absolute bottom-7 left-[6px] top-7 w-px bg-white/25" aria-hidden="true" />
               <button
-                key={t.id}
                 type="button"
-                onClick={() => setSelectedTariffId(t.id)}
-                className={`flex min-w-[118px] flex-col items-start gap-0.5 rounded-2xl border-2 p-2.5 text-left transition-all ${
-                  selectedTariffId === t.id
-                    ? "border-accent bg-[#16191F]"
-                    : "border-transparent bg-[#16191F]/70"
-                }`}
+                onClick={() => setActiveInput("pickup")}
+                className="relative flex items-center gap-3 py-2 text-left"
               >
-                <Image
-                  src="/images/taxi-side.svg"
-                  alt=""
-                  width={64}
-                  height={32}
-                  unoptimized
-                  className={`mb-1 h-7 w-auto shrink-0 ${selectedTariffId === t.id ? "" : "opacity-80"}`}
-                  draggable={false}
-                  aria-hidden="true"
-                />
-                <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-[#1a1200]">
-                  {formatDuration(t.pickupEtaSeconds)}
+                <span className="h-[14px] w-[14px] shrink-0 rounded-full bg-[#FFC400] ring-4 ring-[#FFC400]/20" aria-hidden="true" />
+                <span className="min-w-0 flex-1 truncate text-[18px] font-bold text-white">
+                  {pickupText || "Адрес отправления"}
                 </span>
-                <span className="mt-0.5 text-sm font-semibold text-ink">{t.name}</span>
-                <span className="text-lg font-bold text-ink">
-                  {selectedTariffId === t.id ? "⚡ " : ""}
-                  {formatMoney(t.price)}
+                <span className="shrink-0 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[13px] font-medium text-white/85">
+                  Подъезд
                 </span>
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() => setActiveInput("destination")}
+                className="relative flex items-center gap-3 py-2 text-left"
+              >
+                <span className="h-[14px] w-[14px] shrink-0 rounded-full bg-[#FFC400] ring-4 ring-[#FFC400]/20" aria-hidden="true" />
+                <span className="min-w-0 flex-1 truncate text-[18px] font-bold text-white">
+                  {destinationText || "Куда едем?"}
+                  {estimate ? <span className="font-normal text-white/55"> · {formatDuration(estimate.durationSeconds)}</span> : null}
+                </span>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-xl font-bold text-white">
+                  +
+                </span>
+              </button>
+            </div>
+
+            {/* Категории тарифов */}
+            <div className="flex gap-6 border-b border-white/15">
+              {CATEGORIES.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => chooseCategory(c)}
+                  className={`relative pb-3 text-[15px] font-bold tracking-wide transition-colors ${
+                    category === c ? "text-[#FFC400]" : "text-white/45"
+                  }`}
+                >
+                  {c}
+                  {category === c ? (
+                    <span className="absolute inset-x-0 -bottom-px h-[3px] rounded-full bg-[#FFC400]" aria-hidden="true" />
+                  ) : null}
+                </button>
+              ))}
+            </div>
+
+            {/* Тарифы */}
+            {!estimate ? (
+              <p className="py-3 text-center text-sm text-white/55">
+                Укажите адреса и нажмите «Построить маршрут», чтобы увидеть тарифы
+              </p>
+            ) : visibleTariffs.length === 0 ? (
+              <p className="py-3 text-center text-sm text-white/55">Для этой категории тарифов пока нет предложений</p>
+            ) : (
+              <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+                {visibleTariffs.map((t) => {
+                  const selected = selectedTariffId === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setSelectedTariffId(t.id)}
+                      className={`flex min-w-[134px] flex-col items-start gap-1 rounded-[22px] border p-3 text-left backdrop-blur-xl transition-all ${
+                        selected
+                          ? "border-[#FFC400] bg-[#FFC400]/10 shadow-[0_0_20px_rgba(255,196,0,0.18)]"
+                          : "border-white/20 bg-white/10"
+                      }`}
+                    >
+                      <span className="relative h-12 w-24 self-center">
+                        <Image
+                          src="/images/taxi-3d-front.svg"
+                          alt=""
+                          fill
+                          unoptimized
+                          className="object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.4)]"
+                          draggable={false}
+                          aria-hidden="true"
+                        />
+                      </span>
+                      <span className="rounded-full bg-[#FFC400] px-2.5 py-0.5 text-xs font-bold text-[#07071A]">
+                        {formatDuration(t.pickupEtaSeconds)}
+                      </span>
+                      <span className="mt-0.5 text-sm font-semibold text-white/90">{t.name}</span>
+                      <span className="text-xl font-bold text-white">
+                        {selected ? "⚡ " : ""}
+                        {formatMoney(t.price)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
+        </GlassCard>
+
+        {/* Нижняя панель действий */}
+        {sheetCollapsed ? null : (
+          <GlassCard className="pointer-events-auto mx-3 mb-3 flex items-center gap-3 p-3">
+            <BrandMark className="h-12 w-12 shrink-0" />
+            <button
+              type="button"
+              onClick={estimate ? placeOrder : buildRoute}
+              disabled={estimate ? !selectedTariff || ordering : !pickup || !destination || estimating}
+              className="flex h-[50px] flex-1 items-center justify-center gap-2 rounded-[25px] bg-[#FFC400] text-[17px] font-bold text-[#07071A] shadow-[0_8px_24px_rgba(255,196,0,0.35)] transition active:scale-[0.99] disabled:opacity-50"
+            >
+              {estimate ? (ordering ? <Spinner className="h-5 w-5" /> : null) : estimating ? <Spinner className="h-5 w-5" /> : null}
+              {estimate ? "Заказать" : "Построить маршрут"}
+            </button>
+            <button
+              type="button"
+              aria-label="Детали заказа"
+              disabled={!estimate}
+              onClick={() => setDetailsOpen(true)}
+              className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-2xl disabled:opacity-40"
+              style={ROUND_GLOW}
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                <path d="M4 7h10M18 7h2M4 17h2M10 17h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <circle cx="16" cy="7" r="2.5" stroke="currentColor" strokeWidth="2" />
+                <circle cx="8" cy="17" r="2.5" stroke="currentColor" strokeWidth="2" />
+              </svg>
+            </button>
+          </GlassCard>
         )}
-      </CollapsibleSheet>
+      </div>
 
       <OrderDetailsSheet
         open={detailsOpen}

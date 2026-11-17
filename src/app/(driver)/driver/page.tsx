@@ -1,15 +1,16 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { api, ApiError } from "@/shared/api";
 import { useRequireAuth } from "@/shared/session";
 import { driverStatusText, type AvailableOrderView } from "@/shared/driver-types";
 import { formatMoney } from "@/shared/types";
 import type { DriverAction } from "@/core/driver-flow";
 import type { LatLng } from "@/core/geo";
-import { BrandMark } from "@/core/widgets/BrandMark";
-import { CollapsibleSheet } from "@/core/widgets/CollapsibleSheet";
+import { resolveSheetSwipe } from "@/core/collapsible";
+import { GlassCard, RoundAction, TaxiArt, TuberBackdrop, TuberHeader } from "@/core/widgets/TuberUI";
 import { BottomNav, DRIVER_NAV, ErrorBanner, Spinner } from "@/core/widgets/ui";
 import { useGeolocation } from "@/features/home/useGeolocation";
 import { useDriverDashboard } from "@/features/driver/useDriverDashboard";
@@ -24,6 +25,7 @@ const RideMap = dynamic(() => import("@/features/map/RideMap"), { ssr: false });
 const DEFAULT_CENTER: LatLng = { latitude: 56.4846, longitude: 84.9476 };
 
 export default function DriverHomePage() {
+  const router = useRouter();
   const { user } = useRequireAuth();
   const { state, available, error, reload } = useDriverDashboard();
   const geo = useGeolocation();
@@ -40,6 +42,7 @@ export default function DriverHomePage() {
   const [todayEarnings, setTodayEarnings] = useState(0);
   const previousOrderId = useRef<string | null>(null);
   const centered = useRef(false);
+  const sheetStartY = useRef<number | null>(null);
 
   const [incomingOrder, setIncomingOrder] = useState<AvailableOrderView | null>(null);
   const [declineModalOpen, setDeclineModalOpen] = useState(false);
@@ -206,10 +209,30 @@ export default function DriverHomePage() {
     };
   }, []);
 
+  // Свайп шапки сворачивает/разворачивает панель, как в эталоне.
+  const onSheetPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest("button, a, input, select, textarea")) return;
+    sheetStartY.current = event.clientY;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const onSheetPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    if (sheetStartY.current === null) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    const action = resolveSheetSwipe(event.clientY - sheetStartY.current);
+    sheetStartY.current = null;
+    if (action === "collapse" && !collapsed) setCollapsed(true);
+    if (action === "expand" && collapsed) setCollapsed(false);
+  };
+
   if (!user || !state) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6">
-        {error ? <ErrorBanner message={error} onRetry={() => void reload()} /> : <Spinner className="h-8 w-8 text-accent" />}
+      <main className="relative flex min-h-dvh flex-col items-center justify-center gap-4 overflow-hidden px-6">
+        <TuberBackdrop />
+        <div className="relative z-10">
+          {error ? <ErrorBanner message={error} onRetry={() => void reload()} /> : <Spinner className="h-8 w-8 text-[#FFC400]" />}
+        </div>
       </main>
     );
   }
@@ -220,14 +243,15 @@ export default function DriverHomePage() {
 
   if (!state.driver.isApproved) {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-bg p-6 text-center">
-        <div className="neo-btn p-8 rounded-3xl">
-          <div className="w-16 h-16 bg-accent/20 text-accent rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+      <main className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden p-6">
+        <TuberBackdrop />
+        <GlassCard className="relative z-10 w-full max-w-md p-8 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#FFC400] bg-[#FFC400]/10 text-3xl">
             ⏳
           </div>
-          <h1 className="text-2xl font-bold text-ink mb-2">Анкета на модерации</h1>
-          <p className="text-muted mb-6">Мы проверяем ваши документы. Обычно это занимает до 24 часов.</p>
-        </div>
+          <h1 className="mb-2 text-2xl font-black text-white">Анкета на модерации</h1>
+          <p className="text-sm text-white/70">Мы проверяем ваши документы. Обычно это занимает до 24 часов.</p>
+        </GlassCard>
       </main>
     );
   }
@@ -251,8 +275,14 @@ export default function DriverHomePage() {
       : "";
 
   return (
-    <main className="relative flex h-dvh flex-col overflow-hidden">
-      <div className="absolute inset-0">
+    <main className="relative flex h-dvh flex-col overflow-hidden bg-[#07071A] text-white">
+      {/* Тёмный фон эталона с синим underglow */}
+      <div className="absolute inset-0 z-0">
+        <TuberBackdrop />
+      </div>
+
+      {/* Карта — тонкий подчинённый слой в нижней части: маршрут остаётся доступным, но не доминирует. */}
+      <div className="absolute inset-x-0 bottom-0 z-[1] h-[36%] opacity-[0.24] grayscale-[0.5]">
         <RideMap
           center={DEFAULT_CENTER}
           pickup={mapPickup}
@@ -265,49 +295,55 @@ export default function DriverHomePage() {
         />
       </div>
 
-      {/* Статус/приоритет слева и плашка аватара с заработком справа.
-          Плашка заработка скрывается во время активного заказа. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex items-start justify-between gap-3 p-4">
-        <div
-          className="pointer-events-auto neo flex min-h-12 items-center gap-2.5 rounded-full px-3.5 py-2"
-          aria-label={isOnline ? "На линии" : "Не на линии"}
-        >
-          <span className={`inline-block h-3.5 w-3.5 shrink-0 rounded-full ${isOnline ? "pulse-dot bg-accent" : "bg-muted"}`} />
-          <div className="leading-tight">
-            <div className="text-sm font-bold text-ink">{isOnline ? "На линии" : "Не на линии"}</div>
-            <div className="text-[10px] text-muted">
-              {currentOrder ? "Активный заказ" : isOnline ? "Приоритет: высокий" : "Приоритет: обычный"}
+      {/* Оранжевая 3D-машина по центру, частично за glass-панелью */}
+      <TaxiArt view="front" className="absolute bottom-[40%] left-1/2 z-[2] h-[32%] w-[78%] -translate-x-1/2" />
+
+      {/* Шапка «‹ Back / рядом / профиль» */}
+      <div className="relative z-10">
+        <TuberHeader onBack={() => router.back()} onProfile={() => router.push("/driver/settings")} />
+
+        {/* Жёлтый кружок статуса и плашка заработка в glass-стиле */}
+        <div className="mt-5 flex items-start justify-between gap-3 px-5">
+          <GlassCard className="!rounded-full px-4 py-2.5">
+            <div className="flex items-center gap-2.5">
+              <span
+                className={`inline-block h-4 w-4 shrink-0 rounded-full border-2 border-[#FFC400] ${
+                  isOnline ? "bg-[#FFC400] shadow-[0_0_14px_rgba(255,196,0,0.9)]" : "bg-transparent"
+                }`}
+              />
+              <div className="leading-tight">
+                <div className="text-sm font-extrabold text-white">{isOnline ? "На линии" : "Не на линии"}</div>
+                <div className="text-[10px] text-white/60">
+                  {currentOrder ? "Активный заказ" : isOnline ? "Приоритет: высокий" : "Приоритет: обычный"}
+                </div>
+              </div>
             </div>
-          </div>
+          </GlassCard>
+
+          {!currentOrder ? (
+            <GlassCard className="!rounded-full px-4 py-2.5 text-right">
+              <div className="text-sm font-extrabold text-[#FFC400]">{formatMoney(todayEarnings)}</div>
+              <div className="text-[10px] text-white/60">за сегодня</div>
+            </GlassCard>
+          ) : null}
         </div>
 
-        {!currentOrder ? (
-          <div className="pointer-events-auto neo flex min-h-12 items-center gap-2.5 rounded-full px-3 py-2" aria-label="Заработок за сегодня">
-            <BrandMark className="h-9 w-9" />
-            <div className="pr-1 text-right leading-tight">
-              <div className="text-sm font-bold text-accent">{formatMoney(todayEarnings)}</div>
-              <div className="text-[10px] text-muted">за сегодня</div>
-            </div>
+        {tracking.position ? (
+          <div className="absolute right-5 top-[10rem] z-20">
+            <RoundAction
+              glyph="◎"
+              label="Я здесь"
+              onClick={() => tracking.position && setFlyTo({ point: tracking.position, nonce: Date.now() })}
+            />
+          </div>
+        ) : null}
+
+        {error ? (
+          <div className="mx-4 mt-4">
+            <ErrorBanner message={`Нет связи с сервером: ${error}`} />
           </div>
         ) : null}
       </div>
-
-      {tracking.position ? (
-        <button
-          type="button"
-          onClick={() => tracking.position && setFlyTo({ point: tracking.position, nonce: Date.now() })}
-          className="neo-btn absolute right-4 top-[5.5rem] z-[1000] flex h-12 w-12 items-center justify-center text-xl"
-          aria-label="Моё местоположение"
-        >
-          ◎
-        </button>
-      ) : null}
-
-      {error ? (
-        <div className="absolute left-4 right-20 top-[5.5rem] z-[1000]">
-          <ErrorBanner message={`Нет связи с сервером: ${error}`} />
-        </div>
-      ) : null}
 
       {/* Входящий заказ (модалка) */}
       {incomingOrder && (
@@ -355,58 +391,117 @@ export default function DriverHomePage() {
         onCancel={() => setDeclineModalOpen(false)}
       />
 
-      <CollapsibleSheet
-        id="driver-sheet"
-        collapsed={collapsed}
-        onCollapsedChange={setCollapsed}
-        title={summary.title}
-        subtitle={summary.subtitle}
-        badge={summary.badge}
-        pulse={isOnline && !currentOrder}
-        collapseLabel="Свернуть панель водителя"
-        expandLabel="Развернуть панель водителя"
-        maxHeightClass="max-h-[75dvh]"
-        headerExtra={
-          <div className="flex items-center gap-2 text-sm font-bold text-ink">
-            {isOnline && !currentOrder ? <span className="pulse-dot inline-block h-3 w-3 rounded-full bg-accent" /> : null}
-            {currentOrder ? "Текущий заказ" : isOnline ? "На линии" : "Вы не на линии"}
-          </div>
-        }
-        footer={!collapsed ? <BottomNav items={DRIVER_NAV} /> : <div className="safe-bottom" />}
-      >
-        {notice ? (
-          <div className="neo-inset px-4 py-3 text-sm font-semibold text-accent" role="status">
-            {notice}
-          </div>
-        ) : null}
-        {isOnline && tracking.error ? <ErrorBanner message={tracking.error} /> : null}
-        <ErrorBanner message={actionError} />
-
-        {currentOrder ? (
-          <ActiveOrderPanel
-            order={currentOrder}
-            navigator={user.navigator}
-            busy={busy}
-            onAction={() => currentOrder.nextAction && void act(currentOrder.nextAction.action)}
-            onDecline={() => {
-              setDeclineTargetId(currentOrder.id);
-              setDeclineModalOpen(true);
+      {/* Нижняя glass-панель водителя. Содержимое остаётся в DOM при сворачивании. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1000] mt-auto flex flex-col">
+        <GlassCard className={`pointer-events-auto mx-3 mb-2 flex flex-col overflow-hidden ${collapsed ? "" : "max-h-[64dvh]"}`}>
+          <div
+            onPointerDown={onSheetPointerDown}
+            onPointerUp={onSheetPointerUp}
+            onPointerCancel={(event) => {
+              sheetStartY.current = null;
+              if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+              }
             }}
-          />
-        ) : isOnline ? (
-          <OnlinePanel
-            available={filteredAvailable}
-            selectedId={selectedId}
-            acceptingId={acceptingId}
-            busy={busy}
-            onSelect={setSelectedId}
-            onAccept={(id) => void accept(id)}
-            onGoOffline={() => void goOffline()}
-          />
+            className="flex touch-pan-x flex-col gap-1.5 px-4 pb-2 pt-3 select-none"
+          >
+            <div className="mx-auto h-1.5 w-11 rounded-full bg-white/25" aria-hidden="true" />
+            <div className="flex items-center justify-between gap-2">
+              {collapsed ? (
+                <button
+                  type="button"
+                  aria-expanded={false}
+                  aria-controls="driver-sheet-body"
+                  onClick={() => setCollapsed(false)}
+                  className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 text-left"
+                >
+                  {isOnline && !currentOrder ? <span className="pulse-dot inline-block h-3 w-3 shrink-0 rounded-full bg-[#FFC400]" /> : null}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-base font-extrabold text-white">{summary.title}</span>
+                    {summary.subtitle ? <span className="block truncate text-xs text-white/60">{summary.subtitle}</span> : null}
+                  </span>
+                </button>
+              ) : (
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    {isOnline && !currentOrder ? <span className="pulse-dot inline-block h-3 w-3 shrink-0 rounded-full bg-[#FFC400]" /> : null}
+                    <span className="truncate text-lg font-extrabold text-white">{summary.title}</span>
+                  </div>
+                  <div className="truncate text-xs text-white/60">{summary.subtitle}</div>
+                </div>
+              )}
+
+              <button
+                type="button"
+                id="driver-sheet-toggle"
+                aria-label={collapsed ? "Развернуть панель водителя" : "Свернуть панель водителя"}
+                aria-expanded={!collapsed}
+                aria-controls="driver-sheet-body"
+                onClick={() => setCollapsed(!collapsed)}
+                className="flex min-h-10 items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-xs font-bold text-[#FFC400] backdrop-blur-xl"
+              >
+                <span>{collapsed ? "Развернуть" : "Карта"}</span>
+                <svg
+                  className={`h-4 w-4 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`}
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div
+            id="driver-sheet-body"
+            hidden={collapsed}
+            data-collapsed={collapsed ? "true" : "false"}
+            className={collapsed ? "hidden" : "flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4"}
+          >
+            {notice ? (
+              <div className="rounded-2xl border border-[#FFC400]/30 bg-[#FFC400]/10 px-4 py-3 text-sm font-semibold text-[#FFC400]" role="status">
+                {notice}
+              </div>
+            ) : null}
+            {isOnline && tracking.error ? <ErrorBanner message={tracking.error} /> : null}
+            <ErrorBanner message={actionError} />
+
+            {currentOrder ? (
+              <ActiveOrderPanel
+                order={currentOrder}
+                navigator={user.navigator}
+                busy={busy}
+                onAction={() => currentOrder.nextAction && void act(currentOrder.nextAction.action)}
+                onDecline={() => {
+                  setDeclineTargetId(currentOrder.id);
+                  setDeclineModalOpen(true);
+                }}
+              />
+            ) : isOnline ? (
+              <OnlinePanel
+                available={filteredAvailable}
+                selectedId={selectedId}
+                acceptingId={acceptingId}
+                busy={busy}
+                onSelect={setSelectedId}
+                onAccept={(id) => void accept(id)}
+                onGoOffline={() => void goOffline()}
+              />
+            ) : (
+              <OfflinePanel vehicle={state.driver.vehicle} busy={busy} onGoOnline={() => void goOnline()} />
+            )}
+          </div>
+        </GlassCard>
+
+        {!collapsed ? (
+          <div className="pointer-events-auto z-40">
+            <BottomNav items={DRIVER_NAV} />
+          </div>
         ) : (
-          <OfflinePanel vehicle={state.driver.vehicle} busy={busy} onGoOnline={() => void goOnline()} />
+          <div className="safe-bottom" />
         )}
-      </CollapsibleSheet>
+      </div>
     </main>
   );
 }

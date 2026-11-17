@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { useSession } from "@/shared/session";
 import { setSessionToken } from "@/shared/api";
-import { Button, Spinner } from "@/core/widgets/ui";
-import { AppLogo } from "@/core/widgets/AppLogo";
+import { Spinner } from "@/core/widgets/ui";
+import { BrandMark } from "@/core/widgets/BrandMark";
+import { GlassCard, TaxiArt, TuberBackdrop } from "@/core/widgets/TuberUI";
 import { RoleSelect } from "@/features/authentication/RoleSelect";
 
 /** Минимальный интерфейс MAX Bridge: unsafe-данные — только для подсказок в интерфейсе. */
@@ -115,8 +116,10 @@ export default function LandingPage() {
   // Если идет загрузка или мы перенаправляем — показываем спиннер
   if (loading || (user && !isSwitching)) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-bg">
-        <Spinner className="h-8 w-8 text-accent" />
+      <main className="relative flex min-h-dvh flex-col items-center justify-center gap-5 overflow-hidden bg-[#07071A] text-white">
+        <TuberBackdrop />
+        <BrandMark className="relative z-10 h-16 w-16 drop-shadow-[0_0_20px_rgba(255,196,0,0.4)]" />
+        <Spinner className="relative z-10 h-8 w-8 text-[#FFC400]" />
       </main>
     );
   }
@@ -128,35 +131,64 @@ export default function LandingPage() {
 
   // Онбординг (если пользователя нет в базе)
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-bg p-6">
-      <div className="neo-btn p-8 rounded-3xl text-center">
-        <AppLogo className="mx-auto mb-6 h-auto w-48 max-w-full" />
-        <h1 className="text-2xl font-bold text-ink mb-2">Давай знакомиться</h1>
-        <p className="text-sm text-muted mb-6">Как тебя зовут? Это имя будут видеть водители.</p>
-        {idHint && <p className="text-xs text-muted mb-4">MAX ID: {idHint}</p>}
+    <main className="relative flex min-h-dvh w-full flex-col overflow-hidden bg-[#07071A] text-white">
+      <TuberBackdrop />
 
-        <form onSubmit={handleOnboard} className="flex flex-col gap-4">
-          {error && <div className="text-danger text-sm">{error}</div>}
-          <input
-            type="text"
-            placeholder={nameHint ? `Например: ${nameHint}` : "Ваше имя"}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") { e.preventDefault(); handleOnboard(); }
-            }}
-            className="neo-inset w-full p-3 rounded-xl outline-none text-center text-lg text-ink"
-          />
-          <Button
-            type="button"
-            onClick={() => handleOnboard()}
-            variant="primary"
-            className="w-full touch-manipulation"
-            loading={isSubmitting}
-          >
-            Продолжить
-          </Button>
-        </form>
+      {/* Оранжевая 3D-машина — как в эталоне, законтентным слоем */}
+      <div className="pointer-events-none absolute -bottom-16 left-1/2 z-0 h-[260px] w-[380px] max-w-[110%] -translate-x-1/2">
+        <TaxiArt view="front" className="h-full w-full" />
+      </div>
+
+      <div className="relative z-10 flex flex-1 flex-col px-6 pb-14 pt-12">
+        {/* Крупный логотип «рядом» */}
+        <div className="flex flex-col items-center">
+          <BrandMark className="h-20 w-20 drop-shadow-[0_12px_24px_rgba(0,0,0,0.5)]" />
+          <h1 className="mt-2 text-[46px] font-black leading-none tracking-tight">рядом</h1>
+          <p className="mt-3 text-[12px] font-semibold uppercase tracking-[0.28em] text-[#FFC400]">
+            такси на связи
+          </p>
+        </div>
+
+        <GlassCard className="mt-10 p-6">
+          <span className="inline-flex h-1.5 w-10 rounded-full bg-[#FFC400]" aria-hidden="true" />
+          <h2 className="mt-4 text-[26px] font-bold leading-tight">Давай знакомиться</h2>
+          <p className="mt-2 text-sm leading-snug text-white/70">
+            Как тебя зовут? Это имя будут видеть водители.
+          </p>
+          {idHint ? <p className="mt-2 text-xs font-medium text-[#FFC400]">MAX ID: {idHint}</p> : null}
+
+          <form onSubmit={handleOnboard} className="mt-6 flex flex-col gap-4">
+            {error ? (
+              <div className="rounded-2xl border border-danger/40 bg-danger/15 px-4 py-3 text-sm text-danger" role="alert">
+                {error}
+              </div>
+            ) : null}
+            <input
+              type="text"
+              placeholder={nameHint ? `Например: ${nameHint}` : "Ваше имя"}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); handleOnboard(); }
+              }}
+              aria-label="Ваше имя"
+              className="w-full rounded-2xl border border-white/25 bg-white/10 px-4 py-4 text-center text-lg text-white outline-none transition placeholder:text-white/45 focus:border-[#FFC400] focus:bg-white/15"
+            />
+            <button
+              type="button"
+              onClick={() => handleOnboard()}
+              disabled={isSubmitting}
+              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#FFC400] px-5 py-4 text-base font-bold text-[#07071A] shadow-[0_12px_30px_rgba(255,196,0,0.28)] transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting ? <Spinner className="h-5 w-5" /> : null}
+              Продолжить
+            </button>
+          </form>
+        </GlassCard>
+
+        <p className="mt-auto pt-8 text-center text-xs leading-snug text-white/50">
+          Продолжая, вы соглашаетесь с правилами сервиса
+        </p>
       </div>
     </main>
   );

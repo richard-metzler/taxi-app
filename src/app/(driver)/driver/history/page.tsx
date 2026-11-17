@@ -1,11 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/shared/api";
 import { useRequireAuth } from "@/shared/session";
 import { driverStatusText, type DriverTripView } from "@/shared/driver-types";
 import { formatMoney } from "@/shared/types";
-import { BottomNav, DRIVER_NAV, ErrorBanner, PageHeader, Spinner, StatusPill } from "@/core/widgets/ui";
+import { GlassCard, TaxiArt, TuberBackdrop, TuberHeader } from "@/core/widgets/TuberUI";
+import { BottomNav, DRIVER_NAV, ErrorBanner, Spinner } from "@/core/widgets/ui";
 
 type Period = "today" | "week" | "all";
 
@@ -37,8 +39,18 @@ function inPeriod(iso: string, period: Period): boolean {
   return date >= weekAgo;
 }
 
-/** История поездок водителя. */
+function StatusPill({ text, tone }: { text: string; tone: "success" | "danger" | "accent" }) {
+  const color = tone === "success" ? "text-[#FFC400]" : tone === "danger" ? "text-[#FF8A8A]" : "text-white/80";
+  return (
+    <span className={`rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold ${color}`}>
+      {text}
+    </span>
+  );
+}
+
+/** История поездок водителя в стиле эталона tuber. */
 export default function DriverHistoryPage() {
+  const router = useRouter();
   const { user } = useRequireAuth();
   const [items, setItems] = useState<DriverTripView[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,8 +74,8 @@ export default function DriverHistoryPage() {
 
   if (!user) {
     return (
-      <main className="flex min-h-dvh items-center justify-center">
-        <Spinner className="h-8 w-8 text-accent" />
+      <main className="flex min-h-dvh items-center justify-center bg-[#07071A]">
+        <Spinner className="h-8 w-8 text-[#FFC400]" />
       </main>
     );
   }
@@ -72,78 +84,100 @@ export default function DriverHistoryPage() {
   const income = filtered.reduce((sum, trip) => sum + trip.price, 0);
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
-      <PageHeader title="Поездки" />
-      <div className="flex flex-1 flex-col gap-3 px-3 pb-3">
-        <ErrorBanner message={error} onRetry={load} />
+    <main className="relative flex min-h-dvh w-full flex-col bg-[#07071A] text-white">
+      <TuberBackdrop />
 
-        <div className="neo-inset flex gap-1 p-1" role="tablist" aria-label="Период поездок">
-          {PERIODS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={period === item.id}
-              onClick={() => setPeriod(item.id)}
-              className={`flex min-h-10 flex-1 items-center justify-center rounded-xl text-sm font-semibold ${
-                period === item.id ? "neo-btn text-accent" : "text-muted"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+      <TuberHeader onBack={() => router.back()} onProfile={() => router.push("/driver/settings")} />
 
-        <section className="neo flex flex-col gap-1 p-4">
-          <div className="text-xs font-semibold text-muted">Доход за период</div>
-          <div className="text-3xl font-bold text-accent">{formatMoney(income)}</div>
-          <div className="mt-1 text-sm text-muted">
+      <h1 className="relative z-10 mt-8 px-6 text-[34px] font-bold leading-tight tracking-tight">Поездки</h1>
+
+      {/* Сегмент периодов: активная вкладка с жёлтой линией */}
+      <div className="relative z-10 mt-6 flex gap-6 overflow-x-auto border-b border-white/15 px-6 scrollbar-hide" role="tablist" aria-label="Период поездок">
+        {PERIODS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={period === item.id}
+            onClick={() => setPeriod(item.id)}
+            className={`relative shrink-0 whitespace-nowrap pb-3 text-[15px] font-semibold transition-colors ${
+              period === item.id ? "text-white" : "text-white/50 hover:text-white/80"
+            }`}
+          >
+            {item.label}
+            {period === item.id ? (
+              <span className="absolute inset-x-0 -bottom-px h-[3px] rounded-full bg-[#FFC400] shadow-[0_0_10px_rgba(255,196,0,0.7)]" aria-hidden="true" />
+            ) : null}
+          </button>
+        ))}
+      </div>
+
+      <div className="relative z-10 flex flex-1 flex-col gap-3 px-4 pb-4 pt-5">
+        {error ? (
+          <div className="[&_.neo-inset]:!rounded-[20px] [&_.neo-inset]:!border [&_.neo-inset]:!border-white/20 [&_.neo-inset]:!bg-white/10 [&_.neo-inset]:!shadow-none [&_.neo-inset]:!backdrop-blur-2xl">
+            <ErrorBanner message={error} onRetry={load} />
+          </div>
+        ) : null}
+
+        {/* Карточка дохода */}
+        <GlassCard className="relative overflow-hidden p-5">
+          <TaxiArt view="top" className="absolute -right-3 -top-4 h-36 w-24 opacity-20" />
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#FFC400]">Доход за период</div>
+          <div className="mt-1 text-4xl font-black tracking-tight text-white">{formatMoney(income)}</div>
+          <div className="mt-2 text-sm text-white/65">
             {filtered.length} {tripWord(filtered.length)}
           </div>
-        </section>
+        </GlassCard>
 
         {items === null && !error ? (
           <div className="flex justify-center py-10">
-            <Spinner className="h-8 w-8 text-accent" />
+            <Spinner className="h-8 w-8 text-[#FFC400]" />
           </div>
         ) : null}
         {items && filtered.length === 0 ? (
-          <div className="neo mt-3 p-6 text-center text-sm text-muted">
+          <GlassCard className="mt-2 p-6 text-center text-sm text-white/70">
             Поездок за этот период нет. Выйдите на линию, чтобы принимать заказы.
-          </div>
+          </GlassCard>
         ) : null}
+
         {filtered.map((trip) => (
-          <article key={trip.id} className="neo flex flex-col gap-3 p-4">
+          <GlassCard key={trip.id} className="p-5">
             <div className="flex items-center justify-between gap-2">
-              <div className="text-xs text-muted">{formatDate(trip.createdAt)}</div>
+              <span className="text-xs text-white/60">{formatDate(trip.createdAt)}</span>
               <StatusPill
                 text={driverStatusText(trip.status)}
                 tone={trip.status === "completed" ? "success" : trip.status === "cancelled" ? "danger" : "accent"}
               />
             </div>
 
-            <div className="neo-inset flex flex-col gap-2 px-3.5 py-3">
-              <div className="flex items-start gap-2.5">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-bg">А</span>
-                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{trip.pickupAddress}</span>
+            <div className="mt-4 flex items-start gap-3">
+              {/* Жёлтые маркеры А и Б с соединительной линией */}
+              <div className="flex shrink-0 flex-col items-center pt-0.5">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#FFC400] text-[11px] font-black text-[#07071A]">А</span>
+                <span className="my-1 h-7 w-0.5 rounded-full bg-[#FFC400]/45" aria-hidden="true" />
+                <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#FFC400] text-[11px] font-black text-[#FFC400]">Б</span>
               </div>
-              <div className="ml-2 h-3 w-px bg-border" aria-hidden="true" />
-              <div className="flex items-start gap-2.5">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success text-[10px] font-bold text-bg">Б</span>
-                <span className="min-w-0 flex-1 truncate text-sm text-ink">{trip.destinationAddress}</span>
+
+              <div className="flex min-w-0 flex-1 flex-col gap-6 pt-0.5">
+                <span className="truncate text-[15px] font-medium text-white">{trip.pickupAddress}</span>
+                <span className="truncate text-[15px] font-medium text-white">{trip.destinationAddress}</span>
+              </div>
+
+              <div className="shrink-0 text-right">
+                <div className="text-2xl font-bold tracking-tight text-[#FFC400]">{formatMoney(trip.price)}</div>
               </div>
             </div>
 
-            <div className="flex items-end justify-between gap-3">
-              <div className="min-w-0 truncate text-xs text-muted">
+            <div className="mt-4 flex items-center gap-3 border-t border-white/15 pt-3">
+              <div className="min-w-0 flex-1 truncate text-xs text-white/65">
                 {trip.passengerName} · {trip.tariffName}
               </div>
-              <div className="shrink-0 text-lg font-bold text-accent">{formatMoney(trip.price)}</div>
             </div>
-          </article>
+          </GlassCard>
         ))}
       </div>
-      <div className="sticky bottom-0">
+
+      <div className="sticky bottom-0 z-40">
         <BottomNav items={DRIVER_NAV} />
       </div>
     </main>

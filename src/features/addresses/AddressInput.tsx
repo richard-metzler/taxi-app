@@ -49,11 +49,11 @@ export function AddressInput({ label, value, placeholder, near, onTextChange, on
 
   return (
     <div className="relative">
-      <label className="mb-1 block px-1 text-xs font-semibold text-muted">{label}</label>
-      <div className="neo-input flex items-center gap-2 px-3">
-        <span className="text-lg">{icon}</span>
+      <label className="mb-1 block px-1 text-xs font-semibold text-white/60">{label}</label>
+      <div className="flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-3 backdrop-blur-2xl">
+        <span className="text-lg text-[#FFC400]">{icon}</span>
         <input
-          className="min-w-0 flex-1 bg-transparent py-3 text-base outline-none"
+          className="min-w-0 flex-1 bg-transparent py-3 text-base text-white outline-none placeholder:text-white/45"
           value={value}
           placeholder={placeholder}
           onChange={(e) => {
@@ -63,16 +63,16 @@ export function AddressInput({ label, value, placeholder, near, onTextChange, on
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
         />
-        {loading ? <Spinner className="h-4 w-4 text-accent" /> : null}
+        {loading ? <Spinner className="h-4 w-4 text-[#FFC400]" /> : null}
       </div>
       {open && (items.length > 0 || error) && (
-        <ul className="neo absolute left-0 right-0 z-[1500] mt-2 max-h-64 overflow-y-auto p-2">
+        <ul className="absolute left-0 right-0 z-[1500] mt-2 max-h-64 overflow-y-auto rounded-[24px] border border-white/20 bg-[#0E1230]/95 p-2 backdrop-blur-2xl">
           {error ? <li className="px-3 py-2 text-sm text-danger">{error}</li> : null}
           {items.map((s) => (
             <li key={s.id}>
               <button
                 type="button"
-                className="w-full rounded-xl px-3 py-2 text-left hover:bg-white/40 active:bg-white/60"
+                className="w-full rounded-xl px-3 py-2 text-left text-white hover:bg-white/10 active:bg-white/15"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   onSelect(s);
@@ -82,7 +82,7 @@ export function AddressInput({ label, value, placeholder, near, onTextChange, on
                 }}
               >
                 <div className="text-sm font-semibold">{s.title}</div>
-                {s.subtitle ? <div className="text-xs text-muted">{s.subtitle}</div> : null}
+                {s.subtitle ? <div className="text-xs text-white/55">{s.subtitle}</div> : null}
               </button>
             </li>
           ))}
