@@ -23,6 +23,8 @@ export type RideMapProps = {
   fitKey?: string;
   /** Ключ размера открытой области карты (например, после сворачивания панели). */
   layoutKey?: string | boolean;
+  /** Высота перекрывающей карту панели в px — маршрут центрируется в свободной области выше неё. */
+  focusPaddingBottom?: number;
   /** Внешняя команда центрирования. */
   flyTo?: { point: LatLng; nonce: number } | null;
   className?: string;
@@ -227,7 +229,7 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
     }
   }, [props.route]);
 
-  // Подгонка границ
+  // Подгонка границ с учётом реальной высоты перекрывающей панели.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !props.fitKey) return;
@@ -235,20 +237,38 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
     if (props.pickup) pts.push([props.pickup.latitude, props.pickup.longitude]);
     if (props.destination) pts.push([props.destination.latitude, props.destination.longitude]);
     if (props.driver) pts.push([props.driver.latitude, props.driver.longitude]);
+    const bottom = (props.focusPaddingBottom ?? 0) + 24;
     if (pts.length >= 2) {
-      map.fitBounds(L.latLngBounds(pts), { padding: [60, 60], maxZoom: 16 });
+      map.fitBounds(L.latLngBounds(pts), {
+        paddingTopLeft: [24, 24],
+        paddingBottomRight: [24, bottom],
+        maxZoom: 16,
+      });
     } else if (pts.length === 1) {
-      map.setView(pts[0], 15);
+      // Одна точка: центрируем её в видимой части карты выше панели.
+      map.flyToBounds(L.latLngBounds([pts[0], pts[0]]), {
+        paddingTopLeft: [24, 24],
+        paddingBottomRight: [24, bottom],
+        maxZoom: 15,
+        animate: false,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.fitKey]);
+  }, [props.fitKey, props.focusPaddingBottom]);
 
-  // Внешняя команда центрирования
+  // Внешняя команда центрирования — тоже в видимую область выше панели.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !props.flyTo) return;
-    map.flyTo([props.flyTo.point.latitude, props.flyTo.point.longitude], 16, { duration: 0.6 });
-  }, [props.flyTo]);
+    const p: L.LatLngExpression = [props.flyTo.point.latitude, props.flyTo.point.longitude];
+    const bottom = (props.focusPaddingBottom ?? 0) + 24;
+    map.flyToBounds(L.latLngBounds([p, p]), {
+      paddingTopLeft: [24, 24],
+      paddingBottomRight: [24, bottom],
+      maxZoom: 16,
+      duration: 0.6,
+    });
+  }, [props.flyTo, props.focusPaddingBottom]);
 
   useEffect(() => {
     const map = mapRef.current;

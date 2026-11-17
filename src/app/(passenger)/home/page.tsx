@@ -54,6 +54,8 @@ export default function HomePage() {
   const [activeInput, setActiveInput] = useState<"pickup" | "destination" | null>(null);
 
   const sheetStartYRef = useRef<number | null>(null);
+  const panelWrapRef = useRef<HTMLDivElement>(null);
+  const [panelHeight, setPanelHeight] = useState(0);
 
   // Восстановление активного заказа
   useEffect(() => {
@@ -169,6 +171,18 @@ export default function HomePage() {
     [estimate, pickup, destination],
   );
 
+  // Реальная высота панели — карта центрируется в свободной области выше неё.
+  useEffect(() => {
+    const node = panelWrapRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver((entries) => {
+      const height = entries[0]?.contentRect.height ?? 0;
+      void Promise.resolve().then(() => setPanelHeight(height));
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   // Время прибытия считаем на клиенте, чтобы не ломать гидратацию.
   useEffect(() => {
     void Promise.resolve().then(() => {
@@ -255,6 +269,7 @@ export default function HomePage() {
           onPickupDragEnd={applyPickupFromPoint}
           fitKey={fitKey}
           flyTo={flyTo}
+          focusPaddingBottom={panelHeight}
         />
       </div>
 
@@ -336,6 +351,7 @@ export default function HomePage() {
 
       {/* Нижняя glass-панель заказа. При редактировании адресов вытягивается вверх. */}
       <div
+        ref={panelWrapRef}
         className={`pointer-events-none relative z-[1000] mt-auto flex flex-col transition-[max-height] duration-300 ${
           activeInput ? "h-[86dvh]" : sheetCollapsed ? "" : "max-h-[62dvh]"
         }`}
