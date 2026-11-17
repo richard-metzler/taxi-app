@@ -229,11 +229,13 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
     }
   }, [props.route]);
 
-  // Подгонка границ с учётом реальной высоты перекрывающей панели.
-  // Берём все точки маршрута (routeGeometry), чтобы линия целиком помещалась в видимую область.
+  // Подгонка границ и зума: маршрут и точки вписываются в свободную область карты
+  // (между шапкой и панелью ввода). Используем реальную высоту панели как нижний padding.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    const size = map.getSize();
+    if (size.x < 40 || size.y < 40) return;
     const pts: L.LatLngExpression[] = [];
     if (props.route && props.route.length > 1) {
       for (const [lat, lng] of props.route) pts.push([lat, lng]);
@@ -242,22 +244,41 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
     if (props.destination) pts.push([props.destination.latitude, props.destination.longitude]);
     if (props.driver) pts.push([props.driver.latitude, props.driver.longitude]);
     if (pts.length === 0) return;
-    const bottom = (props.focusPaddingBottom ?? 0) + 24;
     const bounds = L.latLngBounds(pts);
+    const pad = props.focusPaddingBottom ?? 0;
+    const topInset = 130; // шапка + плашки над картой
+    const bottomInset = pad + 40; // панель ввода + запас
+    const horizontal = 36;
+    const visibleW = Math.max(80, size.x - horizontal * 2);
+    const visibleH = Math.max(80, size.y - topInset - bottomInset);
+    if (visibleH < 80) return;
+
+    // Вычисляем зум, при котором bounds помещаются в видимую область.
+    let targetZoom = 15;
     if (pts.length >= 2) {
-      map.fitBounds(bounds, {
-        paddingTopLeft: [24, 24],
-        paddingBottomRight: [24, bottom],
-        maxZoom: 16,
-      });
+      const zoom = map.getBoundsZoom(bounds, false, L.point(0, 0));
+      const sw = map.project(bounds.getSouthWest(), zoom);
+      const ne = map.project(bounds.getNorthEast(), zoom);
+      const spanX = Math.max(1, Math.abs(ne.x - sw.x));
+      const spanY = Math.max(1, Math.abs(ne.y - sw.y));
+      const fitZoom = Math.min(
+        zoom,
+        zoom + Math.log2(visibleW / spanX),
+        zoom + Math.log2(visibleH / spanY),
+        16,
+      );
+      targetZoom = Math.max(0, fitZoom);
+    }
+
+    // Центр bounds смещаем вниз на half видимой области, чтобы он оказался выше панели.
+    const centerPx = map.project(bounds.getCenter(), targetZoom);
+    const shiftY = (topInset + visibleH / 2) - size.y / 2;
+    const center = map.unproject([centerPx.x, centerPx.y - shiftY], targetZoom);
+
+    if (pts.length === 1) {
+      map.setView(center, targetZoom, { animate: false });
     } else {
-      // Одна точка: flyToBounds с асимметричным padding сам поставит её выше панели.
-      map.flyToBounds(bounds, {
-        paddingTopLeft: [24, 24],
-        paddingBottomRight: [24, bottom],
-        maxZoom: 15,
-        animate: false,
-      });
+      map.setView(center, targetZoom, { animate: false });
     }
   }, [props.fitKey, props.focusPaddingBottom, props.route, props.pickup, props.destination, props.driver]);
 
@@ -265,6 +286,8 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !props.flyTo) return;
+    // Когда есть маршрут, центрированием управляет эффект подгонки зума.
+    if (props.route && props.route.length > 1) return;
     const p: L.LatLngExpression = [props.flyTo.point.latitude, props.flyTo.point.longitude];
     const bottom = (props.focusPaddingBottom ?? 0) + 24;
     map.flyToBounds(L.latLngBounds([p, p]), {
@@ -273,7 +296,7 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
       maxZoom: 16,
       duration: 0.6,
     });
-  }, [props.flyTo, props.focusPaddingBottom]);
+  }, [props.flyTo, props.focusPaddingBottom, props.route]);
 
   useEffect(() => {
     const map = mapRef.current;
