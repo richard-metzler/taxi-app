@@ -163,6 +163,14 @@ body {
   display: none !important;
 }
 
+/* Тёмный вид карты: фильтр поверхобычных тайлов (не зависит от CARTO CDN). */
+.dark-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.88) saturate(0.75);
+}
+.dark-map .leaflet-container {
+  background: #0b0d10;
+}
+
 /* Утилиты, которые активно используются в разметке, но отсутствуют в теме.
    Обычные классы в конце файла: они не заменяют и не ломают существующие .neo-*.
    Цвета подобраны под тёмную неоморфную палитру (#0b0d10 / #16191f). */

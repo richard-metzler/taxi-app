@@ -68,7 +68,9 @@ function applyHeading(marker: L.Marker | null, heading = 0) {
  * Обновляются только изменившиеся слои.
  */
 export default function RideMap(props: RideMapProps) {
-  return <RideMapCanvas key="dark" {...props} provider="dark" />;
+  // Тайлы берём у выбранного провайдера (по умолчанию Яндекс, как до смены темы),
+  // а тёмный вид получаем CSS-фильтром — так карта не зависит от доступности стороннего CDN.
+  return <RideMapCanvas {...props} provider={props.provider ?? "yandex"} />;
 }
 
 function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
@@ -298,7 +300,7 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
     <div
       ref={containerRef}
       data-map-provider={providerConfig.id}
-      className={props.className ?? "h-full w-full"}
+      className={`dark-map ${props.className ?? "h-full w-full"}`}
     />
   );
 }
