@@ -344,7 +344,7 @@ export default function HomePage() {
             brand="Куда поедем?"
           />
 
-          <div className="relative z-10 mt-7 flex flex-col gap-4 px-6">
+          <div className="relative z-20 mt-7 flex flex-col gap-4 px-6">
             <div className="flex flex-col gap-1">
               <span className="ml-2 text-xs font-semibold text-white/60">Точка посадки</span>
               <AddressInput
@@ -372,8 +372,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Список подсказок (рендерится внутри AddressInput) */}
-          <div className="relative z-10 mt-5 flex-1 overflow-y-auto rounded-t-[28px] border-t border-white/20 bg-white/10 px-5 pt-4 backdrop-blur-2xl">
+          {/* Ваше местоположение — ниже поля и его подсказок */}
+          <div className="relative z-0 mt-5 flex-1 overflow-y-auto rounded-t-[28px] border-t border-white/20 bg-white/10 px-5 pt-4 backdrop-blur-2xl">
             <button
               className="flex w-full items-center gap-3 border-b border-white/10 p-3 text-left active:bg-white/5"
               onClick={() => { onLocate(); setActiveInput(null); }}
