@@ -300,7 +300,7 @@ export default function HomePage() {
       {availableDrivers !== null && !activeInput && (
         <div className="absolute left-6 top-[100px] z-[1000] flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 backdrop-blur-2xl">
           <Image
-            src="/images/taxi-3d-front.svg"
+            src="/images/taxi-3d-front.jpg"
             alt=""
             width={22}
             height={16}
@@ -546,7 +546,7 @@ export default function HomePage() {
                     >
                       <span className="relative h-12 w-24 self-center">
                         <Image
-                          src="/images/taxi-3d-front.svg"
+                          src="/images/taxi-3d-front.jpg"
                           alt=""
                           fill
                           unoptimized

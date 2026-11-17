@@ -58,7 +58,7 @@ export function TaxiArt({ view, className = "" }: { view: "front" | "top"; class
   return (
     <div className={`pointer-events-none relative ${className}`}>
       <Image
-        src={view === "front" ? "/images/taxi-3d-front.svg" : "/images/taxi-3d-top.svg"}
+        src={view === "front" ? "/images/taxi-3d-front.jpg" : "/images/taxi-3d-top.jpg"}
         alt=""
         fill
         unoptimized

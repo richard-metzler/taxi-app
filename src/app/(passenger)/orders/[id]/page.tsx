@@ -161,7 +161,7 @@ export default function OrderPage() {
 
         {/* Машина сверху */}
         <div className="pointer-events-none absolute left-1/2 top-[176px] z-0 h-[330px] w-[230px] -translate-x-1/2">
-          <Image src="/images/taxi-3d-top.svg" alt="" fill unoptimized className="object-contain drop-shadow-[0_22px_30px_rgba(0,0,0,0.4)]" aria-hidden="true" />
+          <Image src="/images/taxi-3d-top.jpg" alt="" fill unoptimized className="object-contain drop-shadow-[0_22px_30px_rgba(0,0,0,0.4)]" aria-hidden="true" />
         </div>
 
         {/* Итоговая панель */}
@@ -250,7 +250,7 @@ export default function OrderPage() {
 
       {/* Машина снизу по центру */}
       <div className="pointer-events-none absolute bottom-[1%] left-1/2 z-0 h-[240px] w-[360px] -translate-x-1/2">
-        <Image src="/images/taxi-3d-front.svg" alt="" fill unoptimized className="object-contain drop-shadow-[0_18px_30px_rgba(0,0,0,0.45)]" aria-hidden="true" />
+        <Image src="/images/taxi-3d-front.jpg" alt="" fill unoptimized className="object-contain drop-shadow-[0_18px_30px_rgba(0,0,0,0.45)]" aria-hidden="true" />
       </div>
 
       {notice ? <p className="absolute left-1/2 top-24 z-20 -translate-x-1/2 rounded-full bg-[#FFC400] px-4 py-2 text-xs font-bold text-[#07071A]">{notice}</p> : null}
