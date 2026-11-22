@@ -305,7 +305,7 @@ export default function HomePage() {
       )}
 
       {/* Кнопки поверх карты: назад к адресам слева и геолокация справа — в верхних углах под шапкой. */}
-      <div className="pointer-events-none absolute inset-x-0 top-[100px] z-[1000] flex items-center justify-between px-6">
+      <div className="pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top)+16px)] z-[1000] flex items-center justify-between px-6">
         <button
           type="button"
           aria-label="Назад к адресам"
