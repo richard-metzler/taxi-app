@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "@/shared/session";
 import { setSessionToken } from "@/shared/api";
 import { Spinner } from "@/core/widgets/ui";
@@ -20,6 +21,7 @@ function getWebApp(): MaxWebApp | undefined {
 }
 
 export default function LandingPage() {
+  const router = useRouter();
   const { user, loading } = useSession();
   const [isSwitching, setIsSwitching] = useState(false);
 
@@ -85,7 +87,7 @@ export default function LandingPage() {
       // Cookie может быть срезана прокси превью — сессия должна выжить через тело RPC.
       if (typeof data.token === "string") setSessionToken(data.token);
 
-      window.location.href = "/home";
+      router.push("/home");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка сохранения");
       setIsSubmitting(false);
@@ -108,7 +110,7 @@ export default function LandingPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error?.message || "Ошибка смены роли");
       if (typeof data.token === "string") setSessionToken(data.token);
-      window.location.href = role === "passenger" ? "/home" : "/driver";
+      router.push(role === "passenger" ? "/home" : "/driver");
     } catch (err) {
       console.error(err);
     }

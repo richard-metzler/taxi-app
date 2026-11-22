@@ -10,6 +10,45 @@ import { newId } from "@/server/ids";
 
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 
+/** Поддерживаемые MIME-типы и их магические байты (file signatures). */
+const ALLOWED_MIME_TYPES = {
+  "image/jpeg": [0xff, 0xd8, 0xff],
+  "image/png": [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+  "image/webp": [0x52, 0x49, 0x46, 0x46], // RIFF header, further check needed
+} as const;
+
+function detectMimeType(buffer: Buffer): string | null {
+  if (buffer.length < 12) return null;
+  // JPEG: FF D8 FF
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return "image/jpeg";
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0d &&
+    buffer[5] === 0x0a &&
+    buffer[6] === 0x1a &&
+    buffer[7] === 0x0a
+  )
+    return "image/png";
+  // WebP: RIFF....WEBP
+  if (
+    buffer[0] === 0x52 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x46 &&
+    buffer.length >= 12 &&
+    buffer[8] === 0x57 &&
+    buffer[9] === 0x45 &&
+    buffer[10] === 0x42 &&
+    buffer[11] === 0x50
+  )
+    return "image/webp";
+  return null;
+}
+
 /** data URL или чистый base64 → Buffer для вложения в письмо модератору. */
 function decodePhoto(value: unknown): Buffer | null {
   if (typeof value !== "string" || !value.trim()) return null;
@@ -22,6 +61,11 @@ function decodePhoto(value: unknown): Buffer | null {
   const buffer = Buffer.from(base64, "base64");
   if (!buffer.length || buffer.length > MAX_PHOTO_BYTES) {
     throw new AppError("invalid_photo", "Фотография слишком большая или повреждена", 400);
+  }
+  // Валидация MIME-типа по магическим байтам
+  const mime = detectMimeType(buffer);
+  if (!mime || !(mime in ALLOWED_MIME_TYPES)) {
+    throw new AppError("invalid_photo", "Неподдерживаемый формат изображения. Используйте JPEG, PNG или WebP", 400);
   }
   return buffer;
 }
@@ -150,18 +194,27 @@ export async function POST(req: Request) {
           auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
           connectionTimeout: 10000,
         });
+        // Санитизация пользовательских данных для предотвращения email header injection
+        const sanitize = (s: string) => s.replace(/[\r\n]/g, " ").slice(0, 200);
         const phone = typeof body.phone === "string" && body.phone.trim() ? body.phone.trim() : user.phone;
+        const safeName = sanitize(name);
+        const safePhone = sanitize(phone);
+        const safeBrand = sanitize(vehicleData.brand);
+        const safeModel = sanitize(vehicleData.model);
+        const safeColor = sanitize(vehicleData.color);
+        const safePlate = sanitize(vehicleData.plate);
+        const safeMaxId = sanitize(user.phone.replace("max_", ""));
         await transporter.sendMail({
           from: `"Такси Рядом" <${process.env.SMTP_USER}>`,
           to: "taxi_r9dom@mail.ru",
-          subject: `Новый водитель на модерацию: ${name}`,
-          text: `Водитель: ${name}\nТелефон: ${phone}\nАвто: ${vehicleData.brand} ${vehicleData.model}, ${vehicleData.color}, ${vehicleData.plate}\nMAX ID: ${user.phone.replace("max_", "")}`,
+          subject: `Новый водитель на модерацию: ${safeName}`,
+          text: `Водитель: ${safeName}\nТелефон: ${safePhone}\nАвто: ${safeBrand} ${safeModel}, ${safeColor}, ${safePlate}\nMAX ID: ${safeMaxId}`,
           attachments: [
-            { filename: `selfie_${name}.jpg`, content: selfieBuffer },
-            { filename: `license_${name}.jpg`, content: licenseBuffer },
+            { filename: `selfie_${safeName}.jpg`, content: selfieBuffer },
+            { filename: `license_${safeName}.jpg`, content: licenseBuffer },
           ],
         });
-        console.log(`[moderation] Email sent for driver ${name}`);
+        console.log(`[moderation] Email sent for driver ${safeName}`);
       } catch (err) {
         console.error("[moderation] Email failed:", err instanceof Error ? err.message : "unknown");
       }

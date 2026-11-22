@@ -9,10 +9,11 @@ import { validateVehicle, type VehicleInput } from "@/core/vehicle";
 import { readTokenCandidates, type TokenSource } from "./session-transport";
 import { recordAuthDiagnostic } from "./diagnostics";
 import { hashPassword, verifyPassword } from "./password";
+import { isPasswordBreached } from "./password-breach";
 import { consumeLoginAttempt, consumeRegistrationAttempt, resetAuthAttempts } from "./auth-throttle";
 import { newId } from "./ids";
 
-const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 14 дней вместо 30
 
 export type AccountRole = "passenger" | "driver";
 
@@ -125,6 +126,10 @@ export async function registerWithPassword(input: {
   if (existing && (existing.passwordHash || role !== "passenger")) throw phoneTakenError(existing.role, role);
   if (existing && existing.role !== "passenger") throw Errors.forbidden();
 
+  // Проверяем пароль по базе утечек (best-effort, k-анонимность).
+  if (await isPasswordBreached(password)) {
+    throw new AppError("password_breached", "Этот пароль был скомпрометирован. Выберите другой.", 422);
+  }
   const passwordHash = await hashPassword(password);
   let user: User;
 

@@ -20,7 +20,6 @@ export class ApiError extends Error {
 /* ---------- Хранение токена сессии ---------- */
 
 const TOKEN_KEY = "taxi_passenger_session";
-const WINDOW_NAME_PREFIX = "taxi_passenger_session:";
 const TOKEN_RE = /^[a-f0-9]{64}$/;
 
 let memoryToken: string | null = null;
@@ -41,44 +40,21 @@ function availableStorage(): Storage | null {
   }
 }
 
-function readWindowName(): string | null {
-  try {
-    const value = window.name;
-    if (!value.startsWith(WINDOW_NAME_PREFIX)) return null;
-    const token = value.slice(WINDOW_NAME_PREFIX.length);
-    return TOKEN_RE.test(token) ? token : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeWindowName(token: string | null): void {
-  try {
-    if (token) window.name = WINDOW_NAME_PREFIX + token;
-    else if (window.name.startsWith(WINDOW_NAME_PREFIX)) window.name = "";
-  } catch {
-    // Недоступно — токен останется только в памяти.
-  }
-}
-
 /**
- * Загрузка токена: localStorage, а если он заблокирован — window.name.
- * window.name переживает перезагрузку окна и не зависит от cookie и заголовков, которые удаляет прокси.
- * Используется только при недоступном хранилище; при уходе на сторонние сайты очищается.
+ * Загрузка токена из localStorage.
+ * Если localStorage недоступен (например, в приватном режиме или iframe без разрешения),
+ * токен будет доступен только в памяти текущей сессии.
  */
 function loadToken(): string | null {
   const storage = availableStorage();
-  if (!storage) return readWindowName();
-  const fromName = readWindowName();
-  writeWindowName(null);
+  if (!storage) return null;
   try {
     const stored = storage.getItem(TOKEN_KEY);
     if (stored && TOKEN_RE.test(stored)) return stored;
-    if (fromName) storage.setItem(TOKEN_KEY, fromName);
   } catch {
-    // Хранилище стало недоступно — используем значение из window.name.
+    // Хранилище недоступно.
   }
-  return fromName;
+  return null;
 }
 
 function persistToken(token: string | null): void {
@@ -87,13 +63,10 @@ function persistToken(token: string | null): void {
     try {
       if (token) storage.setItem(TOKEN_KEY, token);
       else storage.removeItem(TOKEN_KEY);
-      writeWindowName(null);
-      return;
     } catch {
-      // Переходим к window.name.
+      // Хранилище недоступно — токен останется только в памяти.
     }
   }
-  writeWindowName(token);
 }
 
 function getSessionToken(): string | null {
