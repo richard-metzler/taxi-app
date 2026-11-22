@@ -13,11 +13,10 @@ export async function POST(req: Request) {
       throw new AppError("invalid_init_data", "Не удалось подтвердить данные MAX", 401);
     }
     const role = body.role === "driver" ? "driver" : "passenger";
-    const name = typeof body.name === "string" ? body.name.trim() : undefined;
-
-    // Идентификатор и имя берём только из проверенных данных initData.
+    // Имя берём ТОЛЬКО из проверенной подписи initData. Тело запроса недоверенно —
+    // пользователь не может подставить произвольное имя или записать 8 КБ в users.name.
     const verified = validateMaxInitData(initData, process.env.MAX_BOT_TOKEN ?? "");
-    const result = await signInWithMax(verified.userId, role, name || verified.name);
+    const result = await signInWithMax(verified.userId, role, verified.name);
     return authResponse(req, result, 200);
   } catch (error) {
     return authErrorResponse(error);

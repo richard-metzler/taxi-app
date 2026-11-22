@@ -27,10 +27,18 @@ export function publicOrigin(req: Request): string {
   return `${proto}://${host}`;
 }
 
-/** Пришёл ли запрос по HTTPS (с учётом прокси и заголовка Origin). */
+/**
+ * Пришёл ли запрос по HTTPS (с учётом прокси).
+ * НЕ доверяем client-controlled заголовку Origin при решении о Secure-атрибуте cookie:
+ * злоумышленник мог бы подделать Origin, чтобы получить/не получить Secure-флаг.
+ * Приоритет: APP_BASE_URL → x-forwarded-proto → протокол req.url.
+ */
 export function isHttpsRequest(req: Request): boolean {
-  if (req.headers.get("origin")?.startsWith("https://")) return true;
-  return publicOrigin(req).startsWith("https://");
+  const configured = process.env.APP_BASE_URL?.trim();
+  if (configured) return configured.startsWith("https://");
+  const url = new URL(req.url);
+  const proto = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || url.protocol.replace(":", "");
+  return proto === "https";
 }
 
 /** Признак безопасного соединения для атрибутов cookie (Secure, SameSite=None). */

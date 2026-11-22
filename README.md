@@ -181,7 +181,7 @@ insert into tariff_zones (tariff_id, zone_id) values ('econom', 'tula'), ('comfo
 |---|---|---|
 | `DATABASE_URL` | ✅ | строка подключения к PostgreSQL |
 | `MAX_BOT_TOKEN` | ✅ | токен бота MAX: проверка подписи `initData` при входе и отправка уведомлений |
-| `APP_BASE_URL` | — | публичный адрес приложения (для cookie `Secure` и ссылок);否则 определяется из запроса |
+| `APP_BASE_URL` | — | публичный адрес приложения (для cookie `Secure` и ссылок); иначе определяется из запроса |
 | `OSRM_BASE_URL` | — | свой OSRM (по умолчанию — публичный демо-сервер) |
 | `SMTP_HOST` / `SMTP_PORT` | — | SMTP для отправки анкет водителей на модерацию |
 | `SMTP_USER` / `SMTP_PASS` | — | учётные данные SMTP (без них письмо модератору пропускается) |

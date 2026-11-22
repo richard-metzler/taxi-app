@@ -375,11 +375,14 @@ export default function DriverHomePage() {
         onConfirm={async () => {
           if (declineTargetId) {
             try {
-              // Если это текущий заказ (уже принятый), вызываем API отказа
+              // Текущий заказ (уже принятый) — стандартный API отказа.
+              // Оффер ещё не принят — отдельный API, который записывает отказ в БД
+              // и убирает заказ из списка даже после перезагрузки.
               if (declineTargetId === currentOrder?.id) {
                 await api.driver.action(declineTargetId, "decline");
+              } else {
+                await api.driver.declineOffer(declineTargetId);
               }
-              // В любом случае скрываем заказ локально
               setDeclinedIds((current) => new Set(current).add(declineTargetId));
               setIncomingOrder(null);
               await reload();

@@ -55,13 +55,29 @@ const ZONES: { id: string; name: string; lat: number; lng: number; radiusKm: num
 ];
 
 let seeded = false;
+/** Мьютекс: параллельные первые запросы ждут одного и того же сидинга, не создавая дубликаты. */
+let seedingPromise: Promise<void> | null = null;
 
 export async function ensureSeeded(): Promise<void> {
   if (seeded) return;
+  if (seedingPromise) return seedingPromise;
 
+  seedingPromise = doSeed();
+  try {
+    await seedingPromise;
+    seeded = true;
+  } catch (err) {
+    // При ошибке сбрасываем promise, чтобы следующая попытка могла повторить сидинг.
+    seedingPromise = null;
+    throw err;
+  }
+}
+
+async function doSeed(): Promise<void> {
   const [{ value: tariffCount }] = await db.select({ value: count() }).from(tariffs);
   if (Number(tariffCount) === 0) {
-    await db.insert(tariffs).values(TARIFFS.map((tariff) => ({ ...tariff, updatedAt: new Date() })));
+    // onConflictDoNothing защищает от гонки между инстансами/serverless-функциями.
+    await db.insert(tariffs).values(TARIFFS.map((tariff) => ({ ...tariff, updatedAt: new Date() }))).onConflictDoNothing();
   }
 
   const [{ value: zoneCount }] = await db.select({ value: count() }).from(serviceZones);
@@ -76,18 +92,14 @@ export async function ensureSeeded(): Promise<void> {
         isActive: true,
         sortOrder: i + 1,
       })),
-    );
+    ).onConflictDoNothing();
   }
 
   // Все классы тарифов доступны в зоне Томск.
   const [{ value: linkCount }] = await db.select({ value: count() }).from(tariffZones);
   if (Number(linkCount) === 0) {
     const links = TARIFF_IDS.flatMap((tariffId) => ZONES.map((z) => ({ tariffId, zoneId: z.id })));
-    try {
-      await db.insert(tariffZones).values(links);
-    } catch (e) {
-      console.warn("tariffZones already seeded", e);
-    }
+    await db.insert(tariffZones).values(links).onConflictDoNothing();
   }
 
   const [{ value: driverCount }] = await db.select({ value: count() }).from(drivers);
@@ -130,5 +142,4 @@ export async function ensureSeeded(): Promise<void> {
       });
     }
   }
-  seeded = true;
 }

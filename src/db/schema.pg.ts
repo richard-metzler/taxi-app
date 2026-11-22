@@ -9,8 +9,10 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const userRoleEnum = pgEnum("user_role", ["passenger", "driver", "admin"]);
 export const orderStatusEnum = pgEnum("order_status", [
@@ -29,12 +31,16 @@ export const USER_ROLES = userRoleEnum.enumValues;
 export const ORDER_STATUSES = orderStatusEnum.enumValues;
 export const NAVIGATORS = navigatorEnum.enumValues;
 
-export const declinedOrders = pgTable("declined_orders", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  driverId: uuid("driver_id").notNull().references(() => drivers.id, { onDelete: "cascade" }),
-  orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const declinedOrders = pgTable(
+  "declined_orders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    driverId: uuid("driver_id").notNull().references(() => drivers.id, { onDelete: "cascade" }),
+    orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("declined_orders_driver_order_idx").on(t.driverId, t.orderId)],
+);
 
 export type UserRole = (typeof USER_ROLES)[number];
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
@@ -62,13 +68,17 @@ export const authAttempts = pgTable("auth_attempts", {
   windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const sessions = pgTable("sessions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  tokenHash: text("token_hash").notNull().unique(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("sessions_expires_idx").on(t.expiresAt)],
+);
 
 export const tariffs = pgTable("tariffs", {
   id: text("id").primaryKey(),
@@ -200,7 +210,16 @@ export const orders = pgTable(
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("orders_passenger_idx").on(t.passengerId, t.createdAt)],
+  (t) => [
+    index("orders_passenger_idx").on(t.passengerId, t.createdAt),
+    index("orders_driver_status_idx").on(t.driverId, t.status),
+    index("orders_status_idx").on(t.status),
+    // Гарантия на уровне БД: у пассажира может быть только один активный заказ.
+    // Устраняет гонку между проверкой и INSERT в createOrder.
+    uniqueIndex("orders_one_active_per_passenger_idx")
+      .on(t.passengerId)
+      .where(sql`${t.status} IN ('searching', 'driver_assigned', 'driver_arriving', 'driver_waiting', 'in_progress')`),
+  ],
 );
 
 export const orderEvents = pgTable(

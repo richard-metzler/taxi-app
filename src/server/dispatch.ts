@@ -126,6 +126,18 @@ async function tryAssignDriver(order: Order, now: Date): Promise<Order> {
     approachRoute = [[start.latitude, start.longitude], [pickup.latitude, pickup.longitude]];
   }
 
+  // Атомарно захватываем водителя: только один заказ может пометить его isBusy=true.
+  // Это устраняет гонку, когда два заказа назначали бы одного и того же симулированного водителя.
+  const [claimed] = await db
+    .update(drivers)
+    .set({ isBusy: true })
+    .where(and(eq(drivers.id, candidate.driver.id), eq(drivers.isBusy, false)))
+    .returning({ id: drivers.id });
+  if (!claimed) {
+    // Водителя уже занял параллельный заказ — пробуем позже.
+    return order;
+  }
+
   const [updated] = await db
     .update(orders)
     .set({
@@ -144,9 +156,12 @@ async function tryAssignDriver(order: Order, now: Date): Promise<Order> {
     })
     .where(and(eq(orders.id, order.id), eq(orders.status, "searching"), isNull(orders.driverId)))
     .returning();
-  if (!updated) return order;
+  if (!updated) {
+    // Заказ уже назначен/отменён — освобождаем водителя.
+    await db.update(drivers).set({ isBusy: false }).where(eq(drivers.id, candidate.driver.id));
+    return order;
+  }
 
-  await db.update(drivers).set({ isBusy: true }).where(eq(drivers.id, candidate.driver.id));
   await setDriverLocation(candidate.driver.id, start, bearingDegrees(start, pickup));
   await addEvent(updated, "driver_assigned");
   

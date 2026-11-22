@@ -9,7 +9,9 @@ export async function GET(req: Request) {
     const user = await requirePassenger();
     const since = new URL(req.url).searchParams.get("since");
     const items = await listRecentEvents(user, since);
-    return NextResponse.json({ items, now: new Date().toISOString() });
+    // Метка времени с 1 мс «назад»: событие, созданное в ту же миллисекунду,
+    // всё равно попадёт в следующий опрос (фильтр `createdAt > since`).
+    return NextResponse.json({ items, now: new Date(Date.now() - 1).toISOString() });
   } catch (e) {
     return handleApiError(e);
   }

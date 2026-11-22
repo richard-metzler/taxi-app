@@ -332,6 +332,21 @@ export async function performDriverAction(driver: Driver, orderId: string, rawAc
   return { status: updated.status };
 }
 
+/**
+ * Водитель отказался от ещё не принятого оффера.
+ * Записываем отказ в БД, чтобы заказ больше не предлагался этому водителю
+ * даже после перезагрузки страницы (declinedOrders учитывается в listAvailableOrders).
+ */
+export async function declineOffer(driver: Driver, orderId: string): Promise<void> {
+  const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
+  if (!order) throw Errors.notFound("Заказ");
+  if (order.status !== "searching" || order.driverId) {
+    throw new AppError("order_unavailable", "Заказ уже недоступен", 409);
+  }
+  // onConflictDoNothing защищает от повторного отказа (уникальный индекс в schema).
+  await db.insert(declinedOrders).values({ id: newId(), driverId: driver.id, orderId }).onConflictDoNothing();
+}
+
 /** Поездки водителя: завершённые, оплаченные и отменённые после принятия. */
 export async function listDriverTrips(driver: Driver): Promise<DriverTripView[]> {
   const rows = await db

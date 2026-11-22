@@ -35,22 +35,37 @@ export function useOrder(orderId: string) {
 
   useEffect(() => {
     let stopped = false;
+    let inFlight = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    const run = async () => {
+      if (inFlight) return null;
+      inFlight = true;
+      try {
+        return await load();
+      } finally {
+        inFlight = false;
+      }
+    };
     const loop = async () => {
-      const o = await load();
+      const o = await run();
       if (stopped || forbidden) return;
       const interval = o && TERMINAL.has(o.status) ? 15000 : 2500;
       timer = setTimeout(loop, interval);
     };
     void loop();
-    const onOnline = () => void load();
-    window.addEventListener("online", onOnline);
-    window.addEventListener("focus", onOnline);
+    // Онлайн/фокус只是 ускоряют следующий опрос, не создавая параллельный запрос.
+    const onWake = () => {
+      if (stopped || inFlight) return;
+      if (timer) clearTimeout(timer);
+      void loop();
+    };
+    window.addEventListener("online", onWake);
+    window.addEventListener("focus", onWake);
     return () => {
       stopped = true;
       if (timer) clearTimeout(timer);
-      window.removeEventListener("online", onOnline);
-      window.removeEventListener("focus", onOnline);
+      window.removeEventListener("online", onWake);
+      window.removeEventListener("focus", onWake);
     };
   }, [load, forbidden]);
 

@@ -23,6 +23,7 @@ import * as driverLocation from "../driver/location/route";
 import * as driverAvailable from "../driver/orders/available/route";
 import * as driverHistory from "../driver/orders/history/route";
 import * as driverAccept from "../driver/orders/[id]/accept/route";
+import * as driverDecline from "../driver/orders/[id]/decline/route";
 import * as driverAction from "../driver/orders/[id]/action/route";
 
 /**
@@ -82,6 +83,11 @@ const ROUTES: RouteDef[] = [
     method: "POST",
     pattern: new RegExp(`^/api/driver/orders/${ID}/accept$`),
     run: (req, m) => driverAccept.POST(req, withParams({ id: m[1] })),
+  },
+  {
+    method: "POST",
+    pattern: new RegExp(`^/api/driver/orders/${ID}/decline$`),
+    run: (req, m) => driverDecline.POST(req, withParams({ id: m[1] })),
   },
   {
     method: "POST",

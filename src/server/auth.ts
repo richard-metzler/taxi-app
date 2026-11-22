@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
-import { and, eq, gt, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { drivers, sessions, users, vehicles, userRoles, type User } from "@/db/schema";
 import { AppError, Errors } from "@/core/errors";
@@ -141,7 +141,6 @@ export async function registerWithPassword(input: {
     user = refreshed[0];
   } else {
     const userId = newId();
-    const now = new Date();
     await db.insert(users).values({
       id: userId,
       phone,
@@ -211,18 +210,20 @@ export async function signInWithPassword(input: { phone: unknown; password: unkn
 }
 
 export async function signInWithMax(maxUserId: string, role: AccountRole, name?: string): Promise<SignInResult> {
+  // Имя приходит из проверенного initData, но всё равно ограничиваем длину (defense-in-depth).
+  const safeName = typeof name === "string" ? Array.from(name.trim()).slice(0, 60).join("") : undefined;
   const phone = `max_${maxUserId}`;
   const [existing] = await db.select().from(users).where(eq(users.phone, phone));
 
   let user: User;
   if (existing) {
     const updates: Partial<typeof users.$inferInsert> = { updatedAt: new Date() };
-    if (name) updates.name = name;
+    if (safeName) updates.name = safeName;
     await db.update(users).set(updates).where(eq(users.id, existing.id));
-    if (name) existing.name = name;
+    if (safeName) existing.name = safeName;
     user = existing;
   } else {
-    const userName = name?.trim() || "Пользователь MAX";
+    const userName = safeName || "Пользователь MAX";
     const [created] = await db.insert(users).values({
       phone,
       name: userName,

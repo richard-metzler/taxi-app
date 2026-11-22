@@ -60,21 +60,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
    */
   const refresh = useCallback(async () => {
     const epoch = getLoginEpoch();
+    const MAX_NETWORK_RETRIES = 10; // ~30 с ожидания сети, затем показываем интерфейс
+    let retries = 0;
     for (;;) {
       try {
         const { user } = await api.auth.me();
         if (getLoginEpoch() === epoch) setUserState(user);
         break;
       } catch (err) {
-        if (err instanceof ApiError && (err.code === "offline" || err.code === "network")) {
+        if (err instanceof ApiError && (err.code === "offline" || err.code === "network") && retries < MAX_NETWORK_RETRIES) {
+          retries++;
           await sleep(3000);
           if (getLoginEpoch() !== epoch) break;
           continue;
         }
-        // Если сервер вернул 500-ю ошибку, НЕ разлогиниваем пользователя
-        if (err instanceof ApiError && err.status && err.status >= 500) {
+        // Если сеть так и не появилась — НЕ разлогиниваем, просто снимаем loading,
+        // чтобы пользователь увидел интерфейс (OfflineBanner уже показан).
+        if (err instanceof ApiError && (err.code === "offline" || err.code === "network")) {
+          console.warn("Сеть недоступна, сессия не проверена");
+        } else if (err instanceof ApiError && err.status && err.status >= 500) {
+          // Если сервер вернул 500-ю ошибку, НЕ разлогиниваем пользователя
           console.error("Ошибка сервера при проверке сессии:", err);
-          // Оставляем пользователя в текущем состоянии, просто завершаем загрузку
         } else if (getLoginEpoch() === epoch) {
           setUserState(null);
         }
@@ -107,6 +113,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // Опрос событий заказов для уведомлений (только у пассажира)
   useEffect(() => {
     if (!user || user.role !== "passenger") return;
+    // Сбрасываем курсор при смене пользователя, иначе события нового аккаунта
+    // отфильтруются по времени старого.
+    sinceRef.current = null;
     let cancelled = false;
     const tick = async () => {
       try {

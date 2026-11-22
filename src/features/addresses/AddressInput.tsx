@@ -23,23 +23,28 @@ export function AddressInput({ label, value, placeholder, near, onTextChange, on
   const [error, setError] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastQueryRef = useRef("");
+  /** Номер актуального запроса: результат устаревшего запроса не должен перезаписывать свежий. */
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     if (!open) return;
     const q = value.trim();
     if (q.length < 3 || q === lastQueryRef.current) return;
     if (timerRef.current) clearTimeout(timerRef.current);
+    const requestId = ++requestIdRef.current;
     timerRef.current = setTimeout(async () => {
       setLoading(true);
       setError(null);
       try {
         const { items } = await api.geocode.search(q, near);
+        if (requestId !== requestIdRef.current) return; // устаревший ответ — игнорируем
         lastQueryRef.current = q;
         setItems(items);
       } catch (err) {
+        if (requestId !== requestIdRef.current) return;
         setError(err instanceof ApiError ? err.message : "Ошибка поиска адреса");
       } finally {
-        setLoading(false);
+        if (requestId === requestIdRef.current) setLoading(false);
       }
     }, 450);
     return () => {

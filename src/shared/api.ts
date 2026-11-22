@@ -214,6 +214,7 @@ export const api = {
     sendLocation: (position: { latitude: number; longitude: number; heading?: number }) =>
       request<{ ok: true }>("/api/driver/location", { method: "POST", body: position }),
     availableOrders: () => request<{ items: AvailableOrderView[] }>("/api/driver/orders/available"),
+    declineOffer: (id: string) => request<{ ok: true }>(`/api/driver/orders/${id}/decline`, { method: "POST" }),
     accept: (orderId: string) =>
       request<{ ok: true }>(`/api/driver/orders/${encodeURIComponent(orderId)}/accept`, { method: "POST" }),
     action: (orderId: string, action: DriverAction) =>

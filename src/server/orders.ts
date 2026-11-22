@@ -53,25 +53,34 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
     .limit(1);
   if (active.length > 0) throw new AppError("active_order_exists", "У вас уже есть активный заказ", 409);
 
-  const [order] = await db.insert(orders).values({
-    id: newId(),
-    passengerId: user.id,
-    status: "searching",
-    pickupAddress: estimate.pickupAddress,
-    pickupLat: Number(estimate.pickupLat),
-    pickupLng: Number(estimate.pickupLng),
-    destinationAddress: estimate.destinationAddress,
-    destinationLat: Number(estimate.destinationLat),
-    destinationLng: Number(estimate.destinationLng),
-    tariffId,
-    tariffVersion: quote.tariffVersion,
-    estimateId: estimate.id,
-    estimatedPrice: quote.price,
-    currency: "RUB",
-    distanceMeters: estimate.distanceMeters,
-    durationSeconds: estimate.durationSeconds,
-    routeGeometry: typeof estimate.routeGeometry === 'string' ? JSON.parse(estimate.routeGeometry) : estimate.routeGeometry,
-  }).returning();
+  let order;
+  try {
+    [order] = await db.insert(orders).values({
+      id: newId(),
+      passengerId: user.id,
+      status: "searching",
+      pickupAddress: estimate.pickupAddress,
+      pickupLat: Number(estimate.pickupLat),
+      pickupLng: Number(estimate.pickupLng),
+      destinationAddress: estimate.destinationAddress,
+      destinationLat: Number(estimate.destinationLat),
+      destinationLng: Number(estimate.destinationLng),
+      tariffId,
+      tariffVersion: quote.tariffVersion,
+      estimateId: estimate.id,
+      estimatedPrice: quote.price,
+      currency: "RUB",
+      distanceMeters: estimate.distanceMeters,
+      durationSeconds: estimate.durationSeconds,
+      routeGeometry: typeof estimate.routeGeometry === 'string' ? JSON.parse(estimate.routeGeometry) : estimate.routeGeometry,
+    }).returning();
+  } catch (err) {
+    // Partial unique index orders_one_active_per_passenger_idx ловит параллельное создание.
+    if (err && typeof err === "object" && "code" in err && (err as { code?: string }).code === "23505") {
+      throw new AppError("active_order_exists", "У вас уже есть активный заказ", 409);
+    }
+    throw err;
+  }
   // Отправляем уведомления свободным водителям этого тарифа ПОЛНОСТЬЮ В ФОНЕ,
   // чтобы время отклика пассажира не зависело от числа онлайн-водителей.
   void (async () => {
@@ -135,7 +144,9 @@ export async function getOrderView(user: User, orderId: string): Promise<OrderVi
     const rows = await db
       .select({ driver: drivers, vehicle: vehicles, location: driverLocations })
       .from(drivers)
-      .leftJoin(vehicles, eq(vehicles.id, order.vehicleId ?? ""))
+      // vehicleId может быть null (водитель назначен, авто ещё не привязан) —
+      // сравниваем с NULL через SQL, чтобы не получить invalid input syntax for uuid.
+      .leftJoin(vehicles, sql`${vehicles.id} = ${order.vehicleId ?? null}`)
       .leftJoin(driverLocations, eq(driverLocations.driverId, drivers.id))
       .where(eq(drivers.id, order.driverId));
     const row = rows[0];
@@ -257,15 +268,16 @@ export async function listOrders(user: User): Promise<OrderSummary[]> {
 
 /** Последние события по заказам пассажира (in-app уведомления). */
 export async function listRecentEvents(user: User, sinceIso: string | null) {
+  // При первом опросе берём окно 60 с. При последующих — только события новее `since`.
   const since = sinceIso ? new Date(sinceIso) : new Date(Date.now() - 60_000);
   const rows = await db
     .select()
     .from(orderEvents)
-    .where(eq(orderEvents.passengerId, user.id))
+    // Фильтр в SQL (а не после LIMIT 20), иначе 20 старых событий могут вытеснить свежие.
+    .where(and(eq(orderEvents.passengerId, user.id), sql`${orderEvents.createdAt} > ${since}`))
     .orderBy(desc(orderEvents.createdAt))
     .limit(20);
   return rows
-    .filter((e: { createdAt: Date }) => e.createdAt.getTime() > since.getTime())
     .reverse()
     .map((e: { id: string; orderId: string; type: string; title: string; body: string; createdAt: Date }) => ({
       id: e.id,

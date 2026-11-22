@@ -57,7 +57,7 @@ async function consume(scope: "login" | "register", phone: string): Promise<void
     throw new AppError("too_many_attempts", `Слишком много попыток. Попробуйте снова через ${minutes} мин.`, 429);
   }
 
-  // Периодическая очистка устаревших записей (大概 2% запросов)
+  // Периодическая очистка устаревших записей (примерно 2% запросов)
   if (Math.random() < 0.02) {
     await db.delete(authAttempts).where(sql`${authAttempts.windowStartedAt} < ${new Date(now.getTime() - 2 * WINDOW_MS)}`);
   }
