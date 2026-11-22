@@ -1,12 +1,19 @@
 {
-  "name": "nextjs-postgresql-template",
+  "name": "taxi-app-technical",
+  "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push"
   },
   "overrides": {
     "esbuild": "$esbuild",
@@ -15,7 +22,6 @@
     }
   },
   "dependencies": {
-    "@types/leaflet": "^1.9.22",
     "dotenv": "17.3.1",
     "drizzle-orm": "0.45.2",
     "leaflet": "^1.9.4",
@@ -29,6 +35,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.1.17",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "22.19.15",
     "@types/nodemailer": "^8.0.2",
     "@types/pg": "8.18.0",

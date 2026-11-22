@@ -36,6 +36,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const sinceRef = useRef<string | null>(null);
   const userRef = useRef<UserProfile | null>(null);
+  const toastTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const router = useRouter();
 
   userRef.current = user;
@@ -43,7 +44,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const notify = useCallback((title: string, body: string, orderId?: string) => {
     const id = Math.random().toString(36).slice(2);
     setToasts((t) => [...t, { id, title, body, orderId }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 5000);
+    const timer = setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 5000);
+    toastTimersRef.current.push(timer);
+  }, []);
+
+  // Очищаем таймеры тостов при размонтировании провайдера
+  useEffect(() => {
+    const timers = toastTimersRef.current;
+    return () => timers.forEach(clearTimeout);
   }, []);
 
   /**

@@ -72,41 +72,46 @@ export async function createOrder(user: User, estimateId: string, tariffId: stri
     durationSeconds: estimate.durationSeconds,
     routeGeometry: typeof estimate.routeGeometry === 'string' ? JSON.parse(estimate.routeGeometry) : estimate.routeGeometry,
   }).returning();
-  // Отправляем уведомления свободным водителям этого тарифа
-  try {
-    const availableDrivers = await db
-      .select({ phone: users.phone, driverId: drivers.id, name: drivers.name })
-      .from(drivers)
-      .innerJoin(vehicles, eq(vehicles.driverId, drivers.id))
-      .innerJoin(users, eq(users.id, drivers.userId))
-      // Уведомления получают только водители с текущей ролью driver:
-      // бывший пассажир, сменивший роль, не должен видеть чужие заказы.
-      .where(and(eq(users.role, "driver"), eq(drivers.isOnline, true), eq(drivers.isBusy, false), eq(vehicles.tariffId, tariffId)));
-      
-    for (const d of availableDrivers) {
-      if (d.phone && d.phone.startsWith("max_")) {
-        const maxId = d.phone.replace("max_", "");
-        // Отправляем асинхронно, чтобы не задерживать ответ пассажиру
-        const text = `🔔 Новый заказ!\nОткуда: ${order.pickupAddress}\nКуда: ${order.destinationAddress}\nЦена: ${(quote.price / 100).toFixed(0)} ₽\n\nДля принятия заказа нажми Открыть 👇🏻`;
-        
-        // Кнопки для MAX (формат inline_keyboard)
-        const keyboard = {
-          buttons: [
-            [
-              { type: "callback", text: "✅ Принять", payload: `accept_order:${order.id}` },
-              { type: "callback", text: "❌ Отказаться", payload: `decline_order:${order.id}` }
-            ]
-          ]
-        };
+  // Отправляем уведомления свободным водителям этого тарифа ПОЛНОСТЬЮ В ФОНЕ,
+  // чтобы время отклика пассажира не зависело от числа онлайн-водителей.
+  void (async () => {
+    try {
+      const availableDrivers = await db
+        .select({ phone: users.phone, driverId: drivers.id, name: drivers.name })
+        .from(drivers)
+        .innerJoin(vehicles, eq(vehicles.driverId, drivers.id))
+        .innerJoin(users, eq(users.id, drivers.userId))
+        // Уведомления получают только водители с текущей ролью driver:
+        // бывший пассажир, сменивший роль, не должен видеть чужие заказы.
+        .where(and(eq(users.role, "driver"), eq(drivers.isOnline, true), eq(drivers.isBusy, false), eq(vehicles.tariffId, tariffId)));
 
-        sendMaxNotification(maxId, text, keyboard).catch(console.error);
-        // Задержка, чтобы не превысить лимит 2 сообщения в секунду
-        await new Promise(r => setTimeout(r, 500));
+      for (const d of availableDrivers) {
+        if (d.phone && d.phone.startsWith("max_")) {
+          const maxId = d.phone.replace("max_", "");
+          const text = `🔔 Новый заказ!\nОткуда: ${order.pickupAddress}\nКуда: ${order.destinationAddress}\nЦена: ${(quote.price / 100).toFixed(0)} ₽\n\nДля принятия заказа нажми Открыть 👇🏻`;
+
+          const keyboard = {
+            buttons: [
+              [
+                { type: "callback", text: "✅ Принять", payload: `accept_order:${order.id}` },
+                { type: "callback", text: "❌ Отказаться", payload: `decline_order:${order.id}` }
+              ]
+            ]
+          };
+
+          try {
+            await sendMaxNotification(maxId, text, keyboard);
+          } catch (err) {
+            console.error("Ошибка отправки MAX-уведомления:", err);
+          }
+          // Задержка, чтобы не превысить лимит 2 сообщения в секунду
+          await new Promise((r) => setTimeout(r, 500));
+        }
       }
+    } catch (e) {
+      console.error("Ошибка оповещения водителей:", e);
     }
-  } catch (e) {
-    console.error("Ошибка оповещения водителей:", e);
-  }
+  })();
 
   return order;
 }

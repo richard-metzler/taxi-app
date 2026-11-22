@@ -175,26 +175,32 @@ insert into tariff_zones (tariff_id, zone_id) values ('econom', 'tula'), ('comfo
 
 Серверная часть работает с PostgreSQL через драйвер `pg` и `drizzle-orm/node-postgres`.
 Обязательная переменная окружения — `DATABASE_URL` (строка подключения к PostgreSQL). Схема лежит в
-`src/db/schema.pg.ts`, применяется командой `npx drizzle-kit push`; `drizzle.config.ts` берёт URL
-исключительно из `DATABASE_URL`.
+`src/db/schema.pg.ts`; версионированная миграция — в `drizzle/`. Шаблон переменных — `.env.example`.
 
-| Переменная | Назначение |
-|---|---|
-| `DATABASE_URL` | строка подключения к PostgreSQL |
-| `MAX_BOT_TOKEN` | токен бота MAX: проверка подписи `initData` при входе и отправка уведомлений |
-| `OSRM_BASE_URL` | свой OSRM (по умолчанию — публичный демо-сервер) |
+| Переменная | Обязательна | Назначение |
+|---|---|---|
+| `DATABASE_URL` | ✅ | строка подключения к PostgreSQL |
+| `MAX_BOT_TOKEN` | ✅ | токен бота MAX: проверка подписи `initData` при входе и отправка уведомлений |
+| `APP_BASE_URL` | — | публичный адрес приложения (для cookie `Secure` и ссылок);否则 определяется из запроса |
+| `OSRM_BASE_URL` | — | свой OSRM (по умолчанию — публичный демо-сервер) |
+| `SMTP_HOST` / `SMTP_PORT` | — | SMTP для отправки анкет водителей на модерацию |
+| `SMTP_USER` / `SMTP_PASS` | — | учётные данные SMTP (без них письмо модератору пропускается) |
 
-Без `DATABASE_URL` интерфейс открывается, а запросы к данным сообщают, что база не настроена.
+Подключение к БД инициализируется **лениво**: сборка (`npm run build`) проходит и без `DATABASE_URL`,
+но при первом обращении к данным без неё API вернёт ошибку. Для `drizzle-kit generate` БД не нужна.
 
 ## Команды
 
 ```bash
-npx drizzle-kit push                               # применить схему
-npm run dev                                        # разработка
-node --experimental-strip-types --test tests/*.test.ts   # модульные тесты
-E2E_BASE_URL=http://localhost:3000 node --experimental-strip-types --test tests/*.test.ts  # + интеграционные (API)
-MAX_BOT_TOKEN=test-bot-token NODE_PATH=/tmp/pw/node_modules node tests/browser/login-through-proxy.cjs   # браузер через «урезающий» прокси
-MAX_BOT_TOKEN=test-bot-token DATABASE_URL="$DATABASE_URL" NODE_PATH=/tmp/pw/node_modules node tests/browser/roles-flow.cjs  # роли и интерфейс водителя
+npm ci                                 # установка зависимостей (Node >= 20.9)
+cp .env.example .env                   # шаблон переменных
+npm run db:generate                    # сгенерировать SQL-миграцию (БД не нужна)
+npm run db:push                        # применить схему к БД
+npm run dev                            # разработка
+npm run build                          # production-сборка (output: standalone)
+npm test                               # модульные тесты
+E2E_BASE_URL=http://localhost:3000 npm test   # + интеграционные (API)
+# браузерные тесты требуют Playwright и CHROME (см. комментарии в tests/browser/)
 ```
 
 Браузерные тесты подменяют `window.WebApp` подписанной строкой `initData` (см. `tests/browser/max-mock.cjs`),

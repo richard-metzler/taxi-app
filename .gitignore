@@ -24,3 +24,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# testing / tooling
+coverage/
+.turbo/
+.vercel/
+*.log
+

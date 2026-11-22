@@ -116,8 +116,11 @@ function RideMapCanvas(props: RideMapProps & { provider: MapProviderId }) {
       callbacksRef.current.onMapClick?.({ latitude: e.latlng.lat, longitude: e.latlng.lng });
     });
     mapRef.current = map;
-    setTimeout(() => map.invalidateSize(), 50);
+    const initTimer = setTimeout(() => {
+      if (mapRef.current === map) map.invalidateSize();
+    }, 50);
     return () => {
+      clearTimeout(initTimer);
       map.remove();
       mapRef.current = null;
       pickupRef.current = null;
