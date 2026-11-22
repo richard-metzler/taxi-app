@@ -287,39 +287,39 @@ export default function HomePage() {
         brand="рядом"
       />
 
-      {/* Компактная glass-плашка свободных машин */}
-      {availableDrivers !== null && (
-        <div className="absolute left-20 top-[100px] z-[1000] flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 backdrop-blur-2xl">
-          <Image
-            src="/images/taxi-3d-front.jpg"
-            alt=""
-            width={22}
-            height={16}
-            unoptimized
-            className="h-4 w-auto"
-            draggable={false}
-          />
-          <span className={`h-2.5 w-2.5 rounded-full ${availableDrivers > 0 ? "bg-success" : "bg-danger"}`} aria-hidden="true" />
-          {availableDrivers > 0 ? <span className="text-sm font-bold text-white">{availableDrivers}</span> : null}
-        </div>
-      )}
-
-      {/* Кнопки поверх карты: назад к адресам слева и геолокация справа — в верхних углах под шапкой. */}
-      <div className="pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top)+16px)] z-[1000] flex items-center justify-between px-6">
+      {/* Верхний ряд над картой: назад, свободные машины и геолокация. */}
+      <div className="pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top)+16px)] z-[1000] flex items-center gap-2 px-6">
         <button
           type="button"
           aria-label="Назад к адресам"
           onClick={() => { setEstimate(null); setSelectedTariffId(null); setCategory("ТАКСИ"); }}
-          className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-xl text-white backdrop-blur-2xl"
+          className="pointer-events-auto flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/10 text-xl text-white backdrop-blur-2xl"
           style={ROUND_GLOW}
         >
           ‹
         </button>
+
+        {availableDrivers !== null && (
+          <div className="flex shrink-0 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 backdrop-blur-2xl">
+            <Image
+              src="/images/taxi-3d-front.jpg"
+              alt=""
+              width={22}
+              height={16}
+              unoptimized
+              className="h-4 w-auto"
+              draggable={false}
+            />
+            <span className={`h-2.5 w-2.5 rounded-full ${availableDrivers > 0 ? "bg-success" : "bg-danger"}`} aria-hidden="true" />
+            {availableDrivers > 0 ? <span className="text-sm font-bold text-white">{availableDrivers}</span> : null}
+          </div>
+        )}
+
         <button
           type="button"
           aria-label="Моё местоположение"
           onClick={onLocate}
-          className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-xl text-white backdrop-blur-2xl"
+          className="pointer-events-auto ml-auto flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/10 text-xl text-white backdrop-blur-2xl"
           style={ROUND_GLOW}
           disabled={geo.loading}
         >
