@@ -288,8 +288,8 @@ export default function HomePage() {
       />
 
       {/* Компактная glass-плашка свободных машин */}
-      {availableDrivers !== null && !activeInput && (
-        <div className="absolute left-6 top-[100px] z-[1000] flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 backdrop-blur-2xl">
+      {availableDrivers !== null && (
+        <div className="absolute left-20 top-[100px] z-[1000] flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 backdrop-blur-2xl">
           <Image
             src="/images/taxi-3d-front.jpg"
             alt=""
@@ -304,34 +304,28 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Кнопки поверх карты: назад к адресам и геолокация */}
-      {!activeInput && (
-        <div
-          className={`pointer-events-none absolute inset-x-0 z-[1000] flex items-center justify-between px-6 transition-all duration-200 ${
-            sheetCollapsed ? "bottom-[16dvh]" : "bottom-[62dvh]"
-          }`}
+      {/* Кнопки поверх карты: назад к адресам слева и геолокация справа — в верхних углах под шапкой. */}
+      <div className="pointer-events-none absolute inset-x-0 top-[100px] z-[1000] flex items-center justify-between px-6">
+        <button
+          type="button"
+          aria-label="Назад к адресам"
+          onClick={() => { setEstimate(null); setSelectedTariffId(null); setCategory("ТАКСИ"); }}
+          className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-xl text-white backdrop-blur-2xl"
+          style={ROUND_GLOW}
         >
-          <button
-            type="button"
-            aria-label="Назад к адресам"
-            onClick={() => { setEstimate(null); setSelectedTariffId(null); setCategory("ТАКСИ"); }}
-            className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-xl text-white backdrop-blur-2xl"
-            style={ROUND_GLOW}
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            aria-label="Моё местоположение"
-            onClick={onLocate}
-            className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-xl text-white backdrop-blur-2xl"
-            style={ROUND_GLOW}
-            disabled={geo.loading}
-          >
-            {geo.loading ? <Spinner className="h-5 w-5 text-[#FFC400]" /> : "◎"}
-          </button>
-        </div>
-      )}
+          ‹
+        </button>
+        <button
+          type="button"
+          aria-label="Моё местоположение"
+          onClick={onLocate}
+          className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-xl text-white backdrop-blur-2xl"
+          style={ROUND_GLOW}
+          disabled={geo.loading}
+        >
+          {geo.loading ? <Spinner className="h-5 w-5 text-[#FFC400]" /> : "◎"}
+        </button>
+      </div>
 
       {/* Ошибка расчёта или заказа — видна независимо от состояния нижней панели */}
       {error ? (
@@ -344,7 +338,7 @@ export default function HomePage() {
       <div
         ref={panelWrapRef}
         className={`pointer-events-none relative z-[1000] mt-auto flex flex-col transition-[max-height] duration-300 ${
-          activeInput ? "h-[86dvh]" : sheetCollapsed ? "" : "max-h-[62dvh]"
+          activeInput ? "min-h-[62dvh] max-h-[70dvh]" : sheetCollapsed ? "" : "max-h-[62dvh]"
         }`}
       >
         <GlassCard className="pointer-events-auto mx-3 mb-2 flex min-h-0 flex-1 flex-col overflow-hidden">

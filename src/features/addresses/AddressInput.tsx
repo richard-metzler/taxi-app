@@ -66,7 +66,7 @@ export function AddressInput({ label, value, placeholder, near, onTextChange, on
         {loading ? <Spinner className="h-4 w-4 text-[#FFC400]" /> : null}
       </div>
       {open && (items.length > 0 || error) && (
-        <ul className="absolute left-0 right-0 z-50 mt-1.5 max-h-52 overflow-y-auto rounded-[20px] border border-white/20 bg-[#0E1230]/95 p-1.5 shadow-2xl backdrop-blur-2xl">
+        <ul className="relative z-50 mt-1.5 max-h-52 overflow-y-auto rounded-[20px] border border-white/20 bg-[#0E1230]/95 p-1.5 shadow-2xl backdrop-blur-2xl">
           {error ? <li className="px-3 py-2 text-sm text-danger">{error}</li> : null}
           {items.slice(0, 5).map((s) => (
             <li key={s.id}>
