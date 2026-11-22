@@ -32,6 +32,8 @@ export function RoleSelect({ onChoose }: { onChoose: (role: AppRole) => void }) 
     await new Promise<void>((resolve, reject) => {
       const script = document.createElement("script");
       script.src = "https://st.max.ru/js/max-web-app.js";
+      script.integrity = "sha384-DBHJBcpeTCUuptwLqB8FuQxMBBXDafKtyM/kOg+3PkHhCDtMaCcbpNliwOqgCjoA";
+      script.crossOrigin = "anonymous";
       script.onload = () => resolve();
       script.onerror = () => reject(new Error("Не удалось загрузить MAX SDK"));
       document.body.appendChild(script);
