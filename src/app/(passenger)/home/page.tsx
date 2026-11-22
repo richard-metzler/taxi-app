@@ -338,7 +338,7 @@ export default function HomePage() {
       <div
         ref={panelWrapRef}
         className={`pointer-events-none relative z-[1000] mt-auto flex flex-col transition-[max-height] duration-300 ${
-          activeInput ? "min-h-[62dvh] max-h-[70dvh]" : sheetCollapsed ? "" : "max-h-[62dvh]"
+          activeInput ? "min-h-[62dvh] max-h-[88dvh]" : sheetCollapsed ? "" : "max-h-[62dvh]"
         }`}
       >
         <GlassCard className="pointer-events-auto mx-3 mb-2 flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -415,9 +415,9 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* Режим ввода адресов — панель вытянулась вверх, всё в одном месте */}
+            {/* Режим ввода адресов — меняется только блок адресов, остальное окно остаётся на месте */}
             {activeInput ? (
-              <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-3">
+              <div className="relative z-10 flex flex-col gap-3">
                 <div className="flex flex-col gap-1">
                   <span className="ml-2 text-xs font-semibold text-white/60">Точка посадки</span>
                   <AddressInput
@@ -455,38 +455,38 @@ export default function HomePage() {
                 </button>
               </div>
             ) : (
-              <>
-            {/* Адреса: жёлтые маркеры А/Б и крупный жирный текст */}
-            <div className="relative flex flex-col">
-              <span className="absolute bottom-7 left-[6px] top-7 w-px bg-white/25" aria-hidden="true" />
-              <button
-                type="button"
-                onClick={() => setActiveInput("pickup")}
-                className="relative flex items-center gap-3 py-2 text-left"
-              >
-                <span className="h-[14px] w-[14px] shrink-0 rounded-full bg-[#FFC400] ring-4 ring-[#FFC400]/20" aria-hidden="true" />
-                <span className="min-w-0 flex-1 truncate text-[18px] font-bold text-white">
-                  {pickupText || "Адрес отправления"}
-                </span>
-                <span className="shrink-0 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[13px] font-medium text-white/85">
-                  Подъезд
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveInput("destination")}
-                className="relative flex items-center gap-3 py-2 text-left"
-              >
-                <span className="h-[14px] w-[14px] shrink-0 rounded-full bg-[#FFC400] ring-4 ring-[#FFC400]/20" aria-hidden="true" />
-                <span className="min-w-0 flex-1 truncate text-[18px] font-bold text-white">
-                  {destinationText || "Куда едем?"}
-                  {estimate ? <span className="font-normal text-white/55"> · {formatDuration(estimate.durationSeconds)}</span> : null}
-                </span>
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-xl font-bold text-white">
-                  +
-                </span>
-              </button>
-            </div>
+              /* Адреса: жёлтые маркеры А/Б и крупный жирный текст */
+              <div className="relative flex flex-col">
+                <span className="absolute bottom-7 left-[6px] top-7 w-px bg-white/25" aria-hidden="true" />
+                <button
+                  type="button"
+                  onClick={() => setActiveInput("pickup")}
+                  className="relative flex items-center gap-3 py-2 text-left"
+                >
+                  <span className="h-[14px] w-[14px] shrink-0 rounded-full bg-[#FFC400] ring-4 ring-[#FFC400]/20" aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate text-[18px] font-bold text-white">
+                    {pickupText || "Адрес отправления"}
+                  </span>
+                  <span className="shrink-0 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[13px] font-medium text-white/85">
+                    Подъезд
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveInput("destination")}
+                  className="relative flex items-center gap-3 py-2 text-left"
+                >
+                  <span className="h-[14px] w-[14px] shrink-0 rounded-full bg-[#FFC400] ring-4 ring-[#FFC400]/20" aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate text-[18px] font-bold text-white">
+                    {destinationText || "Куда едем?"}
+                    {estimate ? <span className="font-normal text-white/55"> · {formatDuration(estimate.durationSeconds)}</span> : null}
+                  </span>
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-xl font-bold text-white">
+                    +
+                  </span>
+                </button>
+              </div>
+            )}
 
             {/* Категории тарифов */}
             <div className="flex gap-6 border-b border-white/15">
@@ -553,19 +553,17 @@ export default function HomePage() {
                 })}
               </div>
             )}
-              </>
-            )}
           </div>
         </GlassCard>
 
         {/* Нижняя панель действий */}
-        {sheetCollapsed || activeInput ? null : (
+        {sheetCollapsed ? null : (
           <GlassCard className="pointer-events-auto mx-3 mb-3 flex items-center gap-3 p-3">
             <BrandMark className="h-12 w-12 shrink-0" />
             <button
               type="button"
               onClick={estimate ? placeOrder : buildRoute}
-              disabled={estimate ? !selectedTariff || ordering : !pickup || !destination || estimating}
+              disabled={activeInput !== null || (estimate ? !selectedTariff || ordering : !pickup || !destination || estimating)}
               className="flex h-[50px] flex-1 items-center justify-center gap-2 rounded-[25px] bg-[#FFC400] text-[17px] font-bold text-[#07071A] shadow-[0_8px_24px_rgba(255,196,0,0.35)] transition active:scale-[0.99] disabled:opacity-50"
             >
               {estimate ? (ordering ? <Spinner className="h-5 w-5" /> : null) : estimating ? <Spinner className="h-5 w-5" /> : null}
@@ -574,7 +572,7 @@ export default function HomePage() {
             <button
               type="button"
               aria-label="Детали заказа"
-              disabled={!estimate}
+              disabled={activeInput !== null || !estimate}
               onClick={() => setDetailsOpen(true)}
               className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-2xl disabled:opacity-40"
               style={ROUND_GLOW}
